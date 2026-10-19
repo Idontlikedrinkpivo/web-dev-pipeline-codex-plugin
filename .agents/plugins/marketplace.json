@@ -1,0 +1,17 @@
+{
+  "name": "dev-pipeline-codex",
+  "plugins": [
+    {
+      "name": "dev-pipeline",
+      "source": {
+        "source": "local",
+        "path": "./dev-pipeline"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    }
+  ]
+}

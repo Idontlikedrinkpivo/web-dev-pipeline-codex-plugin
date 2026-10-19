@@ -279,9 +279,9 @@ sources:
 
 ### Point every session to the map
 
-Claude Code reads the repo's `CLAUDE.md` at the start of every session, so a
+Codex reads the repo's `AGENTS.md` at the start of every session, so a
 pointer there tells any model — and any person — where the documents are
-before it starts searching. Add this section to `CLAUDE.md` at the repo root
+before it starts searching. Add this section to `AGENTS.md` at the repo root
 (create the file when there is none; in an existing one, add or refresh only
 this section and leave the rest as the owner wrote it):
 

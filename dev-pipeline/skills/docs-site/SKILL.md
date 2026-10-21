@@ -6,9 +6,10 @@ description: >-
   FR, NFR, BR, UC, TC and screen number links to where it is defined, an operationId to the API page; diagrams
   shown in place; the API contract as a Swagger UI page. Committed in documentation/_site; opened in the
   built-in browser through a local server, or from disk in any browser. Use when the user asks for a
-  documentation site, «собери сайт документации», «открой документацию», «выгрузи документы в HTML», «опубликуй
-  документацию», or wants the documents as pages instead of Markdown. Not for writing or fixing documents, and
-  not the progress page (that one rebuilds itself — pipeline → progress-files).
+  documentation site, «собери сайт документации», «выгрузи документы в HTML», «опубликуй документацию», or
+  wants the documents as pages instead of Markdown. Not for opening a site already built («открой сайт» —
+  `site`), writing or fixing documents, or the progress page (that one rebuilds itself — pipeline →
+  progress-files).
 ---
 
 > **Codex.** This skill was written for Claude Code. Read its tool terms — the `Agent` tool and `subagent_type`, `isolation: "worktree"`, Monitor, TaskStop, the Edit tool — as `../executor-catalog/references/codex-runtime.md` (beside this skill's folder) says, before the first agent you spawn, watcher you start or file you edit.
@@ -58,8 +59,9 @@ every commit holds the site of its own documents. The commit that first carries 
 (step 3), so the user knows it exists. Another repository with a `documentation/` folder gets no site, nor does
 a project whose user declined it (`upgrade` → `docs-site` skipped).
 
-**«Открой документацию»** with a site already built: step 3 alone. Stop the server when the user is done with
-the site (`site_server.py --stop`); the iteration's close stops it too.
+**«Открой сайт», «открой документацию»** is the `site` skill (`/site`): it waits for a rebuild in
+flight, builds a missing site, serves it and opens it — step 3 alone. It also stops the server on «закрой
+сайт»; the iteration's close stops it too.
 
 `documentation/_site/` is generated: never edit it, and never read it as a source — documents, checks and
 searches work on the Markdown (`doc-versioning` → Registry).

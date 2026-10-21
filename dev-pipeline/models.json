@@ -1,9 +1,9 @@
 {
-  "_comment": "Claude model:effort of an agent file (claude/claude-code-skills/_agents/*.md) -> Codex model and reasoning effort. Not measured on Codex: change here, then rebuild with python3 codex/build.py.",
-  "opus:xhigh": {"model": "gpt-5.5", "effort": "xhigh"},
-  "opus:high": {"model": "gpt-5.5", "effort": "high"},
-  "sonnet:high": {"model": "gpt-5.5", "effort": "medium"},
-  "sonnet:medium": {"model": "gpt-5.5", "effort": "medium"},
-  "sonnet:low": {"model": "gpt-5.5", "effort": "low"},
-  "haiku:low": {"model": "gpt-5.4-mini", "effort": "low"}
+  "_comment": "Claude model:effort of an agent file (claude/claude-code-skills/_agents/*.md) -> Codex model and reasoning effort. GPT-5.5 and GPT-5.4 mini left Codex (ChatGPT sign-in) on 2026-10-14 and 2026-08-31; GPT-6.1 Sol takes Opus and Sonnet, GPT-6 Luna takes Haiku. Not measured on Codex: change here, then rebuild with python3 codex/build.py.",
+  "opus:xhigh": {"model": "gpt-6.1-sol", "effort": "xhigh"},
+  "opus:high": {"model": "gpt-6.1-sol", "effort": "high"},
+  "sonnet:high": {"model": "gpt-6.1-sol", "effort": "medium"},
+  "sonnet:medium": {"model": "gpt-6.1-sol", "effort": "medium"},
+  "sonnet:low": {"model": "gpt-6.1-sol", "effort": "low"},
+  "haiku:low": {"model": "gpt-6-luna", "effort": "low"}
 }

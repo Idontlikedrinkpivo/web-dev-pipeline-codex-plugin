@@ -12,9 +12,9 @@ description: >-
 
 Brainstorming helps answer **WHAT** to build through collaborative dialogue. The durable output is a **business requirements document** — a lightweight PRD / feature brief with clear functional and non-functional requirements, use cases, and acceptance criteria, so later technical work does not need to invent product behavior, scope boundaries, or success criteria.
 
-This skill explores, clarifies, and documents decisions; it does not implement code. Its document is consumed by `srs-writer` — name that skill. Architecture, API/DB design, and implementation come after the SRS, not instead of it: do not skip to architecture, code, or "technical planning" as if the SRS stage did not exist.
+This skill explores, clarifies, and documents decisions; it does not implement code. Its document feeds the stage `pipeline` names after this one. Architecture, API/DB design, and implementation come later in that chain: do not skip to architecture, code, or "technical planning" as if the stages between did not exist.
 
-**Implementation request.** If the user asks to write code, a service, controllers, or tests **now**, refuse. Do not start those skills. The next named writer is still `srs-writer`.
+**Implementation request.** If the user asks to write code, a service, controllers, or tests **now**, refuse. Do not start those skills. The next stage is still the one `pipeline` names after this one.
 
 ## Setup
 
@@ -57,7 +57,7 @@ no `docs_root` lookup. Unresolved items go in `open-questions.md` in that same
 folder, not in a section of the document.
 
 **The document is unversioned** — a working draft, not a contract; versioning
-starts at `srs-writer`. On every write, greenfield or increment: no `version`
+starts at the SRS. On every write, greenfield or increment: no `version`
 in the frontmatter and no `## Журнал изменений` table; if a leftover `version` or
 changelog is already in the file, delete them on this write.
 
@@ -100,9 +100,7 @@ Before proceeding to Phase 0.2, classify whether this is a software task. The ke
 
 **Software** (continue to Phase 0.2) -- the task references code, repositories, APIs, databases, or asks to build/modify/debug/deploy software.
 
-**Not software** -- the idea is about something other than building software. This skill writes software requirements only: say so in one line and help directly in the chat, without phases or a document.
-
-**Neither** (respond directly, skip all brainstorming phases) -- the input is a quick-help request, error message, factual question, or single-step task that doesn't need a brainstorm.
+**Not software, or no brainstorm needed** -- the idea is about something other than building software (this skill writes software requirements only: say so in one line), or the input is a quick-help request, error message, factual question, or single-step task. Help directly in the chat, without phases or a document.
 
 #### 0.2 Assess Whether Brainstorming Is Needed
 

@@ -10,7 +10,7 @@ Your whole task arrives as a packet in the prompt: the skill to follow (the Writ
 
 - Every `Исполнитель` comes from the assignable list the packet points to; `Вложенный` is `—` or `mechanical-worker`. Never write a model alias, a review, design, or plan-writer name into the plan.
 - Do not dispatch `code-explorer`: the inventory is in the packet, and a brownfield packet without one is `BLOCKED`. Do not invent product behavior.
-- When every unit decision is settled, nest `doc-typist` (the `Agent` tool with `subagent_type: "doc-typist"` — or `"doc-typist"` when that is how the tool lists it — and no `model`) with its packet: one line per unit field — never the finished plan. Writing the output file yourself is a failed print. Read it back; one correction dispatch at most.
+- When every unit decision is settled, nest `doc-typist` (the `Agent` tool with `subagent_type: "doc-typist"` — or the bare `"doc-typist"` only when the tool lists no `` form — and no `model`) with its packet: one line per unit field — never the finished plan. Writing the output file yourself is a failed print. Read it back; one correction dispatch at most.
 - Do not run plan-review, pipeline, or doc-versioning. Do not commit or stage. Your last message is the packet's report, in its exact fields.
 
 Codex: to nest an agent (doc-typist, mechanical-worker), spawn the custom agent by that name with its packet and wait for its result; never name a model. Edit files with apply_patch.

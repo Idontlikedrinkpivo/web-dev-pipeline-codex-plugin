@@ -176,7 +176,8 @@ The register is an unversioned row of the `doc-versioning` Registry: no
 every write; `screen-spec` cites it by path with no `@<version>`. Its
 frontmatter `sources:` pins the SRS version the frames were drawn from
 (`srs.md@<version>`), so a stale sweep sees frames that lag the SRS. The
-visual-binding rule does not apply to it: it names frames.
+`doc-versioning` → «What, not how it looks» rule does not apply to it: it
+names frames.
 
 What it holds:
 

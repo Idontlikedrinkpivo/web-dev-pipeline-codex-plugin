@@ -219,7 +219,7 @@ table (Layout).
 | Идентификатор | Требование |
 |---|---|
 
-Group by capability (bold inline sub-headers), not by discussion order. Number the rows afterward, top to bottom, `FR-1` then `FR-2`, including across groups. Each requirement is **one sentence of intent plus at most one qualifier** — if a requirement needs two outcomes ("either A or B"), split it or send the fork to `open-questions.md`.
+Group by capability, one group per area file (`areas/NN-<slug>.md`, listed in the §3 map), not by discussion order. Number the rows afterward, top to bottom, `FR-1` then `FR-2`, including across groups. Each requirement is **one sentence of intent plus at most one qualifier** — if a requirement needs two outcomes ("either A or B"), split it or send the fork to `open-questions.md`.
 
 Write each FR in one EARS shape, clauses in this order, so a vague wish like «система должна быть удобной» has no shape to hide in:
 - always: «Система должна <реакция>.»

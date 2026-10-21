@@ -224,7 +224,7 @@ disjointness is necessary and not sufficient — an unmarked shared contract is
 what turns a parallel wave into a merge fight, and two workers running
 integration tests against one local database corrupt each other even in
 isolated worktrees. Default to `no` under any doubt. **UI units are always
-`Parallel-safe: no`** and run one after another: the first one (in plan
+`Параллельно: no`** and run one after another: the first one (in plan
 order) carries the API client generation and the app-wide error handler in
 its `Файлы`; later screens depend on it and only use them.
 
@@ -446,7 +446,7 @@ runs, every quoted invariant row has a test, every AC is covered.
 5. Risk floor and spec floor hold — Step 5.
 6. Grades spread across at least two tiers, unless the plan is honestly one
    kind of work and says so — Step 5.
-7. `Зависит от` is a DAG; every `Parallel-safe: yes` pair is disjoint in
+7. `Зависит от` is a DAG; every `Параллельно: yes` pair is disjoint in
    files, contracts, *and* runtime resources — Step 3.
 8. Every `Образец` path exists or is created by a unit in its `Зависит от`
    chain; every `— first of its kind` unit is Mid or above — Step 4.
@@ -485,7 +485,8 @@ questions. The writer does not ask the next stage.
 - `executor-catalog` (skill) — the `plan-writer` rows, the `code-explorer`
   row for the brownfield inventory, and the Dispatch contract.
 - `plan-review` (skill) — the independent gate over this plan. The
-  session asks about it after the file exists. It reports; every fix it
-  names is applied by a new dispatch of the writer, not by the session.
+  session runs it at once, without asking, after the file exists (step 6).
+  It reports; every fix it names is applied by a new dispatch of the
+  writer, not by the session.
 - `pipeline` (skill) — where this stage sits, its gate, and what follows.
   The session asks. The writer does not.

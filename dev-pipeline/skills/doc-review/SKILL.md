@@ -1,14 +1,10 @@
 ---
 name: doc-review
 description: >-
-  Reviews a finished SRS, DB schema, OpenAPI contract, architecture
-  document (foundation, domain model, scenarios), screen spec or
-  business-requirements draft with parallel reviewer personas, applies
-  one-right-answer fixes, and asks about the rest one finding at a time. Use
-  when a document stage offers its review gate, or whenever the user asks to
-  review, critique, find gaps in, or improve one of those documents. Not for
-  writing the first draft, grilling assumptions (`grill-me`), the whole
-  document set (`docs-consistency`), plans (`plan-review`), or code.
+  Reviews one finished document — SRS, DB schema, OpenAPI, architecture, screen spec or business requirements — with
+  parallel reviewer personas; applies the obvious fixes and asks about the rest one at a time. Use at a stage's review
+  gate or when asked to review, critique or find gaps in such a document. Not grilling (`grill-me`), the whole set
+  (`docs-consistency`) or plans (`plan-review`).
 ---
 
 > **Codex.** This skill was written for Claude Code. Read its tool terms — the `Agent` tool and `subagent_type`, `isolation: "worktree"`, Monitor, TaskStop, the Edit tool — as `../executor-catalog/references/codex-runtime.md` (beside this skill's folder) says, before the first agent you spawn, watcher you start or file you edit.

@@ -1,12 +1,9 @@
 ---
 name: vitest
 description: >-
-  Vitest house rules: tests by architecture layer, what to fake, async
-  assertions, mock and timer cleanup, and what to verify against the
-  installed version before relying on config, sharding, projects or vi.*
-  behaviour. Use when writing, debugging, reviewing or speeding up Vitest
-  tests, configuring vitest.config, upgrading Vitest, or migrating from
-  Jest. Not for browser E2E (`playwright-cli`) or Jest-specific APIs.
+  Vitest rules: tests per architecture layer, in-memory fakes over vi.mock, awaited async assertions, mock and timer
+  cleanup, component tests with Testing Library and MSW, version traps. Use for *.test.ts(x), vitest.config, flaky or
+  slow tests, a Jest migration. Not Playwright E2E.
 ---
 
 > **Codex.** This skill was written for Claude Code. Read its tool terms — the `Agent` tool and `subagent_type`, `isolation: "worktree"`, Monitor, TaskStop, the Edit tool — as `../executor-catalog/references/codex-runtime.md` (beside this skill's folder) says, before the first agent you spawn, watcher you start or file you edit.

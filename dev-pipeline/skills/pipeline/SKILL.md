@@ -1,14 +1,9 @@
 ---
 name: pipeline
 description: >-
-  The order of the development pipeline: after the SRS a backend branch
-  (schema, API, architecture, skeleton) and a design branch (mockups, screen
-  specs, test cases) that meet at docs-consistency before the plan; which
-  gates and next stage follow each stage, the skip rules, and how a
-  transition is asked — run, skip, or stop. Use at the
-  close of any stage, when the user asks «что дальше» or «где я» (including
-  in a fresh session, by reading the documents on disk), or when adding,
-  reordering or retiring a stage. Writes no document.
+  The order of the development pipeline: the stages from idea to release, the gates and next stage after each, skip
+  rules, and how a transition is asked. Use at the close of any stage, when the user asks «что дальше» or «где я»
+  (also in a fresh session), or when changing the stage order. Writes no document.
 ---
 
 > **Codex.** This skill was written for Claude Code. Read its tool terms — the `Agent` tool and `subagent_type`, `isolation: "worktree"`, Monitor, TaskStop, the Edit tool — as `../executor-catalog/references/codex-runtime.md` (beside this skill's folder) says, before the first agent you spawn, watcher you start or file you edit.

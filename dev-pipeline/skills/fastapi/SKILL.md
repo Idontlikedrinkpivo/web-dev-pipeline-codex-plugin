@@ -1,13 +1,9 @@
 ---
 name: fastapi
 description: >-
-  FastAPI web-layer conventions: path operations that implement
-  documentation/api/openapi.yaml, router factories with use cases injected from bootstrap,
-  Annotated parameters and Depends, Pydantic request and response models,
-  sync vs async, streaming and SSE, the fastapi CLI with uv, Ruff and ty.
-  Use whenever code adds or changes FastAPI endpoints, dependencies, schemas
-  or tooling. Not for the database layer, the error handler or auth
-  (`fastapi-sqlalchemy`), or tests (`pytest-patterns`).
+  FastAPI web layer: path operations implementing openapi.yaml, router factories wired in bootstrap, Annotated and
+  Depends, Pydantic models, sync vs async, streaming. Use whenever FastAPI endpoints, dependencies or schemas are
+  written or changed. Not the database, errors or auth (`fastapi-sqlalchemy`) or tests (`pytest-patterns`).
 ---
 
 > **Codex.** This skill was written for Claude Code. Read its tool terms — the `Agent` tool and `subagent_type`, `isolation: "worktree"`, Monitor, TaskStop, the Edit tool — as `../executor-catalog/references/codex-runtime.md` (beside this skill's folder) says, before the first agent you spawn, watcher you start or file you edit.

@@ -1,13 +1,9 @@
 ---
 name: docs-consistency
 description: >-
-  Checks that the finished documentation set agrees across documents — SRS,
-  DB schema, OpenAPI, architecture, domain model, scenarios and screen specs
-  read together: every requirement has a home, nothing exists without a
-  requirement, and every shared name, field, enum, limit, status, error and
-  role means the same thing. Use where the two pipeline branches meet,
-  before `plan`, or when the user asks whether the documents agree. Not a single-document review (`doc-review`) or a
-  plan review.
+  Checks that the finished documents agree with each other — SRS, schema, OpenAPI, architecture, screen specs: every
+  requirement has a home, and every shared name, field, status, error and role means the same. Use before `plan` or
+  when asked whether the documents agree. Not one document (`doc-review`) or a plan.
 ---
 
 > **Codex.** This skill was written for Claude Code. Read its tool terms — the `Agent` tool and `subagent_type`, `isolation: "worktree"`, Monitor, TaskStop, the Edit tool — as `../executor-catalog/references/codex-runtime.md` (beside this skill's folder) says, before the first agent you spawn, watcher you start or file you edit.

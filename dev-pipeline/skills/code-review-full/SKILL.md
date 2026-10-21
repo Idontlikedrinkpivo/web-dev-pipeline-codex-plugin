@@ -1,12 +1,10 @@
 ---
 name: code-review-full
 description: >-
-  Reviews a completed plan's whole diff once, after every unit is committed:
-  cross-unit drift, invariants spanning units, dead leftovers, declared
-  security and the plan's «Критерии готовности»; a unit-local defect goes back by its
-  U-id. Use when `work` closes a run or the user asks to review a finished
-  plan as a whole. Not the per-unit gate (`code-review-unit`) or a
-  whole-repo audit; an ad-hoc diff or PR goes to the built-in /code-review.
+  Reviews a finished plan's whole diff once, after every unit is committed: drift between units, invariants spanning
+  units, leftovers, security, code health and the plan's «Критерии готовности». Use when `work` closes a run or the
+  user asks to review a finished plan as a whole. Not one unit (`code-review-unit`); an ad-hoc PR goes to
+  /code-review.
 ---
 
 > **Codex.** This skill was written for Claude Code. Read its tool terms — the `Agent` tool and `subagent_type`, `isolation: "worktree"`, Monitor, TaskStop, the Edit tool — as `../executor-catalog/references/codex-runtime.md` (beside this skill's folder) says, before the first agent you spawn, watcher you start or file you edit.

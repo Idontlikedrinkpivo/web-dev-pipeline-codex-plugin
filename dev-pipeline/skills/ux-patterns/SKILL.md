@@ -1,17 +1,10 @@
 ---
 name: ux-patterns
 description: >-
-  Checkable UI/UX rules (ids `UX-1` … `UX-80`, B2B and B2C variants) for every
-  screen: action hierarchy, forms and validation, feedback, navigation,
-  dialogs, data screens, empty and error states, tokens, icons, typography
-  and motion, accessibility, B2C conversion and consent, implementation
-  rules for code, Russian copy — plus the completeness checklist a mockup
-  must pass and the checklist a built screen passes before hand-over. Read
-  by `ui-design`, the Figma builders, `screen-spec`, `frontend` and
-  reviewers. Use whenever a screen, form, table, dialog or flow is
-  designed, drawn, built or reviewed — «сделай удобно», «по лучшим
-  практикам UX». Not the visual direction itself (palette, fonts): that is
-  chosen in `ui-design`.
+  Checkable UI/UX rules UX-1 … UX-80 (B2B and B2C): actions, forms, feedback, navigation, dialogs, data screens, empty
+  and error states, accessibility, copy, plus the mockup completeness and hand-over checklists. Use whenever a screen,
+  form, table, dialog or flow is designed, drawn, built or reviewed — «сделай удобно», «по лучшим практикам UX». Not
+  palette or fonts (`ui-design`).
 ---
 
 > **Codex.** This skill was written for Claude Code. Read its tool terms — the `Agent` tool and `subagent_type`, `isolation: "worktree"`, Monitor, TaskStop, the Edit tool — as `../executor-catalog/references/codex-runtime.md` (beside this skill's folder) says, before the first agent you spawn, watcher you start or file you edit.

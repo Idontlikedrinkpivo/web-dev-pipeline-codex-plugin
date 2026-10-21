@@ -1,15 +1,10 @@
 ---
 name: web-design-guidelines
 description: >-
-  Code-level rules for web interfaces — Vercel's Web Interface Guidelines,
-  embedded and mapped onto `ux-patterns`: accessibility, focus, forms,
-  motion, typography, long content, images, performance, navigation state,
-  touch, theming, locale, Next.js hydration and copy, each rule with its
-  UX-n. Use when writing or reviewing React / Next.js screen code: a screen
-  unit in `code-review-unit`, `impl-ui`'s self-check before hand-off, or a
-  request such as «проверь интерфейс», «ревью вёрстки», «аудит
-  доступности кода». Reports `file:line — UX-n — суть`. Not mockups
-  (`ui-design`), not the rules' rationale (`ux-patterns`).
+  Code-level rules for web interfaces (Vercel's Web Interface Guidelines mapped to UX-n): accessibility, focus, forms,
+  motion, images, performance, theming, locale, Next.js hydration. Use when writing or reviewing React / Next.js
+  screen code, or for «проверь интерфейс», «ревью вёрстки», «аудит доступности кода». Not mockups or the rules'
+  rationale.
 ---
 
 > **Codex.** This skill was written for Claude Code. Read its tool terms — the `Agent` tool and `subagent_type`, `isolation: "worktree"`, Monitor, TaskStop, the Edit tool — as `../executor-catalog/references/codex-runtime.md` (beside this skill's folder) says, before the first agent you spawn, watcher you start or file you edit.

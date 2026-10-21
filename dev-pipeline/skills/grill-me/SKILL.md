@@ -1,13 +1,10 @@
 ---
 name: grill-me
 description: >-
-  A round-by-round interview that stress-tests an existing requirements
-  draft, SRS, plan or design until no silent assumption is left,
-  then writes the agreed reversals into that document. Use when the user
-  asks to grill, допросить требования, выжечь допущения or stress-test a
-  draft, and when `brainstorm` or `srs-writer` offer it as their
-  gate. Not for writing documents, persona review (`doc-review`), inventing
-  a subject to grill, or implementation.
+  A round-by-round interview that stress-tests an existing requirements draft, SRS, plan or design until no silent
+  assumption is left, then writes the agreed changes into it. Use for «допроси требования», «выжги допущения», a
+  stress-test, or as the gate after `brainstorm` / `srs-writer`. Not persona review (`doc-review`) or writing
+  documents.
 ---
 
 > **Codex.** This skill was written for Claude Code. Read its tool terms — the `Agent` tool and `subagent_type`, `isolation: "worktree"`, Monitor, TaskStop, the Edit tool — as `../executor-catalog/references/codex-runtime.md` (beside this skill's folder) says, before the first agent you spawn, watcher you start or file you edit.

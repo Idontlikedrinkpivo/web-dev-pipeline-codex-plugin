@@ -1,13 +1,9 @@
 ---
 name: work
 description: >-
-  Executes a finished implementation plan: dispatches each unit to the
-  executor the plan named, inspects the real diff, runs the per-unit and
-  whole-run reviews, and lands one commit per unit; the orchestrator writes
-  no production code. Use when a plan is ready (normally after
-  `plan-review`) and the user asks to execute or implement it — «выполни
-  план», «запусти работу». Not for writing the feature in-session, planning,
-  design, PRs or CI.
+  Executes a finished implementation plan: sends each unit to the executor the plan named, checks the real diff, runs
+  the unit and whole-run reviews, lands one commit per unit; writes no production code itself. Use when a plan is
+  ready and the user says «выполни план», «запусти работу». Not planning, design, PRs or CI.
 ---
 
 > **Codex.** This skill was written for Claude Code. Read its tool terms — the `Agent` tool and `subagent_type`, `isolation: "worktree"`, Monitor, TaskStop, the Edit tool — as `../executor-catalog/references/codex-runtime.md` (beside this skill's folder) says, before the first agent you spawn, watcher you start or file you edit.

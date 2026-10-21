@@ -1,14 +1,9 @@
 ---
 name: repo-scaffold
 description: >-
-  Materializes an architecture document's file tree and stack into an empty
-  runnable repo: folders, manifest, boundary linter, .env.example, a
-  migration runner over documentation/db/migrations/, a health-only entry
-  point, and the project map. Use after `clean-architecture-design` when the user asks to scaffold
-  or init the repo — «каркас репозитория», «разверни структуру», «карта
-  проекта» — or when an architecture change adds folders. Not for choosing
-  the stack, business code (`work`), compose files (`deploy-topology`), or
-  CI.
+  Turns the architecture's file tree and stack into an empty runnable repository: folders, manifest, linters and
+  quality gates, .env.example, a migration runner, a health-only entry point, the project map. Use for «каркас
+  репозитория», «разверни структуру», «карта проекта». Not business code (`work`), compose files or CI.
 ---
 
 > **Codex.** This skill was written for Claude Code. Read its tool terms — the `Agent` tool and `subagent_type`, `isolation: "worktree"`, Monitor, TaskStop, the Edit tool — as `../executor-catalog/references/codex-runtime.md` (beside this skill's folder) says, before the first agent you spawn, watcher you start or file you edit.

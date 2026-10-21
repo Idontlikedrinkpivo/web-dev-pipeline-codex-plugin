@@ -1,12 +1,9 @@
 ---
 name: code-review-unit
 description: >-
-  Reviews one plan unit's diff against its unit spec before the commit,
-  picking lenses from what it touched and a reviewer tier from its grade;
-  returns COMMIT / FIX_THEN_COMMIT / RETURN_TO_EXECUTOR / STOP and never
-  edits the tree. Use after each unit in `work`, or when asked to review a
-  single unit's diff. Not the whole-plan review (`code-review-full`) or a
-  security audit; an ad-hoc diff or PR goes to the built-in /code-review.
+  Reviews one plan unit's diff against its unit spec before the commit; returns COMMIT / FIX_THEN_COMMIT /
+  RETURN_TO_EXECUTOR / STOP. Use after each unit in `work`, or when asked to review a single unit. Not the whole plan
+  (`code-review-full`); an ad-hoc diff or PR goes to /code-review.
 ---
 
 > **Codex.** This skill was written for Claude Code. Read its tool terms — the `Agent` tool and `subagent_type`, `isolation: "worktree"`, Monitor, TaskStop, the Edit tool — as `../executor-catalog/references/codex-runtime.md` (beside this skill's folder) says, before the first agent you spawn, watcher you start or file you edit.

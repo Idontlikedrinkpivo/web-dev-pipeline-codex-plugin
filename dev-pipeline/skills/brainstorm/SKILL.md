@@ -1,13 +1,9 @@
 ---
 name: brainstorm
 description: >-
-  Turns a vague or ambitious software idea into a business-requirements
-  document (Goal Capsule and Product Contract) under
-  documentation/requirements/. Use when the user wants to brainstorm, think
-  through scope, decide what to build, frame a product before an SRS, or
-  asks for a blindspot pass — «давай подумаем», «что строим». Not for
-  implementing specified work, debugging, code review, or judging an
-  external library; a request for code now goes to `srs-writer` first.
+  Turns a vague software idea into a business-requirements document (goal and product contract) in
+  documentation/requirements/. Use when the user wants to brainstorm, think through scope or decide what to build —
+  «давай подумаем», «что строим». Not implementation, debugging or code review; specified work goes to `srs-writer`.
 ---
 
 > **Codex.** This skill was written for Claude Code. Read its tool terms — the `Agent` tool and `subagent_type`, `isolation: "worktree"`, Monitor, TaskStop, the Edit tool — as `../executor-catalog/references/codex-runtime.md` (beside this skill's folder) says, before the first agent you spawn, watcher you start or file you edit.

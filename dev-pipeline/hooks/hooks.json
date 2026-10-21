@@ -10,6 +10,16 @@
           }
         ]
       }
+    ],
+    "PostToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh \"$PLUGIN_ROOT/hooks/progress-page.sh\""
+          }
+        ]
+      }
     ]
   }
 }

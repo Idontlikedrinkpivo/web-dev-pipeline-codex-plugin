@@ -1292,9 +1292,10 @@ $ui-design Новое визуальное направление для все�
 
 ## Ограничения
 
-- **Стек:** бэкенд на TypeScript (Fastify, Drizzle, Zod, Vitest) или Python (FastAPI, SQLAlchemy, pytest),
-  база PostgreSQL, фронтенд на React + Vite или Next.js. Другие технологии — только если они уже есть в
-  проекте.
+- **Стек.** Бэкенд — TypeScript (Fastify, Drizzle, Zod, Vitest) или Python (FastAPI, SQLAlchemy, pytest), база
+  PostgreSQL. Фронтенд — React + Vite или Next.js на TypeScript (TanStack Query, React Hook Form и Zod,
+  Tailwind CSS и shadcn/ui, Vitest и Testing Library, Playwright). Другие технологии — только если они уже есть
+  в проекте.
 
 ---
 

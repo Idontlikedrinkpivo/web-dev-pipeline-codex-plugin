@@ -21,5 +21,5 @@ skills and references as the Codex action below.
 | `.agents/skills/verify/` | the project's own skills live in `.agents/skills/` under Codex (in Claude Code the same skill sits in `.claude/skills/`; read either when only one exists) |
 | `codex plugin marketplace upgrade` | how this plugin updates under Codex |
 | Claude Code's built-in `/code-review` | Codex's `/review` |
-| `reflect` | not in this build — it reads Claude Code session files. Skip that step and say so in one line |
+| `reflect` | reads this project's Codex sessions (rollout files under `~/.codex/sessions/`) with the Codex build's `sessions.py`; the feedback file is `~/.codex/dev-pipeline-feedback/<project>.md` |
 | model names in `executor-catalog` (`opus`, `sonnet`, `haiku`) and its measurements | they name the Claude originals and were measured there. The Codex model of each row is in its `.toml`; the map is the plugin's `models.json` |

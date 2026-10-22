@@ -102,7 +102,7 @@ codex mcp add figma --url https://mcp.figma.com/mcp
 | **Node.js 22+** | проверка и разбивка контракта API, страница API на сайте документации; сервис на TypeScript; тесты через браузер |
 | **uv** | зависимости сервиса — только если он на Python |
 | **Docker** (Docker Desktop или Docker Engine) | локальная база данных, контейнеры, сборка образов, сканеры аудита |
-| **Браузер для тестов** (Chromium от Playwright) | проверка приложения через интерфейс |
+| **Chromium для UI-тестов** (от Playwright) | браузер, в котором проходят UI-тесты |
 
 Если D2 не установлен, документы всё равно пишутся, но вместо картинки схемы останется только её исходный
 текст — плагин об этом скажет.
@@ -145,7 +145,7 @@ brew install --cask docker
 brew install uv
 ```
 
-**5. Браузер для тестов через интерфейс:**
+**5. Chromium для UI-тестов:**
 
 ```bash
 npx playwright install chromium
@@ -210,7 +210,7 @@ nvm install 22
 curl -LsSf https://astral.sh/uv/install.sh | sh
 ```
 
-**6. Браузер для тестов через интерфейс** (вместе с системными библиотеками, которые ему нужны):
+**6. Chromium для UI-тестов** (вместе с системными библиотеками, которые ему нужны):
 
 ```bash
 npx playwright install --with-deps chromium
@@ -316,7 +316,7 @@ which node
 curl -LsSf https://astral.sh/uv/install.sh | sh
 ```
 
-**7. Браузер для тестов через интерфейс** (вместе с системными библиотеками, которые ему нужны):
+**7. Chromium для UI-тестов** (вместе с системными библиотеками, которые ему нужны):
 
 ```bash
 npx playwright install --with-deps chromium

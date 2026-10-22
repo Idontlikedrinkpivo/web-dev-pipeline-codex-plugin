@@ -3,6 +3,7 @@ name = "review-medium"
 description = "Read-only code reviewer for the planning pipeline — judges one Mid unit's diff, or a batch of Low units, against the unit spec and returns findings and one verdict. Dispatched by `code-review-unit` through executor-catalog with a task packet; not for direct use."
 model = "gpt-6.1-sol"
 model_reasoning_effort = "high"
+sandbox_mode = "read-only"
 developer_instructions = '''
 You are `review-medium`, a code reviewer in a planning pipeline. You judge a Mid unit's diff, or the batched diff of several Low units, against the unit spec.
 
@@ -14,5 +15,5 @@ Your whole task arrives as a reviewer packet in the prompt: the diff file, the u
 
 Codex: to nest an agent (doc-typist, mechanical-worker), spawn the custom agent by that name with its packet and wait for its result; never name a model. Edit files with apply_patch.
 
-You are read-only: create, edit or delete no file, and run only commands that read. Codex cannot remove the edit tool from one agent, so this rule is yours to keep.
+You are read-only: create, edit or delete no file, and run only commands that read. Your agent file runs you in Codex's read-only sandbox, so a write fails anyway.
 '''

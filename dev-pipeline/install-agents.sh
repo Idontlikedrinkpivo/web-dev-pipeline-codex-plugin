@@ -47,9 +47,19 @@ else
   echo "$cfg already sets [agents] max_depth — make sure it is 2 or more"
 fi
 
+hooks="$home/hooks.json"
+# a hook added by an earlier --hook points at that version's plugin folder: move it to this one
+if [ -f "$hooks" ] && grep -q 'dev-pipeline[^"]*/hooks/session-start\.sh' "$hooks" \
+    && ! grep -qF "$here/hooks/session-start.sh" "$hooks"; then
+  sed -i.bak -E "s#[^\"\\\\]*dev-pipeline[^\"\\\\]*/hooks/session-start\.sh#$here/hooks/session-start.sh#g" "$hooks"
+  rm -f "$hooks.bak"
+  echo "pointed the session-start hook in $hooks at $here"
+fi
+
 if [ "${1:-}" = "--hook" ]; then
-  hooks="$home/hooks.json"
-  if [ -f "$hooks" ]; then
+  if grep -qF "$here/hooks/session-start.sh" "$hooks" 2>/dev/null; then
+    echo "$hooks already runs this plugin's session-start hook"
+  elif [ -f "$hooks" ]; then
     echo "ACTION: $hooks exists — add a SessionStart entry by hand:"
     echo "  matcher \"startup|resume|clear|compact\", command: sh \"$here/hooks/session-start.sh\""
   else

@@ -13,7 +13,7 @@ skills and references as the Codex action below.
 | several `Agent` calls in one message | spawn them together and wait for all of them |
 | a nested dispatch — a writer nests `doc-typist`, an implementer nests `mechanical-worker` | allowed when `~/.codex/config.toml` has `[agents]` `max_depth = 2` (`install-agents.sh` sets it). If a nested spawn is refused, the agent returns its settlement in its report and the session spawns the nested agent with that packet |
 | `isolation: "worktree"` on a parallel dispatch | before spawning, make one worktree per agent: `git worktree add ../<repo>-wt-U<n> -b wt/U<n> HEAD`; start its packet with `WORKING DIRECTORY: <that path> — work and run every command there`; bring each branch home as `work` says, then `git worktree remove` it and delete the branch |
-| a read-only agent (tools `Read, Grep, Glob, Bash`) | Codex cannot take the edit tool from one agent: its instructions forbid edits. After it returns, check `git status`; any change it made is reverted and named in the report |
+| a read-only agent (tools `Read, Grep, Glob, Bash`) | its agent file sets `sandbox_mode = "read-only"`, so Codex blocks its writes, and its instructions forbid edits. After it returns, still check `git status`; any change it made is reverted and named in the report |
 | the Edit tool, the Write tool | edit a file with a patch (`apply_patch`); create a file the same way |
 | the Monitor tool, a background `sleep` watcher | no tool here notifies you: check the watched files yourself after each agent returns and before every message to the user. «Stop the watcher» means stop checking |
 | TaskStop | stop the spawned agent and confirm it stopped |

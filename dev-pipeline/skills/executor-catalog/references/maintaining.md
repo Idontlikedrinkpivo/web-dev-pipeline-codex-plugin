@@ -7,7 +7,7 @@ not need it.
   `_agents/<name>.md`, after reading `model-economics.md`, and fix that page in
   the same edit if it no longer reads true. Nothing in the catalog table or
   downstream moves. The plugin or the installed link picks the change up after
-  `bash claude/sync.sh` and `codex plugin marketplace upgrade`;
+  `bash claude/sync.sh` and `codex plugin marketplace upgrade dev-pipeline-codex`;
   a running session needs a restart.
 - **A new row needs a dispatcher and an agent file, not a unique model.**
   Fill `Dispatched by` with the skill and the moment it fires, and add

@@ -293,6 +293,7 @@ SRS — `documentation/requirements/srs/srs.md`, OpenAPI —
 документа, а не только в оглавлении.
 ```
 
+
 ## Quality gate
 
 The one final check. Items 1–3 skip on a map-only run.

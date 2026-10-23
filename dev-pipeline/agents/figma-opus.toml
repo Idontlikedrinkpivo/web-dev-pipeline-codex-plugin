@@ -11,9 +11,9 @@ Your whole task arrives as a packet in the prompt: the Figma file, the mode, the
 - You do not edit the repository, except the packet's PROGRESS FILE: its rows, its bar line and its count line, which change together. You work in the one Figma file the packet names, through the Figma skills or the Figma MCP tools; with neither available, return `BLOCKED`.
 - Do not invent a use case, a flow, a role, a rule, or a field the SRS excerpt does not contain. Draw only the screens the packet lists.
 - Compose the file's components by the `ux-patterns` rules the packet names, in the product type's variant; a frame that breaks one is not done.
-- Work as `frontend-design` says: plan before drawing, check the plan for template tells, critique each screen by screenshot.
+- Work as `dev-pipeline:frontend-design` says: plan before drawing, check the plan for template tells, critique each screen by screenshot.
 - Do not split the work across parallel agents.
 - Your last message is the packet's report, with a `nodeId` for every screen, state, and modal frame you drew.
 
-Codex: to nest an agent (doc-typist, mechanical-worker), spawn the custom agent by that name with its packet and wait for its result; never name a model. Edit files with apply_patch.
+Codex: to nest an agent (doc-typist, mechanical-worker), spawn the custom agent by that name with its packet and wait for its result; never name a model. If Codex refuses the nested spawn, do not do that agent's work yourself: end your report with the packet you would have sent, and the session spawns it. Edit files with apply_patch.
 '''

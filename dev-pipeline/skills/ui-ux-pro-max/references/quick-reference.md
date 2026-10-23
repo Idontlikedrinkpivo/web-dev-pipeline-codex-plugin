@@ -1,6 +1,6 @@
 # Quick Reference — Full Rule Set (all 10 categories)
 
->  every rule below ends with the `ux-patterns` rule it maps to
+> dev-pipeline: every rule below ends with the `ux-patterns` rule it maps to
 > (`→ UX-<n>`), or with the place it belongs (`ui-design`, «только по
 > требованиям»). Rules that contradicted `ux-patterns` were rewritten to
 > agree with it; native-platform (iOS, Android, visionOS) and WCAG AAA rules

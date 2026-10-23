@@ -14,5 +14,5 @@ Your whole task arrives as a packet in the prompt: the Figma file, the mode, the
 - Do not split the work across parallel agents.
 - Your last message is the packet's report, with a `nodeId` for every frame you touched.
 
-Codex: to nest an agent (doc-typist, mechanical-worker), spawn the custom agent by that name with its packet and wait for its result; never name a model. Edit files with apply_patch.
+Codex: to nest an agent (doc-typist, mechanical-worker), spawn the custom agent by that name with its packet and wait for its result; never name a model. If Codex refuses the nested spawn, do not do that agent's work yourself: end your report with the packet you would have sent, and the session spawns it. Edit files with apply_patch.
 '''

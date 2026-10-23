@@ -1,0 +1,24 @@
+{
+  "name": "dev-pipeline",
+  "version": "1.2.180",
+  "description": "Пайплайн разработки от идеи до CI: требования, контракт, дизайн, архитектура, план, исполнение с ревью, контейнеры и CI — скиллы и агенты-исполнители с закреплёнными моделями.",
+  "author": {
+    "name": "Ilikedrinkpivo"
+  },
+  "repository": "https://github.com/Idontlikedrinkpivo/web-dev-pipeline-codex-plugin",
+  "license": "MIT",
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "hooks": "./hooks/hooks.json",
+  "interface": {
+    "displayName": "Dev pipeline",
+    "shortDescription": "Пайплайн от идеи до CI",
+    "longDescription": "Пайплайн разработки от идеи до CI: требования, контракт, дизайн, архитектура, план, исполнение с ревью, контейнеры и CI — скиллы и агенты-исполнители с закреплёнными моделями.",
+    "developerName": "Ilikedrinkpivo",
+    "category": "Productivity",
+    "capabilities": [
+      "Read",
+      "Write"
+    ]
+  }
+}

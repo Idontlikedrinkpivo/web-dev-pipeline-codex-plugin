@@ -1,13 +1,10 @@
 ---
 name: react
 description: >-
-  React rules agents break by default: compute instead of storing, effects only for outside systems, server data
-  through the data layer, a page as a data hook plus a view, one form schema, Testing Library tests. Use whenever
-  React components, hooks or their tests are written, reviewed or refactored. Not what to build from a screen spec
-  (`frontend`).
+  React rules (derived state, effects only for outside systems, data hooks); read before React code.
 ---
 
-> **Codex.** This skill was written for Claude Code. Read its tool terms — the `Agent` tool and `subagent_type`, `isolation: "worktree"`, Monitor, TaskStop, the Edit tool — as `../executor-catalog/references/codex-runtime.md` (beside this skill's folder) says, before the first agent you spawn, watcher you start or file you edit.
+> **Codex.** This skill was written for Claude Code. Read its tool terms — the `Skill` tool, the `Agent` tool and `subagent_type`, `isolation: "worktree"`, Monitor, TaskStop, the Edit tool — as `../executor-catalog/references/codex-runtime.md` (beside this skill's folder) says, before the first skill you invoke, agent you spawn, watcher you start or file you edit.
 
 # React
 

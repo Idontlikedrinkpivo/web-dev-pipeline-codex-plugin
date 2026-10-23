@@ -1,12 +1,12 @@
 ---
 name: docs-site
 description: >-
-  Builds documentation/ into a static site in documentation/_web-docs: a menu by section, search, every requirement
-  and screen id linked to its definition, diagrams in place, the API as a Swagger page. Use for «собери сайт
-  документации», «выгрузи документы в HTML», «опубликуй документацию». Opening a site already built is `open-docs`.
+  Builds documentation/ into a static HTML site: menu, search, linked ids, Swagger. Use for «собери сайт
+  документации», «пересобери сайт», «выгрузи документы в HTML», «опубликуй документацию» (hosting is the user's step).
+  Opening: open-docs.
 ---
 
-> **Codex.** This skill was written for Claude Code. Read its tool terms — the `Agent` tool and `subagent_type`, `isolation: "worktree"`, Monitor, TaskStop, the Edit tool — as `../executor-catalog/references/codex-runtime.md` (beside this skill's folder) says, before the first agent you spawn, watcher you start or file you edit.
+> **Codex.** This skill was written for Claude Code. Read its tool terms — the `Skill` tool, the `Agent` tool and `subagent_type`, `isolation: "worktree"`, Monitor, TaskStop, the Edit tool — as `../executor-catalog/references/codex-runtime.md` (beside this skill's folder) says, before the first skill you invoke, agent you spawn, watcher you start or file you edit.
 
 # Documentation site
 
@@ -17,11 +17,18 @@ only has numbers.
 ## Steps
 
 1. **Build** from the project root — everything in `documentation/` except `plans/` (Node is needed only for the
-   API page; without it the API section is a table of operations):
+   API page; without it the API section is a table of operations) — through the same queue the plugin's hook
+   uses, then wait for it and print its report:
 
    ```bash
-   python3 "<folder of this SKILL.md>/scripts/build_site.py"
+   python3 "<folder of this SKILL.md>/scripts/rebuild.py" . --api --force
+   python3 "<folder of this SKILL.md>/scripts/rebuild.py" . --wait --report
    ```
+
+   Never `build_site.py` directly: a background rebuild the hook started may be running, and it swaps the
+   whole site folder in at its end — a second build beside it loses its output or the folder mid-write.
+   `--force` builds even where the hook would not start a first site (another repository's `documentation/`,
+   a site the user once declined): the user asked for this one.
 
    The site goes to `documentation/_web-docs/` and is **committed** (`docs: сайт документации`), so whoever
    clones the repository opens it without building. A rebuild over unchanged documents changes no file, and an
@@ -35,7 +42,9 @@ only has numbers.
    `python3 "<folder of this SKILL.md>/scripts/site_server.py"` prints `http://127.0.0.1:<port>/index.html` (it reuses
    a server already running for this site). Open that address in the built-in browser yourself and give it as
    a link in the chat — that link is the user's one click back to the site. Without a built-in browser (a
-   terminal), give `open documentation/_web-docs/index.html`: the user's own browser shows the file whole. Never
+   terminal), open the file in the user's own browser yourself — `open documentation/_web-docs/index.html` on
+   macOS, `xdg-open …` on Linux (`uname` tells which) — and give its full path; where neither command exists,
+   the full path alone: the user's own browser shows the file whole. Never
    point at the file in the file tree — it shows the HTML source. Then check it: follow one requirement link,
    one test-case link and the API page, try the search with one number. A page that renders wrong — a table that broke, a diagram missing — is a fix in
    `scripts/mdhtml.py`, reported, not hidden.
@@ -53,7 +62,7 @@ every commit holds the site of its own documents. The commit that first carries 
 (step 3), so the user knows it exists. Another repository with a `documentation/` folder gets no site, nor does
 a project whose user declined it (`upgrade-docs` → `docs-site` skipped).
 
-**«Открой сайт», «открой документацию»** is the `open-docs` skill (`/open-docs`): it waits for a rebuild in
+**«Открой сайт», «открой документацию»** is the `open-docs` skill (`$dev-pipeline:open-docs`): it waits for a rebuild in
 flight, builds a missing site, serves it and opens it — step 3 alone. It also stops the server on «закрой
 сайт»; the iteration's close stops it too.
 

@@ -1,13 +1,11 @@
 ---
 name: reflect
 description: >-
-  Reads the closing iteration's Codex sessions and records where the dev-pipeline plugin itself worked badly —
-  the user's own words, the skill and rule involved, a suggested change — in a feedback file outside the repository.
-  Runs at the end of an iteration or on «разбери сессии для плагина», «/reflect». Not a project review; never edits
-  the plugin.
+  At an iteration's end, reads its sessions and logs where the dev-pipeline plugin itself failed, with the user's
+  words, in a feedback file outside the repo. Use for «разбери сессии для плагина», /reflect. Never edits the plugin.
 ---
 
-> **Codex.** This skill was written for Claude Code. Read its tool terms — the `Agent` tool and `subagent_type`, `isolation: "worktree"`, Monitor, TaskStop, the Edit tool — as `../executor-catalog/references/codex-runtime.md` (beside this skill's folder) says, before the first agent you spawn, watcher you start or file you edit.
+> **Codex.** This skill was written for Claude Code. Read its tool terms — the `Skill` tool, the `Agent` tool and `subagent_type`, `isolation: "worktree"`, Monitor, TaskStop, the Edit tool — as `../executor-catalog/references/codex-runtime.md` (beside this skill's folder) says, before the first skill you invoke, agent you spawn, watcher you start or file you edit.
 
 # Reflect
 
@@ -44,8 +42,12 @@ rules (check them — the session may have run an older version).
    (`documentation/plans/<version>/`; the open one when run by hand) gives
    the window: from the iteration's first commit (or the folder's
    date) to now. List this project's sessions in it:
-   `python3 <folder of this SKILL.md>/scripts/sessions.py list "$PWD" --since <YYYY-MM-DD>`.
-   Only this project's sessions — never another project's. When the
+   `python3 "<folder of this SKILL.md>/scripts/sessions.py" list "$PWD" --since <YYYY-MM-DD>`.
+   Only this project's sessions — never another project's. The script finds
+   them under every name the app gives this project's folder: the plain one,
+   a long path shortened with a hash, and the repository's worktrees
+   (`git worktree list`, and folders nested in the project), each confirmed by
+   the `cwd` its sessions recorded. When the
    project's folder was renamed or moved during the iteration, add its old
    path with `--also <old path>`; when the first session found starts after
    the iteration opened, say so in the report — sessions may sit under a
@@ -53,13 +55,16 @@ rules (check them — the session may have run an older version).
    and skips one that a later session continued (its messages are the start
    of the longer one) as «повтор».
 2. **Digest.** For each session:
-   `python3 <folder of this SKILL.md>/scripts/sessions.py digest <rollout.jsonl> <tmp>/<n>.md`
+   `python3 "<folder of this SKILL.md>/scripts/sessions.py" digest <rollout.jsonl> <tmp>/<n>.md`
    — the user's typed messages, Codex's replies, the skills and agents
    run, and the compaction marks, in order; tool output is left out.
 3. **Review.** Read `executor-catalog` and resolve `session-reviewer`.
    Dispatch one per digest, in parallel, in the foreground, with the packet
    in `references/reviewer-prompt.md`: the digest path, the plugin's skills
-   folder (`<folder of this SKILL.md>/..`), the plugin version installed now.
+   folder (`<folder of this SKILL.md>/..`), the plugin version installed now — the
+   `version` field of the plugin's manifest in that same folder,
+   `.claude-plugin/plugin.json` (`.codex-plugin/plugin.json` under Codex);
+   the same number goes into the section's «версия плагина».
    A digest over ~400 KB goes to one reviewer that reads it in parts.
 4. **Merge.** Collect the reviewers' findings; merge the same failure seen
    in several sessions into one finding with each occurrence; drop what

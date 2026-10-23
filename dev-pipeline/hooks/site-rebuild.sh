@@ -1,5 +1,5 @@
 #!/bin/sh
-#  after an edit of a document under documentation/ (plans/ and the site itself left out), regenerate the
+# dev-pipeline: after an edit of a document under documentation/ (plans/ and the site itself left out), regenerate the
 # table documents when the schema changed (db-schema-design/scripts/table_docs.py), then rebuild the project's
 # documentation site in the background — or build it, at the project's first document (rebuild.py decides, and leaves
 # out a project that declined the site). Fires for subagents' edits too. Silent, returns at once, never fails the
@@ -10,7 +10,33 @@ case "$input" in
   *) exit 0 ;;
 esac
 dir="$PWD"
-paths=$(printf '%s' "$input" | grep -o 'documentation/[^"[:space:]\\]*' | grep -v -e '^documentation/plans/' -e '^documentation/_web-docs/' -e '^documentation/_site/' -e '^documentation/\.' | sort -u)
+# Only the paths of the files the tool changed — tool_input.file_path of Edit, Write and MultiEdit, or the file
+# headers of an apply_patch (the Codex build) — never the rest of the input: the old and new text of an edit may
+# name a documentation/ path, and a code edit that mentions one must not start a rebuild with --api and npx.
+paths=$(printf '%s' "$input" | python3 -c '
+import json, os, re, sys
+try:
+    data = json.load(sys.stdin)
+except Exception:
+    sys.exit(0)
+root = os.path.realpath(sys.argv[1])
+ti = data.get("tool_input") if isinstance(data, dict) else None
+found, texts = [], []
+if isinstance(ti, dict):
+    for key in ("file_path", "path"):
+        if isinstance(ti.get(key), str):
+            found.append(ti[key])
+    texts = [v for v in ti.values() if isinstance(v, str)]
+elif isinstance(ti, str):
+    texts = [ti]
+for t in texts:
+    found += re.findall(r"^\*\*\* (?:(?:Add|Update|Delete) File|Move to): (.+?)\s*$", t, re.M)
+for p in found:
+    full = os.path.realpath(p if os.path.isabs(p) else os.path.join(root, p))
+    rel = os.path.relpath(full, root)
+    if rel.startswith("documentation" + os.sep):
+        print(rel.replace(os.sep, "/"))
+' "$dir" 2>/dev/null | grep -v -e '^documentation/plans/' -e '^documentation/_web-docs/' -e '^documentation/_site/' -e '^documentation/\.' | sort -u)
 [ -n "$paths" ] || exit 0
 root="$(cd "$(dirname "$0")/.." && pwd)"
 # The schema changed: regenerate its table documents first (db-schema-design), so the site gets them too.

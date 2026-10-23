@@ -39,7 +39,7 @@ everything after stage 9 stay with the owner.
 3. Write the hand-off text in the chat, ready to forward, one per person:
    clone the repository (or pull), install the plugin (README → Установка),
    `git switch iteration/<version>`, the Figma file link when the stage
-   draws, and the command to start (`/ui-design`). Add which
+   draws, and the command to start (`$dev-pipeline:ui-design`). Add which
    input is not there yet and who brings it («ТЗ на экраны начнёте, когда
    на ветке появится API»).
 
@@ -49,9 +49,11 @@ document so the others can pull it.
 ## In a session of a person who took a stage
 
 - **The version comes from the branch name.** `documentation/plans/` is out
-  of git, so the folder is not there: create `plans/<version>/` from
-  `iteration/<version>` and keep the progress files in it. Never open a new
-  version, never switch to another branch.
+  of git, so the folder is not there: run `python3 "<pipeline skill
+  folder>/scripts/open_iteration.py" <version>` with the version of
+  `iteration/<version>` — it only switches to that branch (tracking it from
+  `origin`) and creates `plans/<version>/` — and keep the progress files
+  there. Never open a new version, never switch to another branch.
 - **Inputs come from the branch.** `git pull --rebase` before the stage
   starts; when an input the table names is not there yet, say what is
   missing and from whom, and stop — nothing here can replace it.

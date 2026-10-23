@@ -76,7 +76,7 @@ UNTRUNCATED_COLS = {
     "Tailwind Config", "GSAP Snippet",
 }
 
-#  only the pipeline's stacks (React + Vite, Next.js, shadcn/ui on Tailwind)
+# dev-pipeline: only the pipeline's stacks (React + Vite, Next.js, shadcn/ui on Tailwind)
 STACK_CONFIG = {
     "react":            {"file": "stacks/react.csv"},
     "nextjs":           {"file": "stacks/nextjs.csv"},

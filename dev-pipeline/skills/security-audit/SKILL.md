@@ -1,13 +1,12 @@
 ---
 name: security-audit
 description: >-
-  Audits the whole application's security once per iteration, before release: scanners over the code and history, then
-  every API operation traced from route to data — authentication, access per role, other users' data, input, leaks —
-  with blocking findings double-checked. Use for «проверь безопасность», «аудит безопасности», «нет ли дыр», an OWASP
-  review. Not a live pentest or fixing code.
+  Audits the whole app's security before release: scanners, then each API operation traced from route to data (auth,
+  roles, others' data). Use for «проверь безопасность», «нет ли уязвимостей», «нет ли дыр в безопасности». Requirement
+  gaps: doc-review.
 ---
 
-> **Codex.** This skill was written for Claude Code. Read its tool terms — the `Agent` tool and `subagent_type`, `isolation: "worktree"`, Monitor, TaskStop, the Edit tool — as `../executor-catalog/references/codex-runtime.md` (beside this skill's folder) says, before the first agent you spawn, watcher you start or file you edit.
+> **Codex.** This skill was written for Claude Code. Read its tool terms — the `Skill` tool, the `Agent` tool and `subagent_type`, `isolation: "worktree"`, Monitor, TaskStop, the Edit tool — as `../executor-catalog/references/codex-runtime.md` (beside this skill's folder) says, before the first skill you invoke, agent you spawn, watcher you start or file you edit.
 
 # Security Audit
 
@@ -60,19 +59,31 @@ The report is `documentation/plans/<version>/security-audit.md`, out of git
 like the stage's other files, and it is the progress file too (`pipeline` →
 `references/progress-files.md`): create it before the first scanner with
 every row `⏳ ждёт` — one per scanner, one per area, the verification pass —
-post its link, and write the count with the link after each row (Keeping
-the run moving applies: every turn ends with the next scanner or auditor
-running). Its shape: `references/report.md`.
+then post its progress line, and again after each row: run
+`python3 "<folder of this SKILL.md>/../pipeline/scripts/progress_link.py" documentation/plans/<version>/security-audit.md`
+(`--desktop` when this session has the built-in browser) and paste the line it
+prints, never a link written by hand. Keeping the run moving applies: every
+turn ends with the next scanner or auditor running. Its shape:
+`references/report.md`.
+
+The audit is a long run, so it keeps the resume note too (`pipeline` →
+`references/pause-and-resume.md`): read
+`documentation/plans/<version>/resume.md` first when one is there, refresh it
+after each row — a scanner, an area, the verify pass — with the auditors still
+out and the findings not yet verified, and delete it when the verdict line is
+written. A note left behind sends the next session after an audit that is
+over.
 
 ## Steps
 
 ### 1. Scanners
 
-Read the Traps of the project's verify skill (`.agents/skills/verify/`)
-first; with none, write and prove it before the scanners (`deploy-topology`
-→ `references/verify-skill.md`), from `.claude/launch.json`, the README and
-the test compose file. A proxy or a cache already met there applies to the
-scanners too; add any network trap the scanners meet. Run each scanner from
+The scanners read the files and the history: they need no running
+application. When the project has a verify skill (`.agents/skills/verify/`),
+read its Traps first — a proxy or a cache already met there applies to the
+scanners too — and add any network trap the scanners meet. Without one, do
+not write it here: on a first iteration the test stand does not exist yet
+(`deploy-topology`, the stage after this one, builds it). Run each scanner from
 `references/scanners.md` over the repository root,
 through its Docker image (nothing installed on the machine); without
 Docker, the local tool, then say which way it ran. Save each raw output
@@ -110,11 +121,24 @@ limits, logging — and the scanner findings to triage.
 
 Each auditor follows every operation from the route to the data and back,
 and returns findings with `file:line`, the concrete request that exploits
-it, the rule it breaks, and a fix in words.
+it, the rule it breaks, and a fix in words. Every auditor numbers its own
+findings from F1, so when the reports are in, renumber them into one
+sequence — F1, F2… in area order, the app-wide ones last — and use only that
+number from then on: in the verify packet, the report and the questions to
+the user.
 
 ### 4. Verify
 
-Confirm each P0 and P1 quotes a line that exists. Then dispatch
+Confirm each P0 and P1 quotes a line that exists. **The proof is what the
+finding is made of, not a running stand.** A scanner finding is proven by
+its output and the code line it points at. A trace finding carries its
+exploit request: when the test stand is already up (the verify skill's
+doctor says READY), send that request to it yourself — `curl` for an API
+operation, the browser only for a step that exists only on a screen — and
+write the answer under the finding. With no stand up, or none yet, the
+finding stands on the traced code and the verify pass, and the report says
+so: «запросом не проверено: стенда нет». The audit never builds or starts a
+stand. Then dispatch
 `security-auditor` once in `MODE verify` with only those findings: it tries
 to **disprove** each — a middleware that already checks, a query already
 scoped to the owner, a path unreachable from outside — and keeps what it
@@ -122,8 +146,8 @@ cannot disprove. A disproved finding goes to «Отклонено» with the rea
 P2 and P3 are not verified: they block nothing.
 
 **Against a settled decision.** Before the verdict, check every finding —
-P0 to P3 — against the SRS (NFR, BR), the architecture's security
-decisions and accepted risks, and the project's decisions log. A finding
+P0 to P3 — against the SRS (NFR, BR), architecture §1 «Решения по
+безопасности» and «Принятые риски», and the project's decisions log. A finding
 that a document already decided on purpose («предела по адресу нет») is
 marked `⚖ против решения <id>` and is never fixed, planned or sent to the
 report as a fix: it goes to the user as a question with that decision
@@ -138,7 +162,11 @@ settled decision).
   a question is shown" — a `⚖ против решения` finding first, with its
   decision quoted — each with the options «A. Исправить»,
   «B. Принять риск» — the user's reason goes into the report, and an
-  accepted finding no longer blocks — and «C. Отложить» (stays open). Then
+  accepted finding no longer blocks; the risk also goes into architecture
+  §1 «Принятые риски» with that reason and the date, through `pipeline` →
+  `references/decision-changes.md`, because this report is removed when
+  the iteration closes and the next audit reads accepted risks there — and
+  «C. Отложить» (stays open). Then
   offer a fix plan: `plan` over the findings marked A, one unit per fix or
   per shared cause, then `work`. After that run, re-audit only what it
   touched: the fixed findings plus the scanners (`pipeline` →
@@ -170,7 +198,9 @@ decides.
 - Every operation of the contract is a matrix row, and every row was traced
   by an auditor — Steps 2–3.
 - Every P0 and P1 survived the verify pass or sits in «Отклонено» with a
-  reason — Step 4.
+  reason, and says whether a request to the stand confirmed it — Step 4.
+- The finding numbers are one sequence across the auditors — Step 3.
+- `resume.md` is gone once the verdict line is written — Progress and report.
 - The report's first line is the verdict; every open P0/P1 has the user's
   choice — Step 5.
 

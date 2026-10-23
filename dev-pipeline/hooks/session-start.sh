@@ -1,5 +1,5 @@
 #!/bin/sh
-#  re-anchor a session on the pipeline's rules after a start, a resume, /clear or a context
+# dev-pipeline: re-anchor a session on the pipeline's rules after a start, a resume, /clear or a context
 # compaction. Prints a few lines into the session's context when the project has an open iteration
 # (documentation/plans/<version>/ without summary.md), and a line when the project lacks format changes of the
 # installed plugin (upgrade-docs and upgrade-code skills); prints nothing otherwise. Read-only.
@@ -31,7 +31,6 @@ open=${open# }
 stage_of() {
   case "$1" in
     progress.md) echo "work" ;;
-    progress-e2e.md) echo "work (browser suite)" ;;
     progress-design.md) echo "ui-design" ;;
     progress-screen-specs.md) echo "screen-spec" ;;
     progress-test-cases.md) echo "ui-test-cases (write)" ;;
@@ -60,15 +59,20 @@ case "$src" in
 esac
 
 if [ "$n" -gt 1 ]; then
-  echo " $n open iterations ($open); the newest is $v (documentation/plans/$v/). The older ones have no summary.md — the pipeline asks which is current before stamping anything."
+  echo "dev-pipeline: $n open iterations ($open); the newest is $v (documentation/plans/$v/). The older ones have no summary.md — the pipeline asks which is current before stamping anything."
 else
-  echo " open iteration $v (documentation/plans/$v/)."
+  echo "dev-pipeline: open iteration $v (documentation/plans/$v/)."
 fi
 if [ -n "$stage" ]; then
   echo "Last stage by its files: $stage — progress in documentation/plans/$v/$last."
 fi
-echo "$why Before continuing pipeline work, read the pipeline skill and the current stage's skill again; take the state from the files on disk, not from memory."
-echo "Most often lost: give a stage's progress only as a clickable link to its page — the progress file's name in .html beside the .md (progress-design.html), never the .md; commit a finished document before asking about the next stage or stopping; end a turn only with the next step already running, unless the turn ends on a question to the user; stop checking every watcher you started when its work ends."
+echo "$why Before continuing pipeline work, read the dev-pipeline:pipeline skill and the current stage's skill again; take the state from the files on disk, not from memory."
+where="$root/pipeline/scripts/where_am_i.py"
+[ -f "$where" ] || where="$root/skills/pipeline/scripts/where_am_i.py"   # the Codex layout
+echo "For «где я», «что дальше» or before resuming a stage, run python3 \"$where\" \"$dir\" and take the state from its output (pipeline → Where am I)."
+link="$root/pipeline/scripts/progress_link.py"
+[ -f "$link" ] || link="$root/skills/pipeline/scripts/progress_link.py"   # the Codex layout
+echo "Most often lost: give a stage's progress only as the line python3 \"$link\" <progress file .md> prints, pasted as printed — never a link written by hand, never the .md; commit a finished document before asking about the next stage or stopping; end a turn only with the next step already running, unless the turn ends on a question to the user; stop checking every watcher you started when its work ends."
 [ -f "$plans/$v/resume.md" ] && echo "A run left documentation/plans/$v/resume.md: read it first and check each claim against git, the tree and docker before continuing (pipeline → references/pause-and-resume.md)."
 [ -f "$dir/.agents/skills/verify/SKILL.md" ] && echo "This project has .agents/skills/verify: run its doctor before driving the app."
 exit 0

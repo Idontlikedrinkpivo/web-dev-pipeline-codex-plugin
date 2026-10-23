@@ -2,7 +2,8 @@
 name: reflect
 description: >-
   At an iteration's end, reads its sessions and logs where the dev-pipeline plugin itself failed, with the user's
-  words, in a feedback file outside the repo. Use for «разбери сессии для плагина», /reflect. Never edits the plugin.
+  words, and what the run cost by agent, in a feedback file outside the repo. Use for «разбери сессии для плагина»,
+  «сколько стоила итерация», /reflect. Never edits the plugin.
 ---
 
 > **Codex.** This skill was written for Claude Code. Read its tool terms — the `Skill` tool, the `Agent` tool and `subagent_type`, `isolation: "worktree"`, Monitor, TaskStop, the Edit tool — as `../executor-catalog/references/codex-runtime.md` (beside this skill's folder) says, before the first skill you invoke, agent you spawn, watcher you start or file you edit.
@@ -71,11 +72,12 @@ rules (check them — the session may have run an older version).
    «What counts» excludes; for each, check the current skill text — a rule
    that already says the right thing is marked «уже в правилах с <version>,
    нарушено» rather than proposed again.
-5. **Write.** Append one section to
+5. **Measure.** Not available in the Codex build yet: it has no reader of Codex's token counts. Write «не замерялся (Codex)» under «### Расход».
+6. **Write.** Append one section to
    `~/.codex/dev-pipeline-feedback/<project folder's basename>.md` (create the
    folder and the file when missing; never rewrite earlier sections). Shape
    below. Nothing is written into the project and nothing is committed.
-6. **Report** in one line: the file as a clickable link, how many findings,
+7. **Report** in one line: the file as a clickable link, how many findings,
    how many sessions read. With none, write the section anyway, saying so —
    the maintainer sees the iteration was reviewed.
 
@@ -94,6 +96,11 @@ rules (check them — the session may have run an older version).
 - **Предложение:** <the change in one or two sentences>
 - **Закрепить:** текстом правила | скриптом / проверкой: <which>
 - **Повторялось:** <n> раз (<sessions>)
+
+### Расход
+не замерялся (Codex)
 ```
 
 Order by cost to the user: repeated corrections first.
+
+**Asked only what the run cost:** say that the Codex build cannot measure it yet.

@@ -58,10 +58,16 @@ rules (check them — the session may have run an older version).
 2. **Digest.** For each session:
    `python3 "<folder of this SKILL.md>/scripts/sessions.py" digest <rollout.jsonl> <tmp>/<n>.md`
    — the user's typed messages, Codex's replies, the skills and agents
-   run, and the compaction marks, in order; tool output is left out.
+   run, and the compaction marks, in order; tool output is left out. Then
+   the failed calls of the whole window, the agents' own logs included:
+   `python3 "<folder of this SKILL.md>/scripts/sessions.py" errors "$PWD" <tmp>/errors.md --since <the same date>`
+   (and the same `--also`) — an agent that fixed its own failed command
+   never told the session, and a wrong flag or path a skill gave shows up
+   only there.
 3. **Review.** Read `executor-catalog` and resolve `session-reviewer`.
-   Dispatch one per digest, in parallel, in the foreground, with the packet
-   in `references/reviewer-prompt.md`: the digest path, the plugin's skills
+   Dispatch one per digest, and one for `errors.md` (its lines in
+   `references/reviewer-prompt.md` → The errors digest), in parallel, in the
+   foreground, with the packet in `references/reviewer-prompt.md`: the digest path, the plugin's skills
    folder (`<folder of this SKILL.md>/..`), the plugin version installed now — the
    `version` field of the plugin's manifest in that same folder,
    `.claude-plugin/plugin.json` (`.codex-plugin/plugin.json` under Codex);

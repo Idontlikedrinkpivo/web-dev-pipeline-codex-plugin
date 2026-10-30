@@ -7,6 +7,9 @@ usage:
                      all reappear, in order, at the start of a longer one (it was resumed into a new
                      file) is marked «# повтор <id>» and skipped
   sessions.py digest <rollout.jsonl[.zst]> <out.md>          the session as a short chronological digest
+  sessions.py errors <project-dir> <out.md> [--since …] [--also …]   failed calls of the sessions and the agents they
+                     spawned, grouped. Codex writes a call's output as plain text and keeps no success flag in the
+                     rollout, so a failure is read from the text: «Exit code: N» not 0, a timeout, an error line
 
 The Codex build of the plugin ships this file in place of the Claude Code one. Codex keeps each session as a
 rollout file: ${CODEX_HOME:-~/.codex}/sessions/YYYY/MM/DD/rollout-<time>-<id>.jsonl (older ones may be
@@ -161,6 +164,75 @@ def cmd_digest(src: str, out: str) -> None:
     print(f"{out}: {len(rows)} entries")
 
 
+def failed(out) -> str:
+    """The error text of a failed call's output, or "" when it succeeded."""
+    s = out if isinstance(out, str) else json.dumps(out, ensure_ascii=False)
+    try:
+        d = json.loads(s)
+        code = (d.get("metadata") or {}).get("exit_code")
+        if code not in (None, 0):
+            return str(d.get("output", ""))[:600] or f"exit code {code}"
+        return ""
+    except (ValueError, AttributeError):
+        pass
+    # an exec call's text: "Exit code: N\nWall time: … seconds\nOutput:\n…" (codex-rs core/src/tools,
+    # format_exec_output_for_model); a timeout starts "command timed out after N milliseconds"
+    m = re.match(r"\s*(?:Exit code|Process exited with code):?\s*(\d+)", s)
+    if m and m.group(1) != "0":
+        return s[:600]
+    return s[:600] if re.match(r"\s*(error|failed|unknown|no such|command timed out|apply_patch verification failed)",
+                               s, re.I) else ""
+
+
+def cmd_errors(cwd: str, out: str, since: str | None, also: list[str]) -> None:
+    """The failed calls of this project's sessions and of the agents they spawned, grouped (no model reads them)."""
+    roots = {os.path.realpath(x) for x in [cwd] + also}
+    try:  # agents working in a worktree of the repository record that worktree as their folder
+        wl = subprocess.run(["git", "-C", cwd, "worktree", "list", "--porcelain"], capture_output=True, text=True,
+                            timeout=10).stdout
+        roots |= {os.path.realpath(l[9:]) for l in wl.splitlines() if l.startswith("worktree ")}
+    except (OSError, subprocess.TimeoutExpired):
+        pass
+    groups: dict = {}
+    total = 0
+    for path in rollouts():
+        m = meta(path)
+        where = os.path.realpath(str(m.get("cwd", "")))
+        if not m or not any(where == r or where.startswith(r + os.sep) for r in roots):
+            continue
+        who = "агент" if m.get("parent_thread_id") else "сессия"
+        calls: dict = {}
+        for d in records(path):
+            ts = (d.get("timestamp") or "")[:16]
+            if since and ts and ts < since:
+                continue
+            p = d.get("payload") or {}
+            if d.get("type") != "response_item":
+                continue
+            if p.get("type") in ("function_call", "custom_tool_call"):  # custom: apply_patch and the like
+                calls[p.get("call_id")] = (p.get("name") or "", str(p.get("arguments") or p.get("input") or "")[:300])
+            elif p.get("type") in ("function_call_output", "custom_tool_call_output"):
+                err = failed(p.get("output"))
+                if not err:
+                    continue
+                total += 1
+                name, args = calls.get(p.get("call_id"), ("?", ""))
+                first = next((l for l in err.splitlines() if l.strip() and not re.match(
+                    r"(Exit code|Wall time|Output:|Total output lines)", l)), err[:100])[:140]
+                key = (name, re.sub(r"\d+", "N", re.sub(r"/[^\s'\"]+", "<путь>", first)))
+                g = groups.setdefault(key, {"n": 0, "who": set(), "ex": (args, err, ts)})
+                g["n"] += 1
+                g["who"].add(who)
+    lines = [f"# Ошибки вызовов · {Path(cwd).name}" + (f" · с {since}" if since else ""), "",
+             f"Вызовов с ошибкой: {total} · групп: {len(groups)} (журналы Codex; упавшие тесты и линтеры — дело кода)", ""]
+    for (name, _), g in sorted(groups.items(), key=lambda kv: -kv[1]["n"])[:80]:
+        args, err, ts = g["ex"]
+        lines += [f"## ×{g['n']} · ошибка команды · {name}", f"- кто: {', '.join(sorted(g['who']))}",
+                  f"- пример ({ts.replace('T', ' ')}): `{args[:240]}`", "- ошибка: " + re.sub(r"\s+", " ", err)[:400], ""]
+    Path(out).write_text("\n".join(lines) + "\n")
+    print(f"{out}: {total} failed calls in {len(groups)} groups")
+
+
 if __name__ == "__main__":
     if len(sys.argv) >= 3 and sys.argv[1] == "list":
         since = sys.argv[sys.argv.index("--since") + 1] if "--since" in sys.argv else None
@@ -168,6 +240,10 @@ if __name__ == "__main__":
         cmd_list(sys.argv[2], since, also)
     elif len(sys.argv) == 4 and sys.argv[1] == "digest":
         cmd_digest(sys.argv[2], sys.argv[3])
+    elif len(sys.argv) >= 4 and sys.argv[1] == "errors":
+        since = sys.argv[sys.argv.index("--since") + 1] if "--since" in sys.argv else None
+        also = [sys.argv[i + 1] for i, x in enumerate(sys.argv) if x == "--also"]
+        cmd_errors(sys.argv[2], sys.argv[3], since, also)
     else:
         print(__doc__)
         sys.exit(2)

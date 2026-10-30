@@ -82,13 +82,22 @@ rules (check them — the session may have run an older version).
    «What counts» excludes; for each, check the current skill text — a rule
    that already says the right thing is marked «уже в правилах с <version>,
    нарушено» rather than proposed again.
-5. **Measure.** Not available in the Codex build yet: it has no reader of Codex's token counts. Write «не замерялся (Codex)» under «### Расход».
+5. **Measure.**
+   `python3 "<folder of this SKILL.md>/scripts/measure.py" "$PWD" --since <the same date>` (and the same `--also`)
+   plus `--progress documentation/plans/<version>/progress.md` for each iteration of the window — at the close
+   the file is still there, and the script keeps its numbers outside the project for a later run after the
+   cleanup — and `--units <previous tag>..HEAD` — what the iteration's sessions and agents spent, from Claude
+   Code's own logs: by group and by agent, the models, the context each agent reached, «Принятие задач» (units
+   accepted at the first review, units sent back, the cost of one accepted unit), and the flags it raises. Its output goes into the section unchanged,
+   under «### Расход»: the maintainer tunes unit size, reviews and packets from these numbers, and a paraphrase
+   loses them. A flag becomes a finding only when a skill caused it (a stage pasting whole documents, a
+   session kept for days on a huge context).
 6. **Write.** Append one section to
    `~/.codex/dev-pipeline-feedback/<project folder's basename>.md` (create the
    folder and the file when missing; never rewrite earlier sections). Shape
    below. Nothing is written into the project and nothing is committed.
 7. **Report** in one line: the file as a clickable link, how many findings,
-   how many sessions read. With none, write the section anyway, saying so —
+   how many sessions read, the run's total from the measure. With none, write the section anyway, saying so —
    the maintainer sees the iteration was reviewed.
 
 ## The section
@@ -108,9 +117,14 @@ rules (check them — the session may have run an older version).
 - **Повторялось:** <n> раз (<sessions>)
 
 ### Расход
-не замерялся (Codex)
+<measure.py's output from «Окно» on, unchanged>
 ```
 
 Order by cost to the user: repeated corrections first.
 
-**Asked only what the run cost:** say that the Codex build cannot measure it yet.
+**Comparing two versions of the plugin** («стало ли дешевле после правки»): `references/comparing.md` — several
+runs per version, `measure.py --json` and `scripts/compare.py`.
+
+**Asked only what the run cost** («сколько стоила итерация», «куда ушли токены»): run step 5 alone, from the
+iteration's first commit or the date the user names, and answer with its tables and flags in plain words; nothing
+is written.

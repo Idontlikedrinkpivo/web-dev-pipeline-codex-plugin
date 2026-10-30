@@ -129,10 +129,13 @@ def skill_read(args: str) -> str:
     return args[i + len(marker):].split("/", 1)[0]
 
 
-def cmd_digest(src: str, out: str) -> None:
+def cmd_digest(src: str, out: str, since: str | None = None) -> None:
     rows: list[str] = []
+    since = since.replace("T", " ") if since else None
     for d in records(Path(src)):
         ts = (d.get("timestamp") or "")[:16].replace("T", " ")
+        if since and ts and ts < since:  # read by an earlier reflect section
+            continue
         t, p = d.get("type"), d.get("payload") or {}
         if t == "event_msg":
             kind = p.get("type")
@@ -238,8 +241,8 @@ if __name__ == "__main__":
         since = sys.argv[sys.argv.index("--since") + 1] if "--since" in sys.argv else None
         also = [sys.argv[i + 1] for i, x in enumerate(sys.argv) if x == "--also"]
         cmd_list(sys.argv[2], since, also)
-    elif len(sys.argv) == 4 and sys.argv[1] == "digest":
-        cmd_digest(sys.argv[2], sys.argv[3])
+    elif len(sys.argv) >= 4 and sys.argv[1] == "digest":
+        cmd_digest(sys.argv[2], sys.argv[3], sys.argv[sys.argv.index("--since") + 1] if "--since" in sys.argv else None)
     elif len(sys.argv) >= 4 and sys.argv[1] == "errors":
         since = sys.argv[sys.argv.index("--since") + 1] if "--since" in sys.argv else None
         also = [sys.argv[i + 1] for i, x in enumerate(sys.argv) if x == "--also"]

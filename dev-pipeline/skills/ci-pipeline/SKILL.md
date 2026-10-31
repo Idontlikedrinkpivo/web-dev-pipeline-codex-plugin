@@ -27,13 +27,6 @@ instead of trusting the run report.
 
 ## Scope
 
-**USE when:**
-- `deploy-topology` has already produced `docker-compose.test.yml` and the
-  project has lint/typecheck/test commands (Makefile, `package.json`
-  scripts, or the stack's task runner)
-- The user asks for CI, a GitHub Actions workflow, automated checks on PRs,
-  or "make sure this can't merge broken"
-
 **NOT for:**
 - CD — building/pushing a release image, deploying to the prod topology
   `deploy-topology` defined. That is the user's shipping flow, same
@@ -44,7 +37,7 @@ instead of trusting the run report.
 - Inventing a check the project doesn't already run locally. If there is no
   `lint` command yet, that is a gap in the project's own tooling, not
   something CI papers over by inlining a linter invocation nobody runs
-  outside CI. The optional `security` job (Step 7) is the one bounded
+  outside CI. The `security` job (Step 7) is the one bounded
   exception, and it says how it comes back under this rule.
 - Provisioning real secrets, deploy credentials, or anything beyond the
   test-fixture values `docker-compose.test.yml` already uses in the clear.
@@ -124,8 +117,8 @@ the runner and reaches the services on `127.0.0.1`, as `make test` expects.
 Fall back to `references/service-containers.md` only when a needed port
 is not published or the runner has no Docker Compose. It shows each infra
 dependency the provider's native way. On GitHub Actions that is a native
-service container for every dependency — services accept `command:` and
-`entrypoint:` since April 2026 — plus one step for the bucket init. A
+service container for every dependency — current GitHub Actions services
+accept `command:` and `entrypoint:` — plus one step for the bucket init. A
 manually-run container plus a readiness-poll loop is only for a provider
 whose service config cannot override the image's command. When you fall
 back, the fixture values are a copy — the
@@ -243,7 +236,7 @@ through the key or setting `references/providers-and-stacks.md` names.
 - Never `pull_request_target` for this workflow: it runs fork code with
   the base repository's token and secrets.
 
-### Step 7. Optional `security` job: included, advisory until opted in
+### Step 7. The `security` job — on by default, advisory until opted in
 
 Default: include it; omit it only when the user declines or an equivalent
 scanner already runs on the same pull requests. It needs no secrets, and a
@@ -383,7 +376,7 @@ open.
 
 - `references/ci-skeleton.md` — the complete minimal `ci.yml` to start
   from (compose variant and service-containers variant), plus the
-  optional `security` job.
+  `security` job.
 - `references/service-containers.md` — the native-service-container pattern
   per infra dependency, and the manual-container fallback for images the
   provider's service config cannot start correctly.

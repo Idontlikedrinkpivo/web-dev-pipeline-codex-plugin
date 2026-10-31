@@ -32,3 +32,5 @@ skills and references as the Codex action below.
 | Claude Code's built-in `/code-review` | Codex's `/review` |
 | `reflect` | reads this project's Codex sessions (rollout files under `~/.codex/sessions/`) with the Codex build's `sessions.py`; the feedback file is `~/.codex/dev-pipeline-feedback/<project>.md` |
 | model names in `executor-catalog` (`opus`, `sonnet`, `haiku`) and its measurements | they name the Claude originals and were measured there. The Codex model of each row is in its `.toml`; the map is the plugin's `models.json` |
+| the user names a model («сделай это на opus») | Codex runs the custom agent the catalog names with the model `codex/models.json` maps for it; a named Claude model has no Codex counterpart to switch to — say so and keep the mapped one |
+| the built-in browser (`preview_start`, `navigate`, the browser pane) in `open-docs` and the progress links | Codex has no browser pane: start the server the same way and give the user the `http://127.0.0.1:<port>/` link to open in their own browser |

@@ -1,8 +1,8 @@
 ---
 name: db-schema-design
 description: >-
-  Designs the relational schema from the SRS, slice by slice: DBMS and version, tables, keys, constraints, indexes,
-  SQL migrations, ER diagram. Use for «схема БД», «какие таблицы нужны», «выбор СУБД». Not the API or entities.
+  Designs the relational schema from the SRS: DBMS, tables, keys, indexes, migrations, ER diagram. Use for «схема БД»,
+  «спроектируй базу», «какие таблицы нужны», «Postgres или MySQL». Not API or entities.
 ---
 
 > **Codex.** This skill was written for Claude Code. Read its tool terms — the `Skill` tool, the `Agent` tool and `subagent_type`, `isolation: "worktree"`, Monitor, TaskStop, the Edit tool — as `../executor-catalog/references/codex-runtime.md` (beside this skill's folder) says, before the first skill you invoke, agent you spawn, watcher you start or file you edit.

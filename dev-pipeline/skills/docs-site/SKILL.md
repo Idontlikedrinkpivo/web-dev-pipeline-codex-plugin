@@ -1,9 +1,8 @@
 ---
 name: docs-site
 description: >-
-  Builds documentation/ into a static HTML site: menu, search, linked ids, Swagger. Use for «собери сайт
-  документации», «пересобери сайт», «выгрузи документы в HTML», «опубликуй документацию» (hosting is the user's step).
-  Opening: open-docs.
+  Builds documentation/ into a static HTML site with menu, search and Swagger. Use for «собери сайт документации»,
+  «пересобери сайт», «выгрузи документы в HTML». Hosting: the user; opening: open-docs.
 ---
 
 > **Codex.** This skill was written for Claude Code. Read its tool terms — the `Skill` tool, the `Agent` tool and `subagent_type`, `isolation: "worktree"`, Monitor, TaskStop, the Edit tool — as `../executor-catalog/references/codex-runtime.md` (beside this skill's folder) says, before the first skill you invoke, agent you spawn, watcher you start or file you edit.

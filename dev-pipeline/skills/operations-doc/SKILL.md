@@ -1,8 +1,8 @@
 ---
 name: operations-doc
 description: >-
-  Writes the operations document for a built system: what it records and where, how to see each, jobs, alarms,
-  troubleshooting. Use for «эксплуатационная документация», «где посмотреть журналы», «инструкция для поддержки».
+  Writes the operations document for a built system: logs, jobs, alarms, troubleshooting. Use for «эксплуатационная
+  документация», «где посмотреть журналы», «инструкция для поддержки». Deployment: deploy-topology.
 ---
 
 > **Codex.** This skill was written for Claude Code. Read its tool terms — the `Skill` tool, the `Agent` tool and `subagent_type`, `isolation: "worktree"`, Monitor, TaskStop, the Edit tool — as `../executor-catalog/references/codex-runtime.md` (beside this skill's folder) says, before the first skill you invoke, agent you spawn, watcher you start or file you edit.

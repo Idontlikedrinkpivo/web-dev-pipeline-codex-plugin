@@ -1,9 +1,8 @@
 ---
 name: docs-consistency
 description: >-
-  Checks that the finished SRS, schema, OpenAPI, architecture and screen specs agree: every requirement has a home,
-  every shared name one meaning. Use before plan, or for «сходятся ли документы», «сверь ТЗ, схему и API». One
-  document: doc-review.
+  Checks that the finished SRS, schema, OpenAPI, architecture and screen specs agree. Use before plan, or for «проверь
+  документы», «сходятся ли документы», «сверь ТЗ и API». One document: doc-review.
 ---
 
 > **Codex.** This skill was written for Claude Code. Read its tool terms — the `Skill` tool, the `Agent` tool and `subagent_type`, `isolation: "worktree"`, Monitor, TaskStop, the Edit tool — as `../executor-catalog/references/codex-runtime.md` (beside this skill's folder) says, before the first skill you invoke, agent you spawn, watcher you start or file you edit.

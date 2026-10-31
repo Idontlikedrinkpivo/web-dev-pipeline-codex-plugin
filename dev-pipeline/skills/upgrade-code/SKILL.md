@@ -1,10 +1,8 @@
 ---
 name: upgrade-code
 description: >-
-  Brings a project's code and settings (quality gates, linters, CI) up to a newer dev-pipeline plugin, a commit each,
-  and audits the code and its technical decisions against the plugin's rules — fix, rewrite or accept, the user
-  decides each. Use when the session-start hook names code changes, «обнови линтеры и CI под плагин», «проведи аудит
-  кода», «нужно ли переписывать». Documents: upgrade-docs.
+  Brings a project's code, linters and CI up to a newer dev-pipeline plugin and audits code by its rules. Use when the
+  hook names code changes, «обнови CI под новую версию плагина», «аудит кода по правилам плагина». Docs: upgrade-docs.
 ---
 
 > **Codex.** This skill was written for Claude Code. Read its tool terms — the `Skill` tool, the `Agent` tool and `subagent_type`, `isolation: "worktree"`, Monitor, TaskStop, the Edit tool — as `../executor-catalog/references/codex-runtime.md` (beside this skill's folder) says, before the first skill you invoke, agent you spawn, watcher you start or file you edit.

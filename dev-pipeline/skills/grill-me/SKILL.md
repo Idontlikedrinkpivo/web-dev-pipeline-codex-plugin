@@ -2,7 +2,7 @@
 name: grill-me
 description: >-
   Interview, one question at a time, that stress-tests a requirements draft, SRS, plan or design until no silent
-  assumption is left; writes the answers in. Use for «допроси меня», «выжги допущения». Not «покритикуй» (doc-review).
+  assumption is left. Use for «допроси меня», «выжги допущения», «проверь мои допущения». Critique: doc-review.
 ---
 
 > **Codex.** This skill was written for Claude Code. Read its tool terms — the `Skill` tool, the `Agent` tool and `subagent_type`, `isolation: "worktree"`, Monitor, TaskStop, the Edit tool — as `../executor-catalog/references/codex-runtime.md` (beside this skill's folder) says, before the first skill you invoke, agent you spawn, watcher you start or file you edit.

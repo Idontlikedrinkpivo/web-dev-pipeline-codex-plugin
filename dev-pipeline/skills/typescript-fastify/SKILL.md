@@ -1,7 +1,8 @@
 ---
 name: typescript-fastify
 description: >-
-  Fastify rules (routes from openapi.yaml, problem+json errors, contract test); read before Fastify code.
+  Internal: Fastify rules (routes from openapi.yaml, problem+json errors, contract test); read by work's executors
+  before Fastify code.
 ---
 
 > **Codex.** This skill was written for Claude Code. Read its tool terms — the `Skill` tool, the `Agent` tool and `subagent_type`, `isolation: "worktree"`, Monitor, TaskStop, the Edit tool — as `../executor-catalog/references/codex-runtime.md` (beside this skill's folder) says, before the first skill you invoke, agent you spawn, watcher you start or file you edit.

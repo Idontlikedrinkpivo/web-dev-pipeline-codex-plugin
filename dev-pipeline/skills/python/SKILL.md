@@ -1,7 +1,8 @@
 ---
 name: python
 description: >-
-  Python rules (strict typing, domain exceptions, exhaustive match); read before Python code.
+  Internal: Python rules (strict typing, domain exceptions, exhaustive match); read by work's executors before Python
+  code.
 ---
 
 > **Codex.** This skill was written for Claude Code. Read its tool terms — the `Skill` tool, the `Agent` tool and `subagent_type`, `isolation: "worktree"`, Monitor, TaskStop, the Edit tool — as `../executor-catalog/references/codex-runtime.md` (beside this skill's folder) says, before the first skill you invoke, agent you spawn, watcher you start or file you edit.

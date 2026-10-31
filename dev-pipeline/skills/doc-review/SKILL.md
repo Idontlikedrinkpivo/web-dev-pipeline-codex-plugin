@@ -1,9 +1,8 @@
 ---
 name: doc-review
 description: >-
-  Reviews one finished document (SRS, schema, OpenAPI, architecture, screen spec) with reviewer personas; fixes the
-  obvious, asks about the rest. Use for «покритикуй ТЗ», «найди дыры в требованиях», «проверь документ». Not grill-me
-  or docs-consistency.
+  Reviews one finished document (BRD, SRS, schema, OpenAPI, architecture, screen spec) with reviewer personas. Use for
+  «покритикуй ТЗ», «найди дыры в требованиях», «проверь схему». The whole set: docs-consistency.
 ---
 
 > **Codex.** This skill was written for Claude Code. Read its tool terms — the `Skill` tool, the `Agent` tool and `subagent_type`, `isolation: "worktree"`, Monitor, TaskStop, the Edit tool — as `../executor-catalog/references/codex-runtime.md` (beside this skill's folder) says, before the first skill you invoke, agent you spawn, watcher you start or file you edit.

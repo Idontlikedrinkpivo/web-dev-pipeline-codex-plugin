@@ -1,8 +1,8 @@
 ---
 name: srs-writer
 description: >-
-  Turns any product or feature description (brainstorm, note, ticket, chat) into the numbered SRS (FR, NFR, BR, UC,
-  Given/When/Then) or updates it. Use for «напиши ТЗ», «оформи требования». Not a screen's ТЗ (screen-spec).
+  Turns a product or feature description into the numbered SRS (FR, NFR, BR, UC, Given/When/Then) or updates it. Use
+  for «напиши ТЗ на фичу», «оформи требования», «добавь требование». A screen with mockups: screen-spec.
 ---
 
 > **Codex.** This skill was written for Claude Code. Read its tool terms — the `Skill` tool, the `Agent` tool and `subagent_type`, `isolation: "worktree"`, Monitor, TaskStop, the Edit tool — as `../executor-catalog/references/codex-runtime.md` (beside this skill's folder) says, before the first skill you invoke, agent you spawn, watcher you start or file you edit.

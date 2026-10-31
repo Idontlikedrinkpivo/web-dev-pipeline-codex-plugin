@@ -1,7 +1,7 @@
 ---
 name: executor-catalog
 description: >-
-  Internal routing: which agent runs each executor and how it is dispatched; read before any dispatch.
+  Internal: which agent runs each executor and how it is dispatched; read before dispatching a dev-pipeline agent.
 ---
 
 > **Codex.** This skill was written for Claude Code. Read its tool terms — the `Skill` tool, the `Agent` tool and `subagent_type`, `isolation: "worktree"`, Monitor, TaskStop, the Edit tool — as `../executor-catalog/references/codex-runtime.md` (beside this skill's folder) says, before the first skill you invoke, agent you spawn, watcher you start or file you edit.

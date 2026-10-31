@@ -1,9 +1,8 @@
 ---
 name: ui-design
 description: >-
-  Design stage in Figma: visual direction as style tiles, mockups from the SRS, restyles, the frames register. Use for
-  «нарисуй макеты», «дизайн экранов», «сделай экран настроек» with no mockup yet, «перерисуй стильнее», «сделай менее
-  шаблонно», «нужен характер». Not screen-spec or frontend.
+  Figma design stage: visual direction, mockups from the SRS, restyles. Use for «нарисуй макеты», «подбери стиль»,
+  «перерисуй стильнее». A screen not in the SRS: brainstorm first. Not screen-spec or frontend.
 ---
 
 > **Codex.** This skill was written for Claude Code. Read its tool terms — the `Skill` tool, the `Agent` tool and `subagent_type`, `isolation: "worktree"`, Monitor, TaskStop, the Edit tool — as `../executor-catalog/references/codex-runtime.md` (beside this skill's folder) says, before the first skill you invoke, agent you spawn, watcher you start or file you edit.

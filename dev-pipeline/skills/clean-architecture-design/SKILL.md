@@ -1,8 +1,8 @@
 ---
 name: clean-architecture-design
 description: >-
-  Writes the architecture from the SRS, schema and OpenAPI: foundation (stack, modules, file tree), domain model,
-  use-case scenarios. Use for «спроектируй архитектуру», «доменная модель», «сценарии use case». Not tables or API.
+  Writes the architecture from the SRS, schema and OpenAPI: stack, modules, file tree, domain model, scenarios. Use
+  for «спроектируй архитектуру», «выбери стек», «структура проекта». DBMS: db-schema-design.
 ---
 
 > **Codex.** This skill was written for Claude Code. Read its tool terms — the `Skill` tool, the `Agent` tool and `subagent_type`, `isolation: "worktree"`, Monitor, TaskStop, the Edit tool — as `../executor-catalog/references/codex-runtime.md` (beside this skill's folder) says, before the first skill you invoke, agent you spawn, watcher you start or file you edit.

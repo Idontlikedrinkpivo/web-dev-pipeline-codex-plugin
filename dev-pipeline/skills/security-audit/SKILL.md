@@ -1,9 +1,8 @@
 ---
 name: security-audit
 description: >-
-  Audits the whole app's security before release: scanners, then each API operation traced from route to data (auth,
-  roles, others' data). Use for «проверь безопасность», «нет ли уязвимостей», «нет ли дыр в безопасности». Requirement
-  gaps: doc-review.
+  Audits the whole app's security before release: scanners, then each API operation traced route to data. Use for
+  «проверь безопасность», «аудит безопасности», «нет ли уязвимостей». A PR or diff: /security-review.
 ---
 
 > **Codex.** This skill was written for Claude Code. Read its tool terms — the `Skill` tool, the `Agent` tool and `subagent_type`, `isolation: "worktree"`, Monitor, TaskStop, the Edit tool — as `../executor-catalog/references/codex-runtime.md` (beside this skill's folder) says, before the first skill you invoke, agent you spawn, watcher you start or file you edit.

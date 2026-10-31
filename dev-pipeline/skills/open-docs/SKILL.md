@@ -1,8 +1,8 @@
 ---
 name: open-docs
 description: >-
-  Opens the documentation site in the built-in browser, building it if missing, and gives its link; stops it on
-  request. Use for «открой документацию», «дай ссылку на сайт», «закрой сайт». Building is docs-site.
+  Opens the documentation site in the built-in browser, building it if missing, and gives its link. Use for «открой
+  документацию», «покажи документацию», «закрой сайт». Building: docs-site.
 ---
 
 > **Codex.** This skill was written for Claude Code. Read its tool terms — the `Skill` tool, the `Agent` tool and `subagent_type`, `isolation: "worktree"`, Monitor, TaskStop, the Edit tool — as `../executor-catalog/references/codex-runtime.md` (beside this skill's folder) says, before the first skill you invoke, agent you spawn, watcher you start or file you edit.

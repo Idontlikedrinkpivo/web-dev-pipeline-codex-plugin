@@ -1,7 +1,8 @@
 ---
 name: typescript-drizzle-orm
 description: >-
-  Drizzle ORM rules (repositories, transactions, keyset pages, migrations); read before Drizzle code.
+  Internal: Drizzle ORM rules (repositories, transactions, keyset pages, migrations); read by work's executors before
+  Drizzle code.
 ---
 
 > **Codex.** This skill was written for Claude Code. Read its tool terms — the `Skill` tool, the `Agent` tool and `subagent_type`, `isolation: "worktree"`, Monitor, TaskStop, the Edit tool — as `../executor-catalog/references/codex-runtime.md` (beside this skill's folder) says, before the first skill you invoke, agent you spawn, watcher you start or file you edit.

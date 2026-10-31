@@ -1,8 +1,8 @@
 ---
 name: playwright-cli
 description: >-
-  Drives a real browser with playwright-cli (snapshots, refs, mocks); writes or fixes one Playwright spec or config.
-  Use for a one-off browser check, a UI bug repro, a failing e2e test. Acceptance by test cases: ui-test-cases.
+  Drives a real browser with playwright-cli; writes or fixes one Playwright spec. Use for «проверь в браузере»,
+  «воспроизведи баг», «почини упавший e2e-тест». Acceptance by test cases: ui-test-cases.
 ---
 
 > **Codex.** This skill was written for Claude Code. Read its tool terms — the `Skill` tool, the `Agent` tool and `subagent_type`, `isolation: "worktree"`, Monitor, TaskStop, the Edit tool — as `../executor-catalog/references/codex-runtime.md` (beside this skill's folder) says, before the first skill you invoke, agent you spawn, watcher you start or file you edit.

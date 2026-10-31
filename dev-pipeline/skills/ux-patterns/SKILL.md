@@ -1,9 +1,8 @@
 ---
 name: ux-patterns
 description: >-
-  Checkable UX rules UX-1…UX-80 (B2B, B2C) and mockup checklists: forms, feedback, navigation, dialogs, states,
-  accessibility. Use whenever a screen is designed, built or reviewed, «проверь макеты», «сделай удобно». Code:
-  web-design-guidelines.
+  Checkable UX rules UX-1…UX-80 and mockup checklists (forms, feedback, navigation, states, accessibility), read by
+  ui-design, frontend and reviews. Directly for «проверь макеты по UX». Code: web-design-guidelines.
 ---
 
 > **Codex.** This skill was written for Claude Code. Read its tool terms — the `Skill` tool, the `Agent` tool and `subagent_type`, `isolation: "worktree"`, Monitor, TaskStop, the Edit tool — as `../executor-catalog/references/codex-runtime.md` (beside this skill's folder) says, before the first skill you invoke, agent you spawn, watcher you start or file you edit.

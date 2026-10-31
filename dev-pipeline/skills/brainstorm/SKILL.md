@@ -1,8 +1,8 @@
 ---
 name: brainstorm
 description: >-
-  Turns a vague idea or new feature into the business-requirements document: goal, scope, product contract. Use for
-  «давай подумаем», «что строим», «хочу новую фичу». A ready description goes to srs-writer.
+  Turns an idea or feature into the business-requirements document (goal, scope, product contract); a clear request
+  gets a short confirmation. Use for «давай подумаем», «что строим», «хочу новую фичу». Numbered SRS: srs-writer.
 ---
 
 > **Codex.** This skill was written for Claude Code. Read its tool terms — the `Skill` tool, the `Agent` tool and `subagent_type`, `isolation: "worktree"`, Monitor, TaskStop, the Edit tool — as `../executor-catalog/references/codex-runtime.md` (beside this skill's folder) says, before the first skill you invoke, agent you spawn, watcher you start or file you edit.

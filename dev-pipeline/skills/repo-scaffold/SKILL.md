@@ -1,9 +1,8 @@
 ---
 name: repo-scaffold
 description: >-
-  Turns the architecture's file tree and stack into an empty runnable repo: folders, manifest, linters, quality gates,
-  migration runner, health and metrics endpoints, JSON logs, graceful stop, project map. Use for «каркас репозитория», «разверни структуру». Not business
-  code or CI.
+  Turns the architecture's file tree and stack into an empty runnable repo with linters and quality gates. Use for
+  «каркас репозитория», «создай каркас проекта», «скелет проекта». Not business code or CI.
 ---
 
 > **Codex.** This skill was written for Claude Code. Read its tool terms — the `Skill` tool, the `Agent` tool and `subagent_type`, `isolation: "worktree"`, Monitor, TaskStop, the Edit tool — as `../executor-catalog/references/codex-runtime.md` (beside this skill's folder) says, before the first skill you invoke, agent you spawn, watcher you start or file you edit.

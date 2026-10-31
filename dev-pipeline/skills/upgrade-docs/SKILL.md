@@ -1,10 +1,9 @@
 ---
 name: upgrade-docs
 description: >-
-  Brings a project's documents up to the installed dev-pipeline plugin: checks the whole document set, writes a
-  missing document from the current code on the user's yes, then makes the format changes, a commit each. Use when the
-  session-start hook names document changes, «обнови документы под новую версию плагина», «проверь комплект
-  документов», or a project started without the plugin. Not «обнови документацию» after a product change.
+  Brings a project's documents up to the installed dev-pipeline plugin; writes a missing one from code on a yes. Use
+  when the hook names document changes, «обнови документы под новую версию плагина», «проект без плагина». A changed
+  rule: pipeline.
 ---
 
 > **Codex.** This skill was written for Claude Code. Read its tool terms — the `Skill` tool, the `Agent` tool and `subagent_type`, `isolation: "worktree"`, Monitor, TaskStop, the Edit tool — as `../executor-catalog/references/codex-runtime.md` (beside this skill's folder) says, before the first skill you invoke, agent you spawn, watcher you start or file you edit.

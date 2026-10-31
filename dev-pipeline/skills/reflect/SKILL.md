@@ -1,9 +1,8 @@
 ---
 name: reflect
 description: >-
-  At an iteration's end, reads its sessions and logs where the dev-pipeline plugin itself failed, with the user's
-  words, and what the run cost by agent, in a feedback file outside the repo. Use for «разбери сессии для плагина»,
-  «сколько стоила итерация», /reflect. Never edits the plugin.
+  At an iteration's end, finds in its sessions where the dev-pipeline plugin itself failed and what the iteration cost
+  by agent. Use for «разбери сессии для плагина», «сколько стоила итерация». One session's tokens: explain-usage.
 ---
 
 > **Codex.** This skill was written for Claude Code. Read its tool terms — the `Skill` tool, the `Agent` tool and `subagent_type`, `isolation: "worktree"`, Monitor, TaskStop, the Edit tool — as `../executor-catalog/references/codex-runtime.md` (beside this skill's folder) says, before the first skill you invoke, agent you spawn, watcher you start or file you edit.

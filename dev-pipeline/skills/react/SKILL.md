@@ -1,7 +1,8 @@
 ---
 name: react
 description: >-
-  React rules (derived state, effects only for outside systems, data hooks); read before React code.
+  Internal: React rules (derived state, effects only for outside systems, data hooks); read by work's executors before
+  React code.
 ---
 
 > **Codex.** This skill was written for Claude Code. Read its tool terms — the `Skill` tool, the `Agent` tool and `subagent_type`, `isolation: "worktree"`, Monitor, TaskStop, the Edit tool — as `../executor-catalog/references/codex-runtime.md` (beside this skill's folder) says, before the first skill you invoke, agent you spawn, watcher you start or file you edit.
@@ -58,8 +59,9 @@ components, a dictionary loaded four ways. Examples «так / не так»: `r
     `dangerouslySetInnerHTML`; rich text the product must show goes through one sanitizer (DOMPurify) in one
     module, and a link built from such text gets its scheme checked (`https:` / `mailto:` only). A `VITE_*` or
     `NEXT_PUBLIC_*` variable is shipped to every visitor — an API key or a secret never goes there; a call that
-    needs one goes through the backend. The session is the API's `HttpOnly` cookie, never a token in
-    `localStorage` or `sessionStorage`.
+    needs one goes through the backend. A session token never goes into `localStorage` or `sessionStorage`; how
+    the session travels is the architecture §1 decision — the API's `HttpOnly` cookie (credentials sent), or a
+    Bearer token, the backend skills' default, held in memory only.
 15. **Tests**: Testing Library through `renderWithProviders` from the shared test folder, the network mocked by
     MSW, the component's own hooks and modules never mocked, one behaviour per test (`vitest`).
 

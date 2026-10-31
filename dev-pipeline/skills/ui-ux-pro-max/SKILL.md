@@ -1,8 +1,8 @@
 ---
 name: ui-ux-pro-max
 description: >-
-  Design data: styles by product type, palettes, Cyrillic font pairs, landing patterns, charts. Use for «подбери
-  палитру», «какой шрифт»; a pick reaches the project via ui-design's visual direction. UX rules: ux-patterns.
+  Design reference data: palettes, Cyrillic font pairs, styles by product type, landing patterns, charts. Use for
+  «подбери палитру», «какой шрифт подойдёт». A style for the project: ui-design; UX rules: ux-patterns.
 ---
 
 > **Codex.** This skill was written for Claude Code. Read its tool terms — the `Skill` tool, the `Agent` tool and `subagent_type`, `isolation: "worktree"`, Monitor, TaskStop, the Edit tool — as `../executor-catalog/references/codex-runtime.md` (beside this skill's folder) says, before the first skill you invoke, agent you spawn, watcher you start or file you edit.

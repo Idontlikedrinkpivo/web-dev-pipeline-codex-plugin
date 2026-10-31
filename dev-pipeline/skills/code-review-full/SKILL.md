@@ -1,8 +1,8 @@
 ---
 name: code-review-full
 description: >-
-  Reviews a finished plan's whole diff once (drift between units, invariants, leftovers, security); run by work at the
-  close, or on «отревьюй весь план». One unit: code-review-unit; a PR: /code-review.
+  Reviews a finished plan's whole branch diff once; run by work at the close, or for «отревьюй весь код прогона»,
+  «ревью всей ветки». Plan document: plan-review; a PR: /code-review.
 ---
 
 > **Codex.** This skill was written for Claude Code. Read its tool terms — the `Skill` tool, the `Agent` tool and `subagent_type`, `isolation: "worktree"`, Monitor, TaskStop, the Edit tool — as `../executor-catalog/references/codex-runtime.md` (beside this skill's folder) says, before the first skill you invoke, agent you spawn, watcher you start or file you edit.

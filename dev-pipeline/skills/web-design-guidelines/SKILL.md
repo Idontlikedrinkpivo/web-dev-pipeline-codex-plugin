@@ -2,8 +2,7 @@
 name: web-design-guidelines
 description: >-
   Code-level UI rules (Vercel guidelines mapped to UX-n): accessibility, focus, forms, motion, performance. Use for
-  screen code written or reviewed, «проверь вёрстку», «ревью вёрстки». Not mockups (ux-patterns) or the running app
-  (ui-test-cases).
+  «проверь вёрстку», «ревью вёрстки». Not mockups (ux-patterns) or the running app (ui-test-cases).
 ---
 
 > **Codex.** This skill was written for Claude Code. Read its tool terms — the `Skill` tool, the `Agent` tool and `subagent_type`, `isolation: "worktree"`, Monitor, TaskStop, the Edit tool — as `../executor-catalog/references/codex-runtime.md` (beside this skill's folder) says, before the first skill you invoke, agent you spawn, watcher you start or file you edit.

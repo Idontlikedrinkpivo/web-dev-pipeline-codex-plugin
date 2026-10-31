@@ -1,9 +1,8 @@
 ---
 name: plan
 description: >-
-  Turns design documents or existing code into the implementation plan: one-commit units, each with a grade and an
-  executor; or a fix plan from a test or audit report. Use for «составь план», «разбей на задачи», «план исправлений»,
-  «исправь дефекты по отчёту».
+  Turns design documents or code into the implementation plan (one-commit units, grade, executor), or a fix plan from
+  a test or audit report. Use for «составь план», «разбей на задачи», «исправь баги из отчёта».
 ---
 
 > **Codex.** This skill was written for Claude Code. Read its tool terms — the `Skill` tool, the `Agent` tool and `subagent_type`, `isolation: "worktree"`, Monitor, TaskStop, the Edit tool — as `../executor-catalog/references/codex-runtime.md` (beside this skill's folder) says, before the first skill you invoke, agent you spawn, watcher you start or file you edit.

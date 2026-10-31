@@ -1,8 +1,8 @@
 ---
 name: deploy-topology
 description: >-
-  Packs a working app into Docker: an image per container, compose for test, dev and prod, a deploy document, one tar
-  of the images for hand-over. Use for «докер», «окружения», «собери образ». Not CI or Kubernetes.
+  Packs a working app into Docker: images, compose for test, dev and prod, a deploy document. Use for «докер»,
+  «docker-compose», «собери образ», «инструкция по развёртыванию». The server upload is the user's step; not CI.
 ---
 
 > **Codex.** This skill was written for Claude Code. Read its tool terms — the `Skill` tool, the `Agent` tool and `subagent_type`, `isolation: "worktree"`, Monitor, TaskStop, the Edit tool — as `../executor-catalog/references/codex-runtime.md` (beside this skill's folder) says, before the first skill you invoke, agent you spawn, watcher you start or file you edit.

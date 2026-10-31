@@ -1,9 +1,8 @@
 ---
 name: screen-spec
 description: >-
-  Writes the ТЗ на экран, a file per S-n, from the Figma frames, OpenAPI and SRS: each element's behaviour, operation,
-  states, errors. Use once mockups exist, for «ТЗ на экран входа», «ТЗ на фронт». Not drawing (ui-design) or code
-  (frontend).
+  Writes the ТЗ на экран, a file per S-n, from Figma frames, OpenAPI and SRS. Use once mockups exist, for «ТЗ на экран
+  входа», «ТЗ на форму». Not drawing (ui-design) or code (frontend).
 ---
 
 > **Codex.** This skill was written for Claude Code. Read its tool terms — the `Skill` tool, the `Agent` tool and `subagent_type`, `isolation: "worktree"`, Monitor, TaskStop, the Edit tool — as `../executor-catalog/references/codex-runtime.md` (beside this skill's folder) says, before the first skill you invoke, agent you spawn, watcher you start or file you edit.

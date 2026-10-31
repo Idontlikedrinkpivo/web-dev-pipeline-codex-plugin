@@ -1,8 +1,8 @@
 ---
 name: doc-versioning
 description: >-
-  How documents evolve: edited in place, stable ids, a version per release, changelog rows, sources pins, the stamp at
-  a stage's close. Use for «проставь версии», «какая версия документа», «найди устаревшие ссылки».
+  Sets document versions: stable ids, a version per release, changelog rows, sources pins, the stage-close stamp. Use
+  for «проставь версии», «обнови версии документов», «найди устаревшие ссылки».
 ---
 
 > **Codex.** This skill was written for Claude Code. Read its tool terms — the `Skill` tool, the `Agent` tool and `subagent_type`, `isolation: "worktree"`, Monitor, TaskStop, the Edit tool — as `../executor-catalog/references/codex-runtime.md` (beside this skill's folder) says, before the first skill you invoke, agent you spawn, watcher you start or file you edit.

@@ -1,7 +1,8 @@
 ---
 name: vitest
 description: >-
-  Vitest rules (tests per layer, fakes over vi.mock, MSW); read before writing *.test.ts files.
+  Internal: Vitest rules (tests per layer, fakes over vi.mock, MSW); read by work's executors before *.test.ts(x) and
+  vitest.config.
 ---
 
 > **Codex.** This skill was written for Claude Code. Read its tool terms — the `Skill` tool, the `Agent` tool and `subagent_type`, `isolation: "worktree"`, Monitor, TaskStop, the Edit tool — as `../executor-catalog/references/codex-runtime.md` (beside this skill's folder) says, before the first skill you invoke, agent you spawn, watcher you start or file you edit.

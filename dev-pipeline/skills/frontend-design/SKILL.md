@@ -1,8 +1,8 @@
 ---
 name: frontend-design
 description: >-
-  Taste rules for frames and a visual direction, read by ui-design and the Figma builders; «перерисуй стильнее» is
-  ui-design.
+  Internal: taste rules for frames and a visual direction, read by ui-design and the Figma builders; not for direct
+  requests.
 ---
 
 > **Codex.** This skill was written for Claude Code. Read its tool terms — the `Skill` tool, the `Agent` tool and `subagent_type`, `isolation: "worktree"`, Monitor, TaskStop, the Edit tool — as `../executor-catalog/references/codex-runtime.md` (beside this skill's folder) says, before the first skill you invoke, agent you spawn, watcher you start or file you edit.

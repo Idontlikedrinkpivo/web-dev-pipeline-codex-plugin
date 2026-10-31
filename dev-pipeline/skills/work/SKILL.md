@@ -1,9 +1,8 @@
 ---
 name: work
 description: >-
-  Executes a finished plan: each unit to its named executor, reviewed, a commit per unit. Use for «выполни план»,
-  «запусти работу», «продолжи прогон», or a code change asked in chat outside a run («поправь…», «сделай поле
-  необязательным»).
+  Executes a finished plan, unit by unit, each reviewed and committed; also a code change or tests asked in chat. Use
+  for «выполни план», «поправь…», «напиши тесты к модулю». After a break: pipeline; a defects report: plan.
 ---
 
 > **Codex.** This skill was written for Claude Code. Read its tool terms — the `Skill` tool, the `Agent` tool and `subagent_type`, `isolation: "worktree"`, Monitor, TaskStop, the Edit tool — as `../executor-catalog/references/codex-runtime.md` (beside this skill's folder) says, before the first skill you invoke, agent you spawn, watcher you start or file you edit.

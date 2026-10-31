@@ -12,56 +12,48 @@
 #   bash install-agents.sh --hook       also add the session-start hook to $CODEX_HOME/hooks.json
 #                                       (only when the plugin's own hook does not run in your Codex)
 #   bash install-agents.sh --uninstall  remove only the agent files this script installed
-#   bash install-agents.sh --autonomous-chats     let the plugin's stage chats open each other and message each
-#                                       other without asking: approval_mode = "approve" for the Codex app's thread
-#                                       tools (create_thread, send_message_to_thread, set_thread_title,
-#                                       set_thread_archived) in $CODEX_HOME/config.toml — opt-in, a backup first
-#   bash install-agents.sh --no-autonomous-chats  remove those lines again
+#   --autonomous-chats is retired: stage chats require an explicit user request.
+#   --no-autonomous-chats removes only legacy approvals written by this installer.
 set -euo pipefail
 here="$(cd "$(dirname "$0")" && pwd)"
-home="${CODEX_HOME:-$HOME/.codex}"
-dest="$home/agents"
+pipeline_home="${CODEX_HOME:-$HOME/.codex}"
+dest="$pipeline_home/agents"
 mark="# dev-pipeline agent"
 
-# The thread tools come from the bundled plugin codex-app-tools@openai-bundled, MCP server codex_app — so their
-# approval lives under plugins."codex-app-tools@openai-bundled".mcp_servers.codex_app.tools.<tool> (checked on a
-# user's machine, 2026-10-30; the top-level [mcp_servers] and [apps] tables do not reach them).
-chats() {
-  python3 - "$1" "$home/config.toml" <<'PY'
+# Remove legacy opt-in approval blocks only; never grant chat permissions.
+remove_chat_approvals() {
+  python3 - "$pipeline_home/config.toml" <<'PYCODE'
 import pathlib, shutil, sys
-mode, cfg = sys.argv[1], pathlib.Path(sys.argv[2])
-tools = ["create_thread", "send_message_to_thread", "set_thread_title", "set_thread_archived"]
-head = '[plugins."codex-app-tools@openai-bundled".mcp_servers.codex_app.tools.{}]'
+cfg = pathlib.Path(sys.argv[1])
+if not cfg.exists():
+    print("no legacy chat approvals"); sys.exit(0)
 mark = "# dev-pipeline: stage chats without approval (install-agents.sh --autonomous-chats)"
-cfg.parent.mkdir(parents=True, exist_ok=True)
-text = cfg.read_text(encoding="utf-8") if cfg.exists() else ""
-if mode == "on":
-    missing = [t for t in tools if head.format(t) not in text]
-    if not missing:
-        print(f"{cfg} already lets the stage chats run without approval"); sys.exit(0)
-    if cfg.exists():
-        shutil.copy(cfg, cfg.with_name(cfg.name + ".dev-pipeline.bak"))
-    block = "".join(f"\n{mark}\n{head.format(t)}\napproval_mode = \"approve\"\n" for t in missing)
-    cfg.write_text(text.rstrip("\n") + "\n" + block, encoding="utf-8")
-    print(f"added approval_mode = \"approve\" for {', '.join(missing)} to {cfg} (backup: {cfg.name}.dev-pipeline.bak)")
-    print("restart the Codex app; any chat can now open chats and write to them without asking — undo with --no-autonomous-chats")
+lines = cfg.read_text(encoding="utf-8").splitlines(keepends=True)
+out = []; i = 0
+while i < len(lines):
+    if (lines[i].strip() == mark and i + 2 < len(lines)
+        and lines[i+1].strip().startswith('[plugins."codex-app-tools@openai-bundled".mcp_servers.codex_app.tools.')
+        and lines[i+2].strip() == 'approval_mode = "approve"'):
+        i += 3
+    else:
+        out.append(lines[i]); i += 1
+text = "".join(out)
+if text != "".join(lines):
+    shutil.copy2(cfg, cfg.with_name(cfg.name + ".dev-pipeline.bak"))
+    cfg.write_text(text, encoding="utf-8")
+    print("removed legacy chat approvals; restart Codex")
 else:
-    lines, out, skip = text.splitlines(), [], 0
-    for l in lines:
-        if l == mark:
-            skip = 2; continue
-        if skip:
-            skip -= 1; continue
-        out.append(l)
-    if len(out) == len(lines):
-        print(f"{cfg} has no lines this script added for the stage chats"); sys.exit(0)
-    cfg.write_text("\n".join(out).rstrip("\n") + "\n", encoding="utf-8")
-    print(f"removed the stage-chat approvals this script added from {cfg} — restart the Codex app")
-PY
+    print("no legacy chat approvals")
+PYCODE
 }
 case "${1:-}" in
-  --autonomous-chats) chats on; exit 0 ;;
-  --no-autonomous-chats) chats off; exit 0 ;;
+  --autonomous-chats) echo "Retired: stage chats require an explicit user request. No permissions changed." >&2; exit 2 ;;
+  --no-autonomous-chats) remove_chat_approvals; exit 0 ;;
+esac
+
+case "${1:-}" in
+  ""|--hook|--uninstall) ;;
+  *) echo "Unknown option: $1" >&2; exit 2 ;;
 esac
 
 if [ "${1:-}" = "--uninstall" ]; then
@@ -83,10 +75,10 @@ for src in "$here"/agents/*.toml; do
   cp "$src" "$dest/$name"; n=$((n + 1))
 done
 echo "installed $n agents into $dest"
-echo "to let stages run in their own chats without you approving each step: bash $here/install-agents.sh --autonomous-chats"
+echo "stage chats require an explicit user request; named executors run as subagents"
 [ -n "$skipped" ] && echo "skipped (a file you made has the same name, rename it to use the plugin's):$skipped"
 
-cfg="$home/config.toml"
+cfg="$pipeline_home/config.toml"
 touch "$cfg"
 if ! grep -q '^\[agents\]' "$cfg"; then
   printf '\n[agents]\nmax_depth = 2\n' >> "$cfg"
@@ -97,7 +89,7 @@ else
   echo "$cfg already sets [agents] max_depth — make sure it is 2 or more"
 fi
 
-hooks="$home/hooks.json"
+hooks="$pipeline_home/hooks.json"
 # Codex installs each plugin version into its own folder (.../dev-pipeline/<version>/) and removes the old one, so a
 # hook added by an earlier --hook points at a folder that is gone: move it to this one. The changed command is a new
 # hook definition for Codex, which runs it only after it is trusted again in /hooks.

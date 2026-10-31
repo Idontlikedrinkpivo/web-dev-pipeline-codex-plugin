@@ -5,7 +5,7 @@ description: >-
   a test or audit report. Use for «составь план», «разбей на задачи», «исправь баги из отчёта».
 ---
 
-> **Codex.** This skill was written for Claude Code. Read its tool terms — the `Skill` tool, the `Agent` tool and `subagent_type`, `isolation: "worktree"`, Monitor, TaskStop, the Edit tool — as `../executor-catalog/references/codex-runtime.md` (beside this skill's folder) says, before the first skill you invoke, agent you spawn, watcher you start or file you edit.
+> **Codex runtime.** Before using this skill, read `../executor-catalog/references/codex-runtime.md`. It defines tool mappings, named-agent dispatch and stage-chat orchestration; use it for inherited Claude Code terms below.
 
 # Implementation Plan with Executor Routing
 

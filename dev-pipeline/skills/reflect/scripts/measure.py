@@ -31,6 +31,7 @@ own price is not applied — the models table says which model spent what. Pytho
 from __future__ import annotations
 
 import json
+import os
 import sys
 from collections import defaultdict
 from pathlib import Path
@@ -138,8 +139,7 @@ def fmt(n: float) -> str:
     return f"{n / 1e6:.1f} млн" if n >= 1e6 else f"{n / 1e3:.0f} тыс."
 
 
-STORE = (Path.home() / (".codex" if (Path(__file__).resolve().parent / "codex_logs.py").exists() else ".claude")
-         / "dev-pipeline-feedback" / ".acceptance")  # outside every project; the Codex build keeps its own
+STORE = Path(os.environ.get("CODEX_HOME", Path.home() / ".codex")) / "dev-pipeline-feedback" / ".acceptance"
 
 
 def acceptance(progress: list, rng: str, cwd: str) -> tuple[int, int, int, str]:

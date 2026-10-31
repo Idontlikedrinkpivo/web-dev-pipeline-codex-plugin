@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import collections
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -30,8 +31,8 @@ def main() -> None:
     project = Path(args[0]).resolve().name
     since = args[args.index("--since") + 1] if "--since" in args else ""
     rows = []
-    for home in (".claude", ".codex"):
-        f = Path.home() / home / "dev-pipeline-feedback" / ".guard" / f"{project}.jsonl"
+    for home in {Path.home() / ".claude", Path(os.environ.get("CODEX_HOME", Path.home() / ".codex"))}:
+        f = home / "dev-pipeline-feedback" / ".guard" / f"{project}.jsonl"
         if f.exists():
             for line in f.read_text(encoding="utf-8").splitlines():
                 try:

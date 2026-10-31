@@ -5,7 +5,7 @@ description: >-
   документацию», «покажи документацию», «закрой сайт». Building: docs-site.
 ---
 
-> **Codex.** This skill was written for Claude Code. Read its tool terms — the `Skill` tool, the `Agent` tool and `subagent_type`, `isolation: "worktree"`, Monitor, TaskStop, the Edit tool — as `../executor-catalog/references/codex-runtime.md` (beside this skill's folder) says, before the first skill you invoke, agent you spawn, watcher you start or file you edit.
+> **Codex runtime.** Before using this skill, read `../executor-catalog/references/codex-runtime.md`. It defines tool mappings, named-agent dispatch and stage-chat orchestration; use it for inherited Claude Code terms below.
 
 # Open the documentation site
 
@@ -26,13 +26,10 @@ From the project's root:
    and stop.
 2. **Serve and open**: `python3 "<folder of this SKILL.md>/../docs-site/scripts/site_server.py"` prints
    `http://127.0.0.1:<port>/index.html` and reuses a server already running for this site. Open that address in
-   the built-in browser yourself (its `preview_start` tool with `url`, or `navigate` when the pane is open) — the built-in browser shows a page given as a file without its menu and
-   search, so never open the file, and never point at it in the file tree, which shows the HTML source — and give
-   the address as a link in the chat: the user's one click back. The server forbids caching, so a page already open shows the current site on its next load.
-3. Without a built-in browser (a terminal): open the file in the user's own browser yourself — `open
-   documentation/_web-docs/index.html` on macOS, `xdg-open documentation/_web-docs/index.html` on Linux (`uname`
-   tells which) — and give its full path as the link; where neither command exists, the full path alone. Any
-   ordinary browser shows the file whole.
+   an available browser yourself, after reading its browser skill and actual tool schema. Discover the tools by
+   capability; `preview_start` is a legacy name, not a required Codex tool. Serve HTTP so menus and search work.
+   Give the HTTP address as a clickable chat link. Without browser tools, give that same HTTP link to the user;
+   do not open an HTML source file or claim that a browser was opened. The server disables caching.
 
 Answer in one line: the link, and step 1's line when it built or rebuilt the site. Nothing else — no report, no checks; those
 are `docs-site`.

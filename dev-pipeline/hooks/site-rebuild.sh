@@ -9,7 +9,8 @@ case "$input" in
   *documentation/*) ;;
   *) exit 0 ;;
 esac
-dir="$PWD"
+dir=$(printf '%s' "$input" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("cwd") or ".")' 2>/dev/null) || dir="$PWD"
+[ -n "$dir" ] || dir="$PWD"
 # Only the paths of the files the tool changed — tool_input.file_path of Edit, Write and MultiEdit, or the file
 # headers of an apply_patch (the Codex build) — never the rest of the input: the old and new text of an edit may
 # name a documentation/ path, and a code edit that mentions one must not start a rebuild with --api and npx.

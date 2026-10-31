@@ -4,8 +4,10 @@
 # (documentation/plans/<version>/ without summary.md), and a line when the project lacks format changes of the
 # installed plugin (upgrade-docs and upgrade-code skills); prints nothing otherwise. Read-only.
 set -u
-dir="$PWD"
-src=$(cat 2>/dev/null | sed -n 's/.*"source"[[:space:]]*:[[:space:]]*"\([a-z]*\)".*/\1/p' | head -n 1)
+input=$(cat 2>/dev/null)
+dir=$(printf '%s' "$input" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("cwd") or ".")' 2>/dev/null) || dir="$PWD"
+[ -n "$dir" ] || dir="$PWD"
+src=$(printf '%s' "$input" | sed -n 's/.*"source"[[:space:]]*:[[:space:]]*"\([a-z]*\)".*/\1/p' | head -n 1)
 
 # Format changes of the plugin the project's files do not have yet (upgrade-docs, upgrade-code): on a new session or /clear,
 # not after a compaction or a resume; silent when in line.
@@ -16,16 +18,10 @@ if [ "$src" != compact ] && [ "$src" != resume ] && [ -f "$fmt" ] && command -v 
   python3 "$fmt" hook "$dir" </dev/null 2>/dev/null
 fi
 
-# The parent session (pipeline → references/parent-session.md): in a pipeline project, a fresh session is the
-# iteration's parent when the host can start sessions — said on a start or /clear; a compaction or a resume keeps
-# whatever role the session already had.
-if { [ -f "$dir/documentation/.dev-pipeline.json" ] || [ -d "$dir/documentation/plans" ]; } && [ "$src" != compact ] && [ "$src" != resume ]; then
-  echo "dev-pipeline: unless your first message names a parent session («ты — подсессия», «родительская сессия — …»), this session is the iteration's PARENT when the host can start sessions (Claude Desktop: mcp__ccd_session__start_session — often deferred, load it with ToolSearch first): run no stage here; open each stage in a nested session with a fresh context and open the next one when it reports (read dev-pipeline:pipeline → references/parent-session.md before the first step). Without that tool, run the stages here as usual."
+# Codex stages stay in the current chat; executor roles are subagents.
+if [ -f "$dir/documentation/.dev-pipeline.json" ] || [ -d "$dir/documentation/plans" ]; then
+  echo "dev-pipeline: when the user requested stage chats, coordinate fresh stage chats as pipeline/references/parent-session.md describes; otherwise run stages in this chat. Dispatch executor packets to named custom subagents. Read executor-catalog/references/codex-runtime.md before dispatch. Create sidebar chats only on an explicit user request. After compaction, resume from progress files and resume.md."
 fi
-if [ "$src" = compact ]; then
-  echo "dev-pipeline: if this session is an iteration's parent (it opened nested sessions) or a nested one (its first message named a parent), it keeps that role after the compaction; a nested one unsure of its stage runs pipeline/scripts/subsessions.py <project> <version> whoami <its own session id> (pipeline → references/parent-session.md)."
-fi
-
 plans="$dir/documentation/plans"
 [ -d "$plans" ] || exit 0
 

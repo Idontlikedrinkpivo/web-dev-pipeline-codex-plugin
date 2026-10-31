@@ -1,5 +1,10 @@
 # The session's context — what it keeps, and when to hand over
 
+> **Codex:** with the user's stage-chat request, follow parent-session.md for
+> fresh chats. Otherwise save resume.md and resume after compaction in this chat;
+> create a handover chat only on request. Claude session/card tools below are
+> legacy terms, mapped by executor-catalog/references/codex-runtime.md.
+
 Read at the start of every stage that dispatches agents or runs for long — `work`, `ui-design`, `screen-spec`,
 `ui-test-cases`, `security-audit`, the design stages — and after a compaction. A session keeps everything it reads
 until it ends, and every later call pays for all of it again. Measured on a real project: one session of document

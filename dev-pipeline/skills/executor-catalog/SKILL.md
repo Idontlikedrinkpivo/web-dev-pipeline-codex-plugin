@@ -4,7 +4,7 @@ description: >-
   Internal: which agent runs each executor and how it is dispatched; read before dispatching a dev-pipeline agent.
 ---
 
-> **Codex.** This skill was written for Claude Code. Read its tool terms — the `Skill` tool, the `Agent` tool and `subagent_type`, `isolation: "worktree"`, Monitor, TaskStop, the Edit tool — as `../executor-catalog/references/codex-runtime.md` (beside this skill's folder) says, before the first skill you invoke, agent you spawn, watcher you start or file you edit.
+> **Codex runtime.** Before using this skill, read `../executor-catalog/references/codex-runtime.md`. It defines tool mappings, named-agent dispatch and stage-chat orchestration; use it for inherited Claude Code terms below.
 
 # Executor Catalog
 
@@ -91,8 +91,7 @@ tool like this. Consumers point here instead of restating it.
   did the work.
 - **`subagent_type` is `<Name>`, and the call passes no
   `model`.** Under Codex an agent has no plugin
-  prefix: `<Name>` is the `name` in its `~/.codex/agents/<Name>.toml`. A `model` on the call overrides the agent file, so the
-  tier would silently run whatever was typed instead of what its file says.
+  prefix: `<Name>` is the `name` in its `~/.codex/agents/<Name>.toml`. The role file pins model and effort; omit overrides to preserve its contract.
   Never `general-purpose`, `Explore`, or another built-in agent: those carry
   none of the row's model, effort, tools, or prompt.
 - **Before every `Agent` call, show the resolved row in this turn** — one line
@@ -103,14 +102,10 @@ tool like this. Consumers point here instead of restating it.
   does the work, and writing it makes you check the row before the call. You
   may append the model and effort read from the agent file (`· opus · high`);
   copy them from the file, never from memory.
-- **A model the user names.** Only when the user, on their own, names a model
-  for this dispatch — a Claude alias (`haiku`, `sonnet`, `opus`, `fable`) or a
-  full Claude model id — dispatch the same row and pass that value as `model`
-  on this call only; the file's effort, tools, and prompt still apply. The line
-  says so: `design-medium | design-medium | model override:
-  sonnet (user; file: opus)`. Never `inherit` or the session model, and never the
-  implementer's alias on a review row — refuse those with the reason. The
-  override is this dispatch only; an escalation goes back to the file.
+- **A model the user names.** Custom agent files pin model and effort and take
+  precedence. Do not claim an override changes a pinned role. Explain when a
+  requested Claude model is unavailable under Codex; never pass Claude model
+  aliases as Codex model names. Modify a role configuration only when requested.
 - **A rejected `subagent_type`:** retry once with the bare name. If both are
   rejected, the agent is not installed.
   **Stop** and tell the user to install or update the `dev-pipeline` plugin
@@ -155,7 +150,7 @@ Agent(subagent_type: "impl-medium", prompt: <worker packet for U4>)
 Wrong: `Agent(subagent_type: "general-purpose", model: "sonnet")` — the row's
 effort, tools, and prompt are gone and the model was typed from memory. Also
 wrong: `Agent(subagent_type: "impl-medium", model: "sonnet")` when the user
-named no model — the `model` overrides the file.
+named no model — the role file sets the model.
 
 **Slug hygiene.** A model alias is written in exactly one place: the `model:`
 line of the row's agent file. No plan, packet, skill, or dispatch line carries

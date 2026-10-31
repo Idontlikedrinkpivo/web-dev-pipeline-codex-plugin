@@ -95,6 +95,8 @@ changelog rows after the pin (`doc-versioning` → Staleness and cascade):
 
 **Then the test cases' trace**, when the set has user test cases: run
 `python3 "<folder of this SKILL.md>/../ui-test-cases/scripts/check_trace.py" --docs documentation --quiet`
+(and `python3 "<folder of this SKILL.md>/../doc-versioning/scripts/doc_check.py" .` over the whole set: each line of
+its is a P1 finding of this stage — the form every later stage reads)
 and fix what it finds before the dispatch, without asking: dispatch
 `ui-test-writer` (`ui-test-cases` → its writer packet, `MODE increment`)
 with the broken cases, to rewrite each one's trace from the current spec,

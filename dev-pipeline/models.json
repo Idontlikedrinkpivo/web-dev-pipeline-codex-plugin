@@ -1,5 +1,5 @@
 {
-  "_comment": "Historical Claude role tiers mapped to Codex models. Actual model and reasoning effort are pinned in agents/*.toml; update those files when changing this map. Availability depends on the user account; measurements from Claude do not establish Codex performance.",
+  "_comment": "Claude model:effort of an agent file (claude/claude-code-skills/_agents/*.md) -> the Codex model and reasoning effort codex/build.py writes into agents/*.toml. A change made in a toml of the Codex repository is carried back here (claude/tools/codex_sync.py). Availability depends on the user's account; measurements from Claude do not establish Codex performance.",
   "opus:xhigh": {
     "model": "gpt-6.1-sol",
     "effort": "xhigh"

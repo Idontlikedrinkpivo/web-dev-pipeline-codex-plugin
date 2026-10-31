@@ -11,7 +11,7 @@
 # ask-in-chat.sh), and only when a shape matches. Silent otherwise; without python3 it does nothing; never fails the
 # session.
 input=$(cat 2>/dev/null)
-dir=$(printf '%s' "$input" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("cwd") or ".")' 2>/dev/null) || dir="$PWD"
+dir=$(printf '%s' "$input" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("cwd") or "")' 2>/dev/null)
 [ -n "$dir" ] || dir="$PWD"
 if [ ! -f "$dir/documentation/.dev-pipeline.json" ] || ! command -v python3 >/dev/null 2>&1; then
   exit 0

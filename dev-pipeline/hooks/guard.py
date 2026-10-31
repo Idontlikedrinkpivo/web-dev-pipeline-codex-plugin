@@ -174,7 +174,7 @@ def decide(tool: str, inp: dict, cwd: str, *, branch: str = "", open_iteration: 
                         "tree wipe uncommitted work of other agents and of the user. Restore only the files you "
                         "changed, by name (`git checkout -- <file>`, `git stash push -- <paths>`), or ask the user "
                         "(work → references/run-hygiene.md → Executors in the shared tree).")
-    paths = []
+    paths = []   # the files the edit writes: Claude Code's file_path, or the headers of Codex's apply_patch
     if tool == "apply_patch":
         patch = inp if isinstance(inp, str) else str(inp.get("command") or inp.get("input") or "")
         paths = re.findall(r"^\*\*\* (?:(?:Add|Update|Delete) File|Move to): (.+?)\s*$", patch, re.M)
@@ -184,7 +184,7 @@ def decide(tool: str, inp: dict, cwd: str, *, branch: str = "", open_iteration: 
         for path in paths:
             if not path:
                 continue
-            path = os.path.join(cwd, path)
+            path = os.path.join(cwd, path)   # a relative patch path is the worktree's; an absolute one stays
             real, wt, main = (os.path.realpath(p) for p in (path, worktree_root, main_root))
             inside = lambda root: real == root or real.startswith(root + os.sep)
             plans = os.path.join(main, "documentation", "plans")   # out of git: it lives only in the main tree
@@ -200,10 +200,19 @@ RULES = [("commit-chained", "chained to a test"), ("commit-on-main", "would land
          ("wipe-shared-tree", "git stash (of everything)"), ("edit-outside-worktree", "you work in the worktree")]
 
 
+def host_home() -> Path:
+    """The host's own folder: $CODEX_HOME, ~/.codex for the Codex build (its manifest is .codex-plugin), else
+    ~/.claude."""
+    if os.environ.get("CODEX_HOME"):
+        return Path(os.environ["CODEX_HOME"])
+    codex = (Path(__file__).resolve().parent.parent / ".codex-plugin").is_dir()
+    return Path.home() / (".codex" if codex else ".claude")
+
+
 def log_refusal(project: str, tool: str, inp: dict, why: str) -> None:
     """One line per refusal outside the project, for reflect's «Отказы хука» (reflect/scripts/guard_report.py): how
     often each rule fires in real work, and the commands to judge whether a refusal was wrong."""
-    store = Path(os.environ.get("CODEX_HOME", Path.home() / ".codex")) / "dev-pipeline-feedback" / ".guard"
+    store = host_home() / "dev-pipeline-feedback" / ".guard"
     store.mkdir(parents=True, exist_ok=True)
     rule = next((code for code, mark in RULES if mark in why), "other")
     what = inp if isinstance(inp, str) else str(inp.get("command") or inp.get("file_path") or inp.get("notebook_path") or "")
@@ -250,12 +259,13 @@ def main() -> None:
     except Exception:
         return
     tool, inp = data.get("tool_name", ""), data.get("tool_input") or {}
+    # Codex runs a command in its own workdir; Claude Code names the project in CLAUDE_PROJECT_DIR
     cwd = (inp.get("workdir") if isinstance(inp, dict) else None) or data.get("cwd") or os.getcwd()
     top = git(cwd, "rev-parse", "--show-toplevel")
     is_worktree = bool(top) and git(cwd, "rev-parse", "--absolute-git-dir") != os.path.realpath(
         git(cwd, "rev-parse", "--path-format=absolute", "--git-common-dir") or "-")
     main_root = os.path.dirname(git(cwd, "rev-parse", "--path-format=absolute", "--git-common-dir")) if is_worktree else None
-    project = main_root or top or cwd
+    project = os.environ.get("CLAUDE_PROJECT_DIR") or main_root or top or cwd   # the stamp lives in the main tree
     if not os.path.isfile(os.path.join(project, "documentation", ".dev-pipeline.json")):
         return
     branch = ""

@@ -407,6 +407,7 @@ need the facts it holds, written down.
 `release/`, not `dist/`: `clean` scripts and bundlers empty `dist/` before a
 build, and the hand-over archive would go with it. A folder per version
 keeps the previous release for a rollback; a rebuild replaces its own.
+Then run `python3 "<folder of this SKILL.md>/scripts/deploy_check.py" .` and fix every line before Step 9's commit.
 
 ### Step 9. Commit
 
@@ -446,7 +447,7 @@ scan — and the next stage, per `pipeline` → "Asking before a transition".
 
 ## Before you finish
 
-`python3 "<folder of this SKILL.md>/scripts/deploy_check.py" .` passes — it checks the compose, image and release items
+`deploy_check.py` passed at the end of Step 8 — it checks the compose, image and release items
 below that code can decide (hardening, healthcheck, no stateful service in prod, numeric USER, .dockerignore, the
 release folder and what DEPLOY.md names); each line it prints is fixed first.
 

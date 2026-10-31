@@ -7,6 +7,9 @@ usage:
                      all reappear, in order, at the start of a longer one (it was resumed into a new
                      file) is marked «# повтор <id>» and skipped
   sessions.py digest <rollout.jsonl[.zst]> <out.md>          the session as a short chronological digest
+  sessions.py mine   <project-dir> <marker> <out.md>   the digest of the newest session of this folder whose first
+                     message holds the marker — a nested chat's title: its own conversation, for the check before
+                     its stage closes
   sessions.py errors <project-dir> <out.md> [--since …] [--also …]   failed calls of the sessions and the agents they
                      spawned, grouped. Codex writes a call's output as plain text and keeps no success flag in the
                      rollout, so a failure is read from the text: «Exit code: N» not 0, a timeout, an error line
@@ -118,6 +121,21 @@ def cmd_list(cwd: str, since: str | None, also: list[str]) -> None:
             print(f"# повтор {sid(dup)}: {p}")
             continue
         print(f"{p}\t{a}\t{b}\t{p.stat().st_size // 1024} KB")
+
+
+def cmd_mine(cwd: str, marker: str, out: str) -> None:
+    root = os.path.realpath(cwd)
+    for p in sorted(rollouts(), key=lambda p: p.stat().st_mtime, reverse=True):
+        m = meta(p)
+        if not m or os.path.realpath(str(m.get("cwd", ""))) != root:
+            continue
+        first = next(iter(typed(p)), "")
+        if marker in first or any(marker in text_of((d.get("payload") or {}).get("content"))
+                                  for _, d in zip(range(40), records(p))):
+            cmd_digest(str(p), out)
+            return
+    print(f"no session of {cwd} opens with «{marker}»", file=sys.stderr)
+    sys.exit(1)
 
 
 def skill_read(args: str) -> str:
@@ -243,6 +261,8 @@ if __name__ == "__main__":
         cmd_list(sys.argv[2], since, also)
     elif len(sys.argv) >= 4 and sys.argv[1] == "digest":
         cmd_digest(sys.argv[2], sys.argv[3], sys.argv[sys.argv.index("--since") + 1] if "--since" in sys.argv else None)
+    elif len(sys.argv) >= 5 and sys.argv[1] == "mine":
+        cmd_mine(sys.argv[2], sys.argv[3], sys.argv[4])
     elif len(sys.argv) >= 4 and sys.argv[1] == "errors":
         since = sys.argv[sys.argv.index("--since") + 1] if "--since" in sys.argv else None
         also = [sys.argv[i + 1] for i, x in enumerate(sys.argv) if x == "--also"]

@@ -10,8 +10,11 @@ release commit and carries each change back, so the rebuild keeps it. Changes ar
 - **Codex's own places** — `dev-pipeline/skills/executor-catalog/references/codex-runtime.md`, the «Codex runtime»
   paragraph of each agent in `dev-pipeline/agents/`, the «Codex runtime» note at the top of each `SKILL.md`,
   `dev-pipeline/skills/pipeline/references/parent-session.md`, `dev-pipeline/install-agents.sh`,
-  `dev-pipeline/models.json`, `dev-pipeline/hooks/hooks.json`: what is about Codex — its tools, chats, models,
-  sandbox, folders — goes here, and stays Codex's.
+  `dev-pipeline/models.json`, `dev-pipeline/hooks/hooks.json`, and reflect's readers of Codex rollouts
+  (`dev-pipeline/skills/reflect/scripts/sessions.py`, `codex_logs.py`): what is about Codex — its tools, chats,
+  models, sandbox, folders — goes here, and stays Codex's. The Claude reader's digest now keeps the stage-chat flow
+  (the card a parent opened a chat with, messages between chats, chats opened, renamed, archived) for reflect's
+  reviewer; the same for Codex's chats belongs in that `sessions.py`.
 - **Everywhere else** — a rule, a script, a hook, a skill's text: a change here is taken as general and carried
   into the Claude plugin too, so both versions get it. When something about Codex's environment has to sit in such
   a file, keep it short and say in the commit that it is about Codex; it is then kept as a Codex-only edit.

@@ -23,6 +23,8 @@ the main session already shows what each spawn returned.
 """
 from __future__ import annotations
 import json, os, re, shutil, subprocess, sys
+import ast
+import html
 from pathlib import Path
 
 HOME = Path(os.environ.get("CODEX_HOME", Path.home() / ".codex"))
@@ -147,6 +149,121 @@ def skill_read(args: str) -> str:
     return args[i + len(marker):].split("/", 1)[0]
 
 
+CHAT_TOOLS = {
+    "create_thread": "open", "start_session": "open", "create_session": "open",
+    "send_message_to_thread": "send", "send_message": "send",
+    "set_thread_title": "rename", "rename_thread": "rename", "set_session_title": "rename",
+    "set_thread_archived": "archive", "archive_thread": "archive", "archive_session": "archive",
+}
+
+
+def tool_action(name: str) -> str:
+    # MCP namespaces differ between installations; match the final tool component only.
+    return CHAT_TOOLS.get(re.split(r"__|\.", name)[-1], "")
+
+
+def literal_calls(code: str):
+    """Read literal tools.foo({...}) calls in code-mode exec; never evaluate rollout JavaScript.
+
+    Tokenizing strings first avoids treating example code inside a shell command as a call.
+    Dynamic arguments are deliberately skipped rather than guessed.
+    """
+    tokens = re.findall(r'''//[^\n]*|/\*[\s\S]*?\*/|"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|`(?:\\.|[^`\\])*`|[A-Za-z_$][\w$]*|-?\d+(?:\.\d+)?|[^\s]''', code)
+    tokens = [t for t in tokens if not t.startswith(("//", "/*"))]
+
+    def value(i):
+        t = tokens[i]
+        if t == "{":
+            obj = {}; i += 1
+            while tokens[i] != "}":
+                key = tokens[i]
+                if key[:1] in ('"', "'"):
+                    key = ast.literal_eval(key)
+                elif not re.fullmatch(r"[A-Za-z_$][\w$]*", key):
+                    raise ValueError("dynamic key")
+                if tokens[i + 1] != ":":
+                    raise ValueError("dynamic property")
+                obj[key], i = value(i + 2)
+                if tokens[i] != ",":
+                    break
+                i += 1
+            if tokens[i] != "}":
+                raise ValueError("unclosed object")
+            return obj, i + 1
+        if t == "[":
+            items = []; i += 1
+            while tokens[i] != "]":
+                item, i = value(i); items.append(item)
+                if tokens[i] != ",":
+                    break
+                i += 1
+            if tokens[i] != "]":
+                raise ValueError("unclosed array")
+            return items, i + 1
+        if t.startswith('"'):
+            return json.loads(t), i + 1
+        if t.startswith("'"):
+            return ast.literal_eval(t), i + 1
+        if t.startswith("`") and "${" not in t:
+            return t[1:-1], i + 1
+        if t in ("true", "false", "null") or re.fullmatch(r"-?\d+(?:\.\d+)?", t):
+            return json.loads(t), i + 1
+        raise ValueError("dynamic argument")
+
+    for i in range(len(tokens) - 4):
+        if tokens[i:i + 2] != ["tools", "."] or tokens[i + 3] != "(":
+            continue
+        name = tokens[i + 2]
+        if not tool_action(name):
+            continue
+        try:
+            args, end = value(i + 4)
+            if isinstance(args, dict) and tokens[end] == ")":
+                yield name, args
+        except (ValueError, SyntaxError, IndexError):
+            continue
+
+
+def chat_call(name: str, args: dict) -> str:
+    action = tool_action(name)
+    target = args.get("threadId") or args.get("thread_id") or args.get("session_id") or args.get("sessionId") or "?"
+    title = args.get("title") or args.get("name") or "?"
+    message = str(args.get("prompt") or args.get("message") or "")[:2000]
+    if action == "open" and message:
+        return f"OPENS SESSION «{title}» ({args.get('model') or 'default'}): {message}"
+    if action == "send" and target != "?":
+        return f"TO SESSION {target}: {message}"
+    if action == "rename" and target != "?":
+        return f"RENAMES: {target} → «{title}»"
+    if action == "archive" and target != "?":
+        return f"ARCHIVES: {target}" + (" (archived=false)" if args.get("archived") is False else "")
+    return ""
+
+
+def delegation(payload: dict) -> str:
+    """Codex app injects cross-chat prompts as tool output, not USER messages.
+
+    Match the envelope only at the start: quoted examples and tool-result logs
+    containing an envelope are not incoming messages.
+    """
+    output = payload.get("output")
+    if not isinstance(output, str) or not output.lstrip().startswith("<codex_delegation>"):
+        return ""
+    def field(key):
+        m = re.search(rf"<{key}>([\s\S]*?)</{key}>", output)
+        return html.unescape(m.group(1).strip()) if m else ""
+    message = field("input")
+    if not message:
+        return ""
+    if tool_action(payload.get("name") or "") == "open":
+        return f"OPENED BY SESSION: {message[:2000]}"
+    if tool_action(payload.get("name") or "") == "send":
+        title = (field("source_thread_title") or field("source_session_title")
+                 or field("source_thread_name") or field("source_thread_id") or "?")
+        return f"FROM SESSION «{title}»: {message[:2000]}"
+    return ""
+
+
 def cmd_digest(src: str, out: str, since: str | None = None) -> None:
     rows: list[str] = []
     since = since.replace("T", " ") if since else None
@@ -165,17 +282,28 @@ def cmd_digest(src: str, out: str, since: str | None = None) -> None:
                 rows.append(f"[{ts}] === CONTEXT COMPACTED ===")
         elif t == "compacted":
             rows.append(f"[{ts}] === CONTEXT COMPACTED ===")
-        elif t == "response_item" and p.get("type") == "function_call":
-            name, args = p.get("name") or "", p.get("arguments") or ""
+        elif t == "response_item" and p.get("type") in ("function_call_output", "custom_tool_call_output"):
+            incoming = delegation(p)
+            if incoming:
+                rows.append(f"[{ts}] {incoming}")
+        elif t == "response_item" and p.get("type") in ("function_call", "custom_tool_call"):
+            name, args = p.get("name") or "", p.get("arguments") or p.get("input") or ""
+            try:
+                a = json.loads(args) if isinstance(args, str) else args
+                a = a if isinstance(a, dict) else {}
+            except ValueError:
+                a = {}
+            call = chat_call(name, a)
+            if call:
+                rows.append(f"[{ts}] {call}")
+            elif name in ("exec", "functions.exec"):
+                for nested_name, nested_args in literal_calls(str(args)):
+                    rows.append(f"[{ts}] {chat_call(nested_name, nested_args)}")
             if name == "spawn_agent":
-                try:
-                    a = json.loads(args)
-                except json.JSONDecodeError:
-                    a = {}
                 who = a.get("agent_type") or a.get("agent") or a.get("name") or a.get("task_name") or "agent"
                 rows.append(f"[{ts}] AGENT: {who} — {str(a.get('message', ''))[:120]}")
             else:
-                skill = skill_read(args)
+                skill = skill_read(args if isinstance(args, str) else json.dumps(args))
                 if skill:
                     rows.append(f"[{ts}] SKILL: {skill}")
     # a skill read twice in a row (the file paged in parts) is one mention

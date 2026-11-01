@@ -40,6 +40,7 @@ needed, save the handover and ask the user to open it, or create it when asked.
 | Project instructions and verify | AGENTS.md and .agents/skills/verify/. Read legacy project files only when needed for an existing project. |
 | Built-in code review | Codex /review when available. |
 | Built-in browser, preview_start, navigate | Discover available browser tools and read their browser skill. Open the served http://127.0.0.1:<port>/ URL using the actual schema. Without browser tools, give the HTTP link; do not claim it was opened. |
+| Progress HTML links | Use the HTTP URL printed by pipeline/scripts/progress_link.py. The Codex build starts or reuses the local server automatically; never replace that URL with a repository file link, whose HTML preview can be blocked. If the server fails, report the error and resolve it before claiming the page opens. |
 | Figma or Context7 tools | Discover by capability, not a fixed MCP prefix. Use connected tools first. If the needed capability or login is absent, report the precise blocker; never invent a successful edit. |
 | reflect | Read rollouts under CODEX_HOME/sessions and archived_sessions. Feedback belongs under CODEX_HOME/dev-pipeline-feedback. Log availability and formats vary; missing logs do not prove no activity. |
 | opus, sonnet, haiku | Historical Claude measurements, not available Codex model names. The actual role model is in agents/<name>.toml; models.json documents the mapping. Explain a requested Claude model's absence instead of silently claiming to use it. |

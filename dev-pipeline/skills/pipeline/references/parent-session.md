@@ -9,8 +9,8 @@ chat as executor-catalog/references/codex-runtime.md describes.
 
 1. Read where_am_i.py and the stage chain. Continue the open iteration rather
    than guessing state from chat history. Agree the version when needed.
-2. Build the remaining stages, including conditional fix/recheck stages where
-   appropriate. Use pipeline/scripts/subsessions.py <project> <version> plan
+2. Build the remaining stages. Fixes a check sends back (UI tests, the audit) run
+   inside that check's own chat, by agents — no chat of their own. Use pipeline/scripts/subsessions.py <project> <version> plan
    and show to maintain documentation/plans/<version>/sessions.md. Read the
    script's usage before calling it. It records status; it does not create chats.
 3. Present the stage titles and ask once whether to open that list. An explicit

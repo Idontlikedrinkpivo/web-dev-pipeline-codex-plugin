@@ -6,6 +6,19 @@ named subagents. There is no «all in this chat» option. Only without chat tool
 (a CLI with no chat creation) do the stages run in the current chat, as
 executor-catalog/references/codex-runtime.md describes.
 
+## Which one am I
+
+The first step of any chat that starts pipeline work, a stage asked for
+directly included; the first stages' SKILL.md (brainstorm, srs-writer) send
+here before they read anything.
+
+- A chat whose first message names a parent («Ты — чат этапа …», «ты —
+  подсессия», «родительская сессия — …») runs its stage.
+- Any other chat searches the tools for create_thread before deciding it is
+  absent. Found → this chat is the iteration's parent, a new project (no
+  documentation/ yet, so no hook line) included: it runs no stage and follows
+  this file. Not found → the stages run in this chat.
+
 At an iteration's start or continuation the parent asks once which stage
 chats to open — the same wherever the work starts: a new project, a stage the
 user asked for directly, a continued iteration, a clone another person picked

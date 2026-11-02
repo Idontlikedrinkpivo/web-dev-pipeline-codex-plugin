@@ -152,7 +152,7 @@ the Phase 4 closing summary:
 1. **Complete** — no placeholders, `TBD`s, or half-written sections remain;
    every open question is a row of `open-questions.md` beside the document,
    classed «Блокирует старт» or «Отложено» (`doc-versioning` → Открытые
-   вопросы); the document itself has no open-questions section. When the coherent-work gate split a broader request,
+   вопросы); the document has no independently edited question register. Customer-facing documents may include generated topic-local question projections per `business-audience.md`. When the coherent-work gate split a broader request,
    the `work-relationships` section is present and carries the marker for the
    marker `<!-- ce-section: work-relationships -->`.
 2. **Consistent** — Goal Capsule, Requirements, Key Flows, Acceptance Examples,
@@ -166,7 +166,7 @@ the Phase 4 closing summary:
    not leak into active Requirements, Flows, or Acceptance Examples.
 4. **Usable by the SRS stage** — `srs-writer` can write the numbered
    requirements of the current work without inventing product behavior,
-   scope, actors, or success criteria.
+   scope, actors, or success criteria. A deferred question that still requires the SRS author to choose behavior fails this check; a readable draft for customer agreement may therefore remain blocked for SRS.
 
 Fix a failed check in place when the correction preserves settled intent, then
 rerun the failed checks. When a fix would choose or change product behavior or

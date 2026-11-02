@@ -34,16 +34,6 @@ HEADER = "X-Dev-Pipeline-Folder"
 CODE_HEADER = "X-Dev-Pipeline-Code"
 
 
-def local_open(request):
-    """Probe our loopback server directly, including on macOS with a system proxy.
-
-    Do not change global proxy settings: only these fixed 127.0.0.1 requests
-    bypass proxies. Otherwise a proxy may hide our identity headers and cause
-    the launcher to keep starting servers on successive ports.
-    """
-    return urllib.request.build_opener(urllib.request.ProxyHandler({})).open(request, timeout=1)
-
-
 def code_id() -> str:
     """A fingerprint of this file and of the page builder it calls: changes whenever the plugin changes them."""
     import hashlib
@@ -54,6 +44,16 @@ def code_id() -> str:
         except OSError:
             pass
     return h.hexdigest()[:12]
+
+
+def local_open(request):
+    """Probe our loopback server directly, including on macOS with a system proxy.
+
+    Do not change global proxy settings: only these fixed 127.0.0.1 requests
+    bypass proxies. Otherwise a proxy may hide our identity headers and cause
+    the launcher to keep starting servers on successive ports.
+    """
+    return urllib.request.build_opener(urllib.request.ProxyHandler({})).open(request, timeout=1)
 
 
 def code_of(port: int) -> str:

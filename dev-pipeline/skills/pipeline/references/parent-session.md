@@ -1,41 +1,35 @@
 # Stage chats in Codex — fresh context for each stage
 
-At an iteration's start or continuation the parent chat offers it — the user
-does not have to know to ask. The parent coordinates; each stage gets a fresh
-chat and runs its own skill and named subagents. Chats are created only on the
-user's yes. On no, or without chat tools, run stages in the current chat as
+The pipeline always runs this way — the user's choice: the parent chat
+coordinates, and every stage runs in its own fresh chat with its own skill and
+named subagents. There is no «all in this chat» option. Only without chat tools
+(a CLI with no chat creation) do the stages run in the current chat, as
 executor-catalog/references/codex-runtime.md describes.
 
-The offer, once, with the stage titles from step 2 (Russian, as the user reads
-it):
+At an iteration's start or continuation the parent asks once which stage
+chats to open — the same wherever the work starts: a new project, a stage the
+user asked for directly, a continued iteration, a clone another person picked
+up (chat IDs from another machine reach nobody, so the list is rebuilt). Only
+the stages left from the current point are listed, numbered, so no chat opens
+for work already done or not wanted (Russian, as the user reads it):
 
 ```text
-**Вопрос. Вести этапы в отдельных чатах?**
+**Чаты этапов итерации <version>**
 
-Зачем это. Каждый этап — требования, схема, API, план, разработка, тесты —
-идёт в своём свежем чате, а этот чат только ведёт итерацию и запускает
-следующий этап:
-- у этапа чистый контекст: он видит только свои документы и не тащит
-  переписку прошлых этапов, поэтому меньше путается и дешевле обходится;
-- длинная итерация не упирается в предел переписки: при сжатии в одном
-  общем чате теряются правила этапов, а в отдельных чатах сжиматься почти
-  нечему;
-- в боковой панели виден весь план итерации, и по чату этапа сразу ясно,
-  где идёт работа.
-Чем платить: Codex может спросить подтверждение на создание каждого чата,
-а между этапами вы переходите в чат следующего этапа.
+Пайплайн всегда идёт так: этот чат ведёт итерацию, а каждый этап — в своём
+свежем чате. У этапа чистый контекст: он видит только свои документы и не
+тащит переписку прошлых этапов; правила этапа не теряются при сжатии
+переписки; весь план итерации виден в боковой панели. Codex может спросить
+подтверждение на создание каждого чата.
 
-Этапы итерации <version>: <titles>.
+Сейчас: <first open point, from where_am_i>. Уже сделано: <done stages; «ничего» on a start>.
+Осталось:
+1. <title>
+2. <title> — если <condition>
+…
 
-  A. Да, вести в отдельных чатах (рекомендую для итерации из нескольких этапов).
-  B. Нет, всё в этом чате.
-  C. Только часть этапов — перечислите какие.
-
-Ответьте сообщением: буква или свой текст.
+Какие открыть? Ответьте «все» или номера нужных этапов.
 ```
-
-Recommend A when the iteration has more than one or two stages left; for a
-single small stage, B. A request that already names the chats is the yes.
 
 ## Establish the stage list
 
@@ -45,10 +39,10 @@ single small stage, B. A request that already names the chats is the yes.
    inside that check's own chat, by agents — no chat of their own. Use pipeline/scripts/subsessions.py <project> <version> plan
    and show to maintain documentation/plans/<version>/sessions.md. Read the
    script's usage before calling it. It records status; it does not create chats.
-3. Ask the offer above once, with these titles. Its yes — or a request that
-   already named the chats — authorizes exactly those chats; a general request
-   to implement a product is not that yes. On B, stop here and run the stages
-   in this chat.
+3. Ask the question above once, with these titles; a stage the user asked for
+   directly is marked «— вы просили». «все», or the numbers chosen, authorizes
+   exactly those chats. A stage left out is not run in this iteration; when it
+   is a gate a chosen one needs, say so in one line and ask once more.
 4. Discover the Codex app's create_thread, wait_threads, read_thread,
    send_message_to_thread and title/archive tools. Use their returned schemas,
    including project/workspace, host and chat IDs. If the current parent ID is

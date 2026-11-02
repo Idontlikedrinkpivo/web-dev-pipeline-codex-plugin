@@ -1,7 +1,7 @@
 # The session's context — what it keeps, and when to hand over
 
-> **Codex:** when the user agreed to stage chats (the parent offers them at the
-> iteration's start), follow parent-session.md for fresh chats. Otherwise save resume.md and resume after compaction in this chat;
+> **Codex:** the stages always run in their own chats (the parent opens them at the
+> iteration's start), as parent-session.md says. Otherwise save resume.md and resume after compaction in this chat;
 > create a handover chat only on request. Claude session/card tools below are
 > legacy terms, mapped by executor-catalog/references/codex-runtime.md.
 

@@ -20,7 +20,7 @@ fi
 
 # Codex stages stay in the current chat; executor roles are subagents.
 if [ -f "$dir/documentation/.dev-pipeline.json" ] || [ -d "$dir/documentation/plans" ]; then
-  echo "dev-pipeline: at an iteration's start or continuation, offer once to run its stages in fresh chats, with why (pipeline/references/parent-session.md); create them only on the user's yes, otherwise run stages in this chat. Dispatch executor packets to named custom subagents. Read executor-catalog/references/codex-runtime.md before dispatch. After compaction, resume from progress files and resume.md."
+  echo "dev-pipeline: the pipeline always runs from a parent chat, every stage in its own fresh chat (pipeline/references/parent-session.md): at an iteration's start or continuation list the stages left from the current point once and create chats for the ones the user picks; only without chat tools run the stages here. Dispatch executor packets to named custom subagents. Read executor-catalog/references/codex-runtime.md before dispatch. After compaction, resume from progress files and resume.md."
 fi
 
 plans="$dir/documentation/plans"

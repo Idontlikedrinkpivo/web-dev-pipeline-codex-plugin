@@ -111,10 +111,13 @@ silently change an agreed transition rule.
 ## Handover and cleanup
 
 Before context fills, save decisions, progress and resume.md; run the handover
-check using the saved artifacts. Resume in a fresh authorized chat with only
-the packet and file paths. If another chat is outside the agreed list, ask the
+check using the saved artifacts. The stage then goes on in its own chat: no
+new chat for a part — each one needed the user's approval and broke an
+autonomous run (the user, 2026-11-02). The host compacts the chat, which
+reloads its skill and on-disk state (progress file, resume.md) and continues
+from the saved point. If another chat is outside the agreed list, ask the
 user to create it or approve its creation. Do not open reserve chats to bypass
-a refusal. After compaction, each chat reloads its skill and on-disk state.
+a refusal.
 
 Do not archive chats automatically on completion. Use set_thread_archived only
 when the user asks for archival, for the selected chats. Keep the parent small:

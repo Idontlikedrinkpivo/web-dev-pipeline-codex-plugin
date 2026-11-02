@@ -1,9 +1,41 @@
 # Stage chats in Codex — fresh context for each stage
 
-Use when the user asks to split the pipeline across chats. The parent chat
-coordinates; each stage gets a fresh chat and runs its own skill and named
-subagents. Without the request or without chat tools, run stages in the current
-chat as executor-catalog/references/codex-runtime.md describes.
+At an iteration's start or continuation the parent chat offers it — the user
+does not have to know to ask. The parent coordinates; each stage gets a fresh
+chat and runs its own skill and named subagents. Chats are created only on the
+user's yes. On no, or without chat tools, run stages in the current chat as
+executor-catalog/references/codex-runtime.md describes.
+
+The offer, once, with the stage titles from step 2 (Russian, as the user reads
+it):
+
+```text
+**Вопрос. Вести этапы в отдельных чатах?**
+
+Зачем это. Каждый этап — требования, схема, API, план, разработка, тесты —
+идёт в своём свежем чате, а этот чат только ведёт итерацию и запускает
+следующий этап:
+- у этапа чистый контекст: он видит только свои документы и не тащит
+  переписку прошлых этапов, поэтому меньше путается и дешевле обходится;
+- длинная итерация не упирается в предел переписки: при сжатии в одном
+  общем чате теряются правила этапов, а в отдельных чатах сжиматься почти
+  нечему;
+- в боковой панели виден весь план итерации, и по чату этапа сразу ясно,
+  где идёт работа.
+Чем платить: Codex может спросить подтверждение на создание каждого чата,
+а между этапами вы переходите в чат следующего этапа.
+
+Этапы итерации <version>: <titles>.
+
+  A. Да, вести в отдельных чатах (рекомендую для итерации из нескольких этапов).
+  B. Нет, всё в этом чате.
+  C. Только часть этапов — перечислите какие.
+
+Ответьте сообщением: буква или свой текст.
+```
+
+Recommend A when the iteration has more than one or two stages left; for a
+single small stage, B. A request that already names the chats is the yes.
 
 ## Establish the stage list
 
@@ -13,9 +45,10 @@ chat as executor-catalog/references/codex-runtime.md describes.
    inside that check's own chat, by agents — no chat of their own. Use pipeline/scripts/subsessions.py <project> <version> plan
    and show to maintain documentation/plans/<version>/sessions.md. Read the
    script's usage before calling it. It records status; it does not create chats.
-3. Present the stage titles and ask once whether to open that list. An explicit
-   user request already naming the desired chats supplies authorization for
-   those chats. A general request to implement a product is not enough.
+3. Ask the offer above once, with these titles. Its yes — or a request that
+   already named the chats — authorizes exactly those chats; a general request
+   to implement a product is not that yes. On B, stop here and run the stages
+   in this chat.
 4. Discover the Codex app's create_thread, wait_threads, read_thread,
    send_message_to_thread and title/archive tools. Use their returned schemas,
    including project/workspace, host and chat IDs. If the current parent ID is

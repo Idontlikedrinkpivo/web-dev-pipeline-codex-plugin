@@ -22,6 +22,10 @@ This skill explores, clarifies, and documents product decisions. Its document fe
 
 **Implementation request.** If the user asks to write code, a service, controllers, or tests **now**, decline and name the stage `pipeline` names after this one: code written before the SRS and the design has to invent the behavior those stages settle, and is rewritten when they land. Do not start those skills.
 
+## One document for the customer and the next stage
+
+Before writing or restructuring the business requirements, read `references/business-audience.md`. It owns the customer-facing structure and the non-rendered IDs, provenance and traceability in the same Markdown file; it specializes the presentation rules below without changing product decisions.
+
 ## Core Principles
 
 1. **Assess scope first** - Match the amount of ceremony to the size and ambiguity of the work.
@@ -296,7 +300,7 @@ When a doc is warranted, compose it using:
 Session-settled decisions land in the Product Contract's Key Decisions section carrying their `session-settled:` annotation (shape in `references/settled-decisions.md`), so the SRS and the design stages can inherit the label into their own decision entries.
 
 **Language.** Write the document in Russian. Do not translate cited tokens.
-Required section names and frontmatter keys stay as this skill specifies.
+Frontmatter keys stay as specified. Visible headings and labels follow `references/business-audience.md`; semantic section markers preserve downstream discovery.
 
 **Write tight.** A section being material is not license to pad it. Hold every kept section to the prose-economy discipline in `references/brainstorm-sections.md`: lead with the decision or outcome, one idea per sentence, a requirement is intent plus at most one qualifier, defer forks to `open-questions.md` beside the file rather than specifying both arms, resolve superseded text in place rather than stacking strata. The same holds for chat output: keep the facts, tradeoffs, and caveats the next decision needs; trim introductions, repetition, and optional background first.
 

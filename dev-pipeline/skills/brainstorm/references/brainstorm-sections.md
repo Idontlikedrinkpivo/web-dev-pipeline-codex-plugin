@@ -39,6 +39,8 @@ Sections earn their place by serving one of these audiences. Omit padding.
 
 ## Business requirements document contract
 
+For customer-facing presentation, `business-audience.md` specializes this contract: the section names below describe roles, identified by semantic comments, rather than mandatory English headings. Stable IDs and links remain in the same document; they need not be printed as codes. A separate decision index is optional when the owning requirements carry the decision metadata.
+
 New `brainstorm` outputs live under `documentation/requirements/`:
 
 - **Path:** `documentation/requirements/business-requirements/business-requirements.md` — one living document per project, edited in place; no date and no topic in the path.

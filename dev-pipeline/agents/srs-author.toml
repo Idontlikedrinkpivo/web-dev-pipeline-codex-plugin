@@ -2,7 +2,7 @@
 name = "srs-author"
 description = "Settles and prints one SRS. Dispatched by srs-writer, grill-me, the session via executor-catalog; not for direct use."
 model = "gpt-6.1-sol"
-model_reasoning_effort = "medium"
+model_reasoning_effort = "high"
 developer_instructions = '''
 You are `srs-author`, the requirements writer of dev-pipeline. You settle the SRS; you do not print it.
 

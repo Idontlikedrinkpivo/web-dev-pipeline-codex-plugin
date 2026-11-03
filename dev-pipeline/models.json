@@ -1,5 +1,5 @@
 {
-  "_comment": "Claude model:effort of an agent file (claude/claude-code-skills/_agents/*.md) -> the Codex model and reasoning effort codex/build.py writes into agents/*.toml. A change made in a toml of the Codex repository is carried back here (claude/tools/codex_sync.py). Availability depends on the user's account; measurements from Claude do not establish Codex performance.",
+  "_comment": "Codex-only task-based policy. Explicit role:<name> entries take precedence over legacy Claude alias mappings. _stages recommends chat settings; explicit user model-selection consent is required before passing creation overrides. Roles are pinned in generated TOML. Initial settings, not measured Codex benchmark winners.",
   "opus:xhigh": {
     "model": "gpt-6.1-sol",
     "effort": "xhigh"
@@ -23,5 +23,215 @@
   "haiku:low": {
     "model": "gpt-6-luna",
     "effort": "low"
+  },
+  "role:code-auditor": {
+    "model": "gpt-6.1-sol",
+    "effort": "high"
+  },
+  "role:code-explorer": {
+    "model": "gpt-6-luna",
+    "effort": "low"
+  },
+  "role:design-hard": {
+    "model": "gpt-6.1-sol",
+    "effort": "xhigh"
+  },
+  "role:design-lite": {
+    "model": "gpt-6.1-sol",
+    "effort": "medium"
+  },
+  "role:design-medium": {
+    "model": "gpt-6.1-sol",
+    "effort": "high"
+  },
+  "role:doc-review-hard": {
+    "model": "gpt-6.1-sol",
+    "effort": "high"
+  },
+  "role:doc-review-low": {
+    "model": "gpt-6.1-sol",
+    "effort": "medium"
+  },
+  "role:doc-review-medium": {
+    "model": "gpt-6.1-sol",
+    "effort": "medium"
+  },
+  "role:doc-typist": {
+    "model": "gpt-6.1-sol",
+    "effort": "low"
+  },
+  "role:docs-consistency-checker": {
+    "model": "gpt-6.1-sol",
+    "effort": "high"
+  },
+  "role:figma-opus": {
+    "model": "gpt-6.1-sol",
+    "effort": "high"
+  },
+  "role:figma-sonnet": {
+    "model": "gpt-6.1-sol",
+    "effort": "medium"
+  },
+  "role:handover-checker": {
+    "model": "gpt-6.1-sol",
+    "effort": "medium"
+  },
+  "role:impl-critical": {
+    "model": "gpt-6.1-sol",
+    "effort": "xhigh"
+  },
+  "role:impl-hard": {
+    "model": "gpt-6.1-sol",
+    "effort": "high"
+  },
+  "role:impl-lite": {
+    "model": "gpt-6.1-sol",
+    "effort": "medium"
+  },
+  "role:impl-medium": {
+    "model": "gpt-6.1-sol",
+    "effort": "high"
+  },
+  "role:impl-ui": {
+    "model": "gpt-6.1-sol",
+    "effort": "high"
+  },
+  "role:mechanical-worker": {
+    "model": "gpt-6-luna",
+    "effort": "low"
+  },
+  "role:plan-hard": {
+    "model": "gpt-6.1-sol",
+    "effort": "xhigh"
+  },
+  "role:plan-lite": {
+    "model": "gpt-6.1-sol",
+    "effort": "medium"
+  },
+  "role:plan-medium": {
+    "model": "gpt-6.1-sol",
+    "effort": "high"
+  },
+  "role:plan-review-hard": {
+    "model": "gpt-6.1-sol",
+    "effort": "xhigh"
+  },
+  "role:plan-review-medium": {
+    "model": "gpt-6.1-sol",
+    "effort": "medium"
+  },
+  "role:review-full-plan": {
+    "model": "gpt-6.1-sol",
+    "effort": "high"
+  },
+  "role:review-hard": {
+    "model": "gpt-6.1-sol",
+    "effort": "xhigh"
+  },
+  "role:review-medium": {
+    "model": "gpt-6.1-sol",
+    "effort": "high"
+  },
+  "role:screen-writer": {
+    "model": "gpt-6.1-sol",
+    "effort": "high"
+  },
+  "role:security-auditor": {
+    "model": "gpt-6.1-sol",
+    "effort": "high"
+  },
+  "role:session-reviewer": {
+    "model": "gpt-6.1-sol",
+    "effort": "medium"
+  },
+  "role:srs-author": {
+    "model": "gpt-6.1-sol",
+    "effort": "high"
+  },
+  "role:ui-test-runner": {
+    "model": "gpt-6.1-sol",
+    "effort": "high"
+  },
+  "role:ui-test-writer": {
+    "model": "gpt-6.1-sol",
+    "effort": "medium"
+  },
+  "_stages": {
+    "parent": {
+      "model": "gpt-6.1-sol",
+      "effort": "medium"
+    },
+    "brd": {
+      "model": "gpt-6.1-sol",
+      "effort": "high"
+    },
+    "srs": {
+      "model": "gpt-6.1-sol",
+      "effort": "high"
+    },
+    "db": {
+      "model": "gpt-6.1-sol",
+      "effort": "high"
+    },
+    "api": {
+      "model": "gpt-6.1-sol",
+      "effort": "high"
+    },
+    "arch": {
+      "model": "gpt-6.1-sol",
+      "effort": "high"
+    },
+    "scaffold": {
+      "model": "gpt-6.1-sol",
+      "effort": "medium"
+    },
+    "design": {
+      "model": "gpt-6.1-sol",
+      "effort": "high"
+    },
+    "specs": {
+      "model": "gpt-6.1-sol",
+      "effort": "high"
+    },
+    "cases": {
+      "model": "gpt-6.1-sol",
+      "effort": "medium"
+    },
+    "check": {
+      "model": "gpt-6.1-sol",
+      "effort": "high"
+    },
+    "plan": {
+      "model": "gpt-6.1-sol",
+      "effort": "high"
+    },
+    "work": {
+      "model": "gpt-6.1-sol",
+      "effort": "high"
+    },
+    "ui": {
+      "model": "gpt-6.1-sol",
+      "effort": "high"
+    },
+    "audit": {
+      "model": "gpt-6.1-sol",
+      "effort": "high"
+    },
+    "deploy": {
+      "model": "gpt-6.1-sol",
+      "effort": "high"
+    },
+    "ops": {
+      "model": "gpt-6.1-sol",
+      "effort": "high"
+    },
+    "ci": {
+      "model": "gpt-6.1-sol",
+      "effort": "medium"
+    },
+    "close": {
+      "model": "gpt-6.1-sol",
+      "effort": "medium"
+    }
   }
 }

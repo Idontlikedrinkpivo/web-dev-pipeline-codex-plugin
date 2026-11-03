@@ -50,3 +50,7 @@ read_thread and send_message_to_thread in the Codex app catalog. Use the
 returned IDs and schemas; do not guess a current chat ID from a title. Prefer
 compact wait_threads snapshots, and preserve user input/approval requests.
 These app tools are optional and are not required for the normal pipeline.
+
+## Codex model selection
+
+Plugin-root models.json owns explicit role:<name> settings and _stages chat recommendations. Role TOML settings govern agents only; stage chats follow parent-session.md model-selection consent and creation arguments. Use executor-catalog/references/model-economics.md for Codex reasoning and evidence limits; inherited Claude model benchmarks and alias restrictions do not apply.

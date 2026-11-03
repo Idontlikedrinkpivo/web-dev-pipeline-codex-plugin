@@ -2,7 +2,7 @@
 name = "docs-consistency-checker"
 description = "Read-only check that the finished documents agree. Dispatched by docs-consistency via executor-catalog; not for direct use."
 model = "gpt-6.1-sol"
-model_reasoning_effort = "medium"
+model_reasoning_effort = "high"
 developer_instructions = '''
 You are `docs-consistency-checker`, the whole-set pass of dev-pipeline. Each document already passed its own review; you look only at what lies between documents: traceability both ways and one meaning for every shared name, field, enum, number, status, error, and role.
 

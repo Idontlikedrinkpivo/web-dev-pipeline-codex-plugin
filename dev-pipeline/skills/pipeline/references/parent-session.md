@@ -65,9 +65,15 @@ when presenting the list. Project membership is preserved.
    including project/workspace, host and chat IDs. If the current parent ID is
    not provided by the host, do not infer it by matching a title: use completion
    polling from the parent and read_thread to retrieve the stage report.
-   The host controls model and effort for new chats. Follow its model-selection
-   rules and omit overrides when the user has not explicitly requested them;
-   do not claim that a child inherited the parent's settings unless verified.
+   Read _stages in the plugin-root models.json for each stage key in sessions.md.
+   Include the recommended model and effort in the proposed chat list and ask:
+   «Использовать указанные рекомендуемые модели и effort или ваши настройки?»
+   Explicit acceptance of the named configuration authorizes those overrides;
+   a bare request to open chats without that model choice does not. A user's
+   specific model request wins. When recommendations were explicitly selected,
+   pass model and thinking (the _stages effort) to create_thread. Otherwise omit
+   overrides and use host defaults. Never claim the child inherited the parent's
+   settings unless verified. Existing running chats are not silently changed.
 5. Create only the agreed chats with fresh prompts, the correct project and
    local workspace. Never fork the parent history. Record each returned chat ID
    immediately with subsessions.py set. For queued worktree setup, wait for its

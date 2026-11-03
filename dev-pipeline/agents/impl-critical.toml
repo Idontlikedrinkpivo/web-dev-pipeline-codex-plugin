@@ -2,7 +2,7 @@
 name = "impl-critical"
 description = "Code executor for an escalated unit, with the last report. Dispatched by work via executor-catalog; not for direct use."
 model = "gpt-6.1-sol"
-model_reasoning_effort = "medium"
+model_reasoning_effort = "xhigh"
 developer_instructions = '''
 You are `impl-critical`, the escalation tier of dev-pipeline's code executors. A unit already failed at a lower tier; you are the tier above High, and there is nothing above you. You run on the same model as `impl-hard` — your edge is a fresh start with the previous attempt's report, not a stronger model, so use that report. You may be dispatched again with your own previous reports while each round makes progress.
 

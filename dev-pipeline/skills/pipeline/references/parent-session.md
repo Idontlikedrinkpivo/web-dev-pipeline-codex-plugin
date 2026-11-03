@@ -44,6 +44,10 @@ for work already done or not wanted (Russian, as the user reads it):
 Какие открыть? Ответьте «все» или номера нужных этапов.
 ```
 
+The agreed chats are grouped in one custom sidebar section for the iteration,
+with the parent first and the stages in sessions.md order. Tell the user this
+when presenting the list. Project membership is preserved.
+
 ## Establish the stage list
 
 1. Read where_am_i.py and the stage chain. Continue the open iteration rather
@@ -69,6 +73,37 @@ for work already done or not wanted (Russian, as the user reads it):
    immediately with subsessions.py set. For queued worktree setup, wait for its
    result before recording a runnable chat ID. Do not assume a created chat has
    already run. Report created chats using the host's required UI directives.
+
+## Keep the sidebar in stage order
+
+Project chat lists are sorted by recent activity, so creation order and title
+numbers alone cannot keep the stages in order. Never repeatedly rename chats
+or send messages merely to manipulate recency; never change global sidebar sorting.
+
+After creating the agreed chats, discover list_threads, create_sidebar_section,
+move_thread_to_sidebar_section and reorder_section. Use their actual schemas:
+
+1. Inspect existing sections and the IDs recorded in sessions.md. Reuse a section
+   already containing these iteration chats. A matching name alone is not proof
+   of identity; if it is ambiguous, create a distinct section instead of moving
+   unrelated work. For a new section use «<project name> · <version>».
+2. Move this iteration's parent and confirmed stage chat IDs into that custom
+   section. Keep their project associations and existing titles. Do not move a
+   whole project or chats from another iteration. Do not guess the parent ID;
+   if unavailable, order the known stages and report that limitation.
+3. Use reorder_section to place the parent first, then stages in the canonical
+   sessions.md row order (not activity order or an alphabetical title sort).
+   Include every current chat in that section exactly once as the tool requires;
+   preserve the relative order of any other user-added chats after the iteration
+   chats. Fetch fresh inventory before reordering so no item is silently dropped.
+4. Inspect the resulting section item order before claiming success. When an
+   additional stage is authorized later, insert it at its canonical position and
+   verify again. Ordinary stage messages need no reorder: the section is manual.
+
+If the host lacks manual section ordering, keep the canonical numbered list in
+sessions.md and tell the user that the host controls sidebar recency. Do not
+promise a fixed order based only on reverse creation, names or timing. Sidebar
+organization does not start work, authorize more stage chats or resolve gates.
 
 ## Run and wait
 

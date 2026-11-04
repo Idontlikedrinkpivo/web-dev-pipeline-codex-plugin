@@ -61,5 +61,8 @@ For long stages, pipeline/references/context.md is the Codex-specific authority.
 Measure CODEX_THREAD_ID, not the newest project chat. There is no clear/compact
 chat tool: checkpoint and create a fresh continuation only on explicit human
 request for such chats, with no overlapping writers and verified saved state.
-Otherwise pause for the user's /compact; never silently wait for host compaction
-while claiming the checkpoint reset context. work/run-hygiene.md points here.
+Otherwise checkpoint and continue automatically in this chat, dispatching fresh
+named agents while Codex handles native compaction. The threshold alone never
+requires a manual /compact or «продолжай». Do not claim that a checkpoint or a
+fresh subagent reset the coordinator's context. Final checks and whole-run review
+remain required after the last implementation commit. work/run-hygiene.md points here.

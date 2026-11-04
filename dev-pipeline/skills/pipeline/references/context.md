@@ -29,9 +29,10 @@ accepts only one unambiguous main chat, never the latest neighbouring chat.
 Default threshold: min(300,000 tokens, 70% of the recorded model window), with
 300,000 only when window telemetry is absent; --limit allows an explicit policy.
 Exit 0: continue. Exit 2 (CHECKPOINT): use the procedure below. Exit 3 (UNKNOWN):
-context has not been measured; save progress, resolve the ID/telemetry and do not
-report a reset or treat it as zero. If unresolved, explain the limitation once
-and offer the manual checkpoint below; do not keep dispatching indefinitely.
+context has not been measured; save progress, attempt to resolve the ID/telemetry
+once and do not report a reset or treat it as zero. If still unknown, mention
+the limitation once and use automatic same-chat continuation below. UNKNOWN and
+CHECKPOINT alone are not reasons to stop the run or request a user message.
 A checkpoint request never cancels an in-flight item or bypasses its review.
 
 ## Save at a safe boundary
@@ -44,11 +45,20 @@ A checkpoint request never cancels an in-flight item or bypasses its review.
    (pause-and-resume.md). Record the exact next item, HEAD, branch, plan path and
    hash, BASE/review range, completed units, pending reviews, decisions and any
    live services. Preserve existing user edits; don't stash/reset or reapply a
-   patch to an unchanged shared checkout. Run the stage's handover-check.
+   patch to an unchanged shared checkout.
 3. Record a short context-handover.md beside resume.md: source thread/host IDs,
-   CHECKPOINT status, checkpoint paths, HEAD, next item, successor ID if known,
-   and the user's explicit continuation-chat permission, if given. Store no
-   fabricated permission. This is a handover, not an iteration/stage close.
+   checkpoint paths, HEAD, exact next action and the chosen continuation mode
+   (fresh-chat or native-compaction-pending), successor ID if known, and the
+   user's explicit continuation-chat permission, if given. Store no fabricated
+   permission. This is a checkpoint, not an iteration/stage close.
+
+The last implementation commit is also a boundary, not the end of work. For
+21/21 committed units, save the next action as the remaining final checks,
+whole-run review, fix/re-review rounds and run report, in the skill's order;
+never invent U22 or mark the stage DONE while its final gates are pending.
+Run handover-check only when actually transferring ownership to another chat;
+a same-chat checkpoint only saves state and continues, without a new digest
+or handover agent on every unit above the threshold.
 
 ## Continue with fresh history
 
@@ -65,11 +75,14 @@ match Git, then creates one continuation chat for this stage. Without a parent,
 the old chat may create its explicitly requested successor with a waiting prompt
 and then end its own turn. The successor must wait_threads/read_thread the old
 ID until its turn has completed before any mutation. If status is unavailable,
-wait for the user; never run two coordinators against the same checkout.
+do not start the successor. Reconcile its state before any fallback; never run
+two coordinators against the same checkout. A real overlap/ownership problem
+may block work; the context threshold alone may not.
 
 Use create_thread (never fork_thread), the same verified project, host, local
 checkout and branch, no new worktree. Discover list_projects and tool schemas;
-if the tool cannot target that checkout, stop instead of resuming elsewhere.
+if the tool cannot target that checkout, do not create a chat elsewhere; use
+same-chat continuation instead, provided no successor is already running.
 Pass only paths, stage/iteration, source ID and the next-item checkpoint, not
 history or a transcript. Keep model defaults unless specific overrides were
 explicitly chosen by the user. Record the returned real thread ID, or clientThreadId while setup is queued;
@@ -86,13 +99,32 @@ any dispatch. It runs work's plan_state/readiness gates, skips committed units
 and resumes the exact next item with fresh named agents. It does not replay
 completed work or replan. Mark the handover resumed only after verification.
 
-## Manual fallback
+## Automatic same-chat continuation (default fallback)
 
-Without permission, chat tools or a working successor: keep the saved checkpoint,
-say «Контрольная точка сохранена после <item>. Выполните /compact в этом чате,
-затем напишите “продолжи с <next item>”». End the turn before the next dispatch.
-This is a pause requiring the user, not automatic context refresh. After the
-user's compaction and continuation, reload the same files and readiness gates.
-Never claim the history was cleared merely because state was saved or a message
-was sent. Host automatic compaction can happen earlier; reload the skill and
-on-disk state then too, without replaying already committed units.
+When new continuation chats were not explicitly requested, chat tools are absent,
+or creation fails before a successor exists, continue this run automatically
+in the current chat. No extra authorization is needed to finish the already
+requested plan. The threshold is a checkpoint trigger, not a hard stop.
+
+1. Save the checkpoint at the safe boundary. Mark native-compaction-pending;
+   this records saved state, not proof of a refreshed context. If a successor
+   already exists or setup is pending, resolve who owns the run before proceeding.
+2. Keep the coordinator lean and dispatch the exact next action now, in this
+   turn: fresh named executors/reviewers, file paths and short packets. Do not
+   replay history, reread the whole plan, wait idle for compaction, end with
+   «выполните /compact» or ask «напишите продолжай». If all units are committed,
+   proceed to final checks and whole-run review; 21/21 does not skip those gates.
+3. Let Codex perform its native automatic compaction at its own threshold. The
+   plugin cannot choose its exact timing. Do not claim that saving the checkpoint
+   or dispatching a fresh subagent cleared the coordinator's history.
+4. After host compaction reload the active skill, codex-runtime.md, checkpoint,
+   resume/progress/report and live Git/readiness gates, then continue the saved
+   next action. Until then update the existing checkpoint after completed items;
+   do not repeatedly stop, ask permission or create a handover on every high reading.
+
+Manual /compact is optional if the user requests it. Pause only for a real
+blocker under the active skill (missing decision, failed permissions, host
+context-exhaustion error, uncertain ownership), or a user-requested stop.
+A host context error must be reported honestly with the saved checkpoint;
+it is not proof that compaction happened. Never simulate a host command by
+sending `/compact` as a chat message or running a separate CLI on the live chat.

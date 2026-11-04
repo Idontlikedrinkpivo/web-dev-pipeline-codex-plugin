@@ -97,10 +97,15 @@ work, save resume.md/progress/report and verify the handover. Exit 2 requests a
 checkpoint; exit 3 is unknown, never a zero context. With a parallel wave finish
 and join the whole wave before handing over. Continue in a fresh chat only when
 the human explicitly requested continuation chats and the host permits it;
-otherwise save the checkpoint and pause for the user's /compact. Never promise
+otherwise save the checkpoint and continue automatically in this chat while
+Codex manages native compaction. Never stop solely for /compact or «продолжай». Never promise
 a parent can clear this chat or that continuing here refreshes its context.
 The successor runs Step 1/readiness gates against live Git and the saved plan,
 skips committed units and dispatches exactly the next pending unit.
+
+After the final implementation commit, the next action is final checks and the
+whole-run review, not an invented extra unit. Keep their progress in resume.md
+and dispatch them in this turn; all units committed is not all work complete.
 
 ## The orchestrator's own commits
 

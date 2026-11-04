@@ -162,7 +162,13 @@ An explicit yes to this question authorizes only checkpoint continuations of
 these stages in this checkout. A yes to the stage list alone does not. Record
 the user's answer and scope in the iteration's context-handover.md and include
 the actual permission evidence in stage packets; host authorization checks win.
-Without this choice use context.md's manual /compact fallback.
+Without this choice continue the authorized work in the same chat using
+context.md's automatic fallback; never stop solely to request /compact.
+
+An old stage returns HANDOVER_READY only when an authorized fresh-chat transfer
+will actually happen. Otherwise it saves a checkpoint and dispatches the next
+action itself, including final checks and whole-run review. The parent must not
+turn a context checkpoint into a request for the user to say «продолжай».
 
 When an old stage returns HANDOVER_READY, wait for its turn and all writers to
 end, verify its saved checkpoint, then open/reuse its authorized fresh successor

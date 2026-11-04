@@ -104,7 +104,7 @@ stage skill, its heading the skill's folder name; a stage with no section gets �
 - A unit: the executor, `run_check.py`, `code-review-unit`, then its own commit with `Plan-Unit:` and
   `Co-Authored-By:` in the last paragraph — never chained to a check.
 - A parallel unit works in its worktree with repo-relative paths.
-- After each unit, the context check (`pipeline` → `references/context.md`): over 300,000 tokens, hand over — the parent clears this session and starts it again; after «продолжай здесь», no more hand-overs in this stage.
+- After each safe unit/wave boundary, run the exact-chat context check (`pipeline` → `references/context.md`). CHECKPOINT saves resume/progress/report; a fresh continuation requires explicit human permission and no overlapping writers. Otherwise pause for the user's /compact. UNKNOWN is not zero; no parent clear-session tool exists in Codex. Reload Step 1 and skip committed units after continuation.
 - No `sleep` — `run_in_background` or Monitor; every watcher stopped when its work ends.
 - The close: `code-review-full`, the run report, `resume.md` deleted, then the question about the next stage the
   chain names — the UI run, else the security audit.

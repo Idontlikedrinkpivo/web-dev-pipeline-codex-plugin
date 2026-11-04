@@ -1,86 +1,90 @@
-"""How big this session's context is now — the last model call of the newest session of the project.
+"""Read this Codex chat's context, never a neighbour's.
 
-    python3 context_size.py <project-dir> [--limit <tokens, default 300000>]
-
-Prints one line: the context of the newest main session's last call, in tokens, and whether it is over the
-limit («передать»). `work` runs it after each commit (work → references/run-hygiene.md → Context): over the limit,
-the run hands over to a fresh session at that boundary. The newest session is the one written last; with two
-sessions working in the same project at once it may be the other one — the line names the session it read.
-Claude Code: input + cache read + cache write of the last assistant message; the Codex build (codex_logs.py
-beside this file): `last_token_usage.input_tokens` of the last token_count event. Exit 2 over the limit.
-Standard library only.
+context_size.py <project-dir> [--thread-id ID] [--limit TOKENS] [--json]
+CODEX_THREAD_ID is used unless --thread-id is given. Without either, only a
+single unambiguous main chat is accepted. Exit 0 below threshold, 2 checkpoint
+needed, 3 unknown (never interpreted as an empty context). Read-only.
 """
 from __future__ import annotations
-
+import argparse
 import json
 import os
 import sys
 from pathlib import Path
-
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+import sessions
 
 
-def claude_newest(cwd: str) -> tuple[str, int, str]:
-    from sessions import MAX_NAME, ours, sanitized, session_dirs
-    dirs, roots = session_dirs(cwd, [])
-    exact = {sanitized(r) for r in roots if len(sanitized(r)) <= MAX_NAME}
-    mains = [p for d in dirs for p in d.glob("*.jsonl") if d.name in exact or ours(p, roots)]
-    if not mains:
-        return "", 0, ""
-    p = max(mains, key=lambda x: x.stat().st_mtime)
-    ctx, ts = 0, ""
-    with open(p, errors="ignore") as fh:
-        for line in fh:
-            if '"usage"' not in line:
-                continue
-            try:
-                e = json.loads(line)
-            except json.JSONDecodeError:
-                continue
-            u = (e.get("message") or {}).get("usage") or {}
-            if e.get("type") == "assistant" and u:
-                ctx = sum(int(u.get(k) or 0) for k in ("input_tokens", "cache_read_input_tokens",
-                                                         "cache_creation_input_tokens"))
-                ts = (e.get("timestamp") or "")[:16]
-    return p.stem, ctx, ts
+def positive(value: str) -> int:
+    number = int(value)
+    if number <= 0:
+        raise argparse.ArgumentTypeError('must be positive')
+    return number
 
 
-def codex_newest(cwd: str) -> tuple[str, int, str]:
-    import sessions  # the Codex build's sessions.py
+def measure(cwd: str, thread_id: str | None, limit: int | None = None) -> dict:
     root = os.path.realpath(cwd)
-    best = None
-    for p in sessions.rollouts():
-        m = sessions.meta(p)
-        if not m or m.get("parent_thread_id") or os.path.realpath(str(m.get("cwd", ""))) != root:
+    candidates = []
+    for path in sessions.rollouts():
+        meta = sessions.meta(path)
+        if not meta or os.path.realpath(str(meta.get('cwd', ''))) != root:
             continue
-        if best is None or p.stat().st_mtime > best.stat().st_mtime:
-            best = p
-    if best is None:
-        return "", 0, ""
-    ctx, ts = 0, ""
-    for d in sessions.records(best):
-        pl = d.get("payload") or {}
-        if d.get("type") == "event_msg" and pl.get("type") == "token_count" and pl.get("info"):
-            ctx = int(((pl["info"].get("last_token_usage") or {}).get("input_tokens")) or 0)
-            ts = (d.get("timestamp") or "")[:16]
-    return best.name, ctx, ts
+        sid = str(meta.get('id') or '')
+        if thread_id:
+            if sid != thread_id:
+                continue
+        elif meta.get('parent_thread_id') or isinstance(meta.get('source'), dict) and 'subagent' in meta['source']:
+            continue
+        candidates.append((path, sid))
+    ids = {sid for _, sid in candidates if sid}
+    if not candidates or len(ids) != 1 or any(not sid for _, sid in candidates):
+        return {'status': 'UNKNOWN', 'thread_id': thread_id, 'reason': 'chat not found or ambiguous; pass --thread-id'}
+    latest = None
+    last_compaction = ""
+    for path, sid in candidates:
+        for index, record in enumerate(sessions.records(path)):
+            payload = record.get('payload') or {}
+            if record.get('type') == 'compacted':
+                last_compaction = max(last_compaction, record.get('timestamp') or '')
+            if record.get('type') != 'event_msg' or payload.get('type') != 'token_count':
+                continue
+            info = payload.get('info') or {}
+            usage = info.get('last_token_usage') or {}
+            tokens = usage.get('input_tokens')
+            if not isinstance(tokens, int) or isinstance(tokens, bool) or tokens <= 0:
+                continue
+            window = info.get('model_context_window')
+            if not isinstance(window, int) or isinstance(window, bool) or window <= 0:
+                window = None
+            key = (record.get('timestamp') or '', index, str(path))
+            if latest is None or key > latest[0]:
+                latest = (key, tokens, window, sid)
+    if latest is None or last_compaction and last_compaction >= latest[0][0]:
+        return {'status': 'UNKNOWN', 'thread_id': next(iter(ids)), 'reason': 'no current token usage recorded'}
+    _, tokens, window, sid = latest
+    # Leave headroom to finish an item and save its checkpoint before host compaction.
+    threshold = limit if limit is not None else min(300_000, window * 7 // 10) if window else 300_000
+    return {'status': 'CHECKPOINT' if tokens >= threshold else 'OK', 'thread_id': sid,
+            'input_tokens': tokens, 'model_context_window': window, 'limit': threshold}
 
 
 def main() -> None:
-    args = sys.argv[1:]
-    if not args:
-        sys.exit(__doc__)
-    limit = int(args[args.index("--limit") + 1]) if "--limit" in args else 300_000
-    codex = (Path(__file__).resolve().parent / "codex_logs.py").exists()
-    sid, ctx, ts = (codex_newest if codex else claude_newest)(args[0])
-    if not sid:
-        print("контекст: сессия не найдена — считать по числу задач (work → references/run-hygiene.md → Context)")
-        return
-    over = ctx > limit
-    print(f"контекст: {ctx // 1000} тыс. токенов (сессия {sid[:8]}, {ts.replace('T', ' ')}) · порог {limit // 1000} тыс."
-          + (" · передать новой сессии" if over else ""))
-    sys.exit(2 if over else 0)
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('project')
+    parser.add_argument('--thread-id', default=os.environ.get('CODEX_THREAD_ID'))
+    parser.add_argument('--limit', type=positive)
+    parser.add_argument('--json', action='store_true')
+    args = parser.parse_args()
+    result = measure(args.project, args.thread_id, args.limit)
+    if args.json:
+        print(json.dumps(result, ensure_ascii=False))
+    elif result['status'] == 'UNKNOWN':
+        print('контекст: неизвестен — ' + result['reason'])
+    else:
+        print(f"контекст: {result['input_tokens'] // 1000} тыс. токенов · чат {result['thread_id']} · "
+              f"порог {result['limit'] // 1000} тыс. · {result['status']}")
+    sys.exit({'OK': 0, 'CHECKPOINT': 2, 'UNKNOWN': 3}[result['status']])
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()

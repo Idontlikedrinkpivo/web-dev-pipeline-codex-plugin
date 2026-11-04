@@ -149,16 +149,28 @@ Independent stages can run concurrently only with explicit file ownership.
 Ask the user before transitions wherever the stage's skill requires it; do not
 silently change an agreed transition rule.
 
-## Handover and cleanup
+## Context handover and cleanup
 
-Before context fills, save decisions, progress and resume.md; run the handover
-check using the saved artifacts. The stage then goes on in its own chat: no
-new chat for a part — each one needed the user's approval and broke an
-autonomous run (the user, 2026-11-02). The host compacts the chat, which
-reloads its skill and on-disk state (progress file, resume.md) and continues
-from the saved point. If another chat is outside the agreed list, ask the
-user to create it or approve its creation. Do not open reserve chats to bypass
-a refusal.
+At safe item boundaries follow context.md, including exact-thread measurement,
+checkpoint files and the no-overlap rule. The host has no agent-callable clear
+or compact tool. Saving progress alone does not refresh context.
+
+When agreeing the stage chats, separately offer this optional choice:
+«Открывать новые чаты продолжения этих этапов при достижении порога контекста,
+после сохранения прогресса? В них план продолжится со следующей задачи».
+An explicit yes to this question authorizes only checkpoint continuations of
+these stages in this checkout. A yes to the stage list alone does not. Record
+the user's answer and scope in the iteration's context-handover.md and include
+the actual permission evidence in stage packets; host authorization checks win.
+Without this choice use context.md's manual /compact fallback.
+
+When an old stage returns HANDOVER_READY, wait for its turn and all writers to
+end, verify its saved checkpoint, then open/reuse its authorized fresh successor
+as context.md specifies. Update the existing sessions.md stage ID and sidebar
+position, retaining old/new IDs in the handover note. The stage remains open;
+HANDOVER_READY is neither DONE nor a reason to start the next pipeline stage.
+After compaction or restart read the handover note before creating anything,
+so a previously recorded successor is reused rather than duplicated.
 
 Do not archive chats automatically on completion. Use set_thread_archived only
 when the user asks for archival, for the selected chats. Keep the parent small:

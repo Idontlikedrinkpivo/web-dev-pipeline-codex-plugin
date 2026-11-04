@@ -54,3 +54,12 @@ These app tools are optional and are not required for the normal pipeline.
 ## Codex model selection
 
 Plugin-root models.json owns explicit role:<name> settings and _stages chat recommendations. Role TOML settings govern agents only; stage chats follow parent-session.md model-selection consent and creation arguments. Use executor-catalog/references/model-economics.md for Codex reasoning and evidence limits; inherited Claude model benchmarks and alias restrictions do not apply.
+
+## Context renewal at safe boundaries
+
+For long stages, pipeline/references/context.md is the Codex-specific authority.
+Measure CODEX_THREAD_ID, not the newest project chat. There is no clear/compact
+chat tool: checkpoint and create a fresh continuation only on explicit human
+request for such chats, with no overlapping writers and verified saved state.
+Otherwise pause for the user's /compact; never silently wait for host compaction
+while claiming the checkpoint reset context. work/run-hygiene.md points here.

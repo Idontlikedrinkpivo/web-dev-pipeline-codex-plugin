@@ -89,31 +89,18 @@ in a measured run its context grew by ~100,000 tokens per unit, a third of it ag
   or skipped grew) into the context. A failure is read in full from the log, the passing rest is not.
 - **Other long output goes to a file too** — a search, a diff, a listing: `> <file>`, then read the part needed.
 
-## Context — handing over to a fresh session
+## Context checkpoints in Codex
 
-The same rule holds for every stage (`pipeline` → `references/context.md`); what is particular to `work`:
-
-After each unit's commit (Step 5.6) run
-`python3 "<folder of this SKILL.md>/../reflect/scripts/context_size.py" "$PWD"`. Over the limit (300,000 tokens by
-default; exit 2), hand over at this boundary — the unit is committed, nothing is in flight — rather than let the
-host compact the session, which loses rules:
-
-1. Refresh `resume.md` (`pipeline` → `references/pause-and-resume.md`), the run report and the progress line,
-   as at any stop. The run report says where the next session starts («продолжать с U18»).
-2. **Run by a parent session** (its first message named one): send the parent «ПРОГОН <version> ПЕРЕДАН ·
-   после U<n> · контекст <N> тыс. · продолжать с U<m>» and end the turn. The parent clears this same session and starts it again with «продолжи с <item>» — no new session, no card
-   (`pipeline` → `references/parent-session.md` → What comes back); in the Codex app the stage chat goes on and the host
-   compacts it. On «продолжай здесь» instead (the clear was refused) go on in this session and do not hand over again
-   in this stage: the host compacts it, and the session-start hook prints the stage's rules back.
-3. **No parent, and the host can start a session** — a session the pipeline should have run from a parent
-   (`pipeline` → `references/parent-session.md` → Which one am I): go on in this session, no new one — the host compacts it, and the
-   session-start hook prints the stage's rules back. A new session opened on the way needs the user's click on a
-   card and stops an autonomous run (the user, 2026-11-02).
-4. **Neither:** tell the user in one line to open a new session in this folder and write «продолжи прогон
-   <version>», and stop.
-
-The new session starts from git, the run report and `resume.md` (Step 1) — it repeats nothing. The script
-cannot tell two sessions working in one project apart: it reads the newest, and its line names that session.
+After each unit's reviewed commit (Step 5.6), before the next dispatch, follow
+`pipeline/references/context.md`: measure the current thread, finish all active
+work, save resume.md/progress/report and verify the handover. Exit 2 requests a
+checkpoint; exit 3 is unknown, never a zero context. With a parallel wave finish
+and join the whole wave before handing over. Continue in a fresh chat only when
+the human explicitly requested continuation chats and the host permits it;
+otherwise save the checkpoint and pause for the user's /compact. Never promise
+a parent can clear this chat or that continuing here refreshes its context.
+The successor runs Step 1/readiness gates against live Git and the saved plan,
+skips committed units and dispatches exactly the next pending unit.
 
 ## The orchestrator's own commits
 

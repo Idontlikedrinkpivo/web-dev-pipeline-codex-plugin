@@ -1,6 +1,6 @@
 """Build a static documentation site from documentation/ (standard library only; Node only for the API page).
 
-    python3 build_site.py [--docs documentation] [--out documentation/_web-docs] [--title "…"] [--no-api | --keep-api]
+    python3 build_site.py [--docs documentation] [--out documentation/_web-docs] [--title "…"] [--no-api | --keep-api | --offline]
 
 Every Markdown document becomes a page with the site's navigation, search and cross-links: an id like FR-12,
 UC-4, BR-3, NFR-6, TC-27, S-3, З-2, ДП-5 links to the row, heading or screen-spec file that defines it, and an
@@ -131,6 +131,10 @@ def args() -> dict:
             sys.exit(0)
         if k in ("--no-api", "--keep-api"):
             opt["api"] = False if k == "--no-api" else "keep"  # keep: reuse the bundled contract (bundling is slow)
+            i += 1
+            continue
+        if k == '--offline':
+            opt['api'] = 'offline'  # strict local tool/assets only; never reuse the old bundled contract
             i += 1
             continue
         if k not in ("--docs", "--out", "--title") or i + 1 >= len(a):
@@ -461,6 +465,9 @@ class Site:
         cache = Path.home() / ".cache" / "dev-pipeline" / f"swagger-ui-dist-{self.SWAGGER}"
         if (cache / "swagger-ui-bundle.js").exists() and (cache / "swagger-ui.css").exists():
             return cache
+        if self.api_on == 'offline':
+            local = self.docs.parent / 'node_modules/swagger-ui-dist'
+            return local if all((local / name).is_file() for name in ('swagger-ui-bundle.js', 'swagger-ui.css')) else None
         tmp = cache.parent / f".fetch-{os.getpid()}"
         try:
             tmp.mkdir(parents=True, exist_ok=True)
@@ -569,14 +576,31 @@ class Site:
             return
         swagger = self.swagger_assets()
         bundled = api / ".openapi.json"
+        command = ['npx', '--yes', '@redocly/cli@latest']
+        if self.api_on == 'offline':
+            local = self.docs.parent / 'node_modules/.bin/redocly'
+            tool = str(local) if local.is_file() and os.access(local, os.X_OK) else shutil.which('redocly')
+            if not tool or not swagger:
+                raise RuntimeError('offline API build requires an installed redocly executable and local Swagger UI assets')
+            # Bundling may otherwise resolve remote $ref documents even without npm.
+            for source in self.docs.rglob('*'):
+                if source.suffix.lower() in ('.yaml', '.yml', '.json') and source.is_file():
+                    text = source.read_text(encoding='utf-8')
+                    if re.search(r'''["']?\$ref["']?\s*:\s*["']?(?:https?://|//)''', text):
+                        raise RuntimeError('offline API build refuses remote $ref; vendor referenced documents locally')
+            command = [tool]
         try:
-            r = subprocess.run(["npx", "--yes", "@redocly/cli@latest", "bundle", str(spec), "--ext", "json",
+            r = subprocess.run([*command, "bundle", str(spec), "--ext", "json",
                                 "-o", str(bundled)], capture_output=True, text=True, timeout=300)
             doc = json.loads(bundled.read_text()) if r.returncode == 0 and bundled.exists() else None
         except Exception:
+            if self.api_on == 'offline':
+                raise
             doc = None
         finally:
             bundled.unlink(missing_ok=True) if bundled.exists() else None
+        if self.api_on == 'offline' and (not isinstance(doc, dict) or not doc):
+            raise RuntimeError('offline API bundle failed; no fallback or stale contract accepted')
         if doc and swagger:
             for path_item in (doc.get("paths") or {}).values():
                 for method, op in path_item.items():

@@ -8,6 +8,7 @@
     python3 rebuild.py <project dir> --if-outdated  # open-docs: wait, then build a missing site or rebuild one
                                                # another plugin version built; one line says which (exit 1: no
                                                # documentation/ at all)
+    python3 rebuild.py <project dir> --for-rebase  # synchronous, offline, strict build; never starts a server
 
 `docs-site` and `open-docs` build through this script, never by calling build_site.py beside a running worker: the
 worker swaps the whole site folder in at the end of its build, so a second, parallel build loses its output or
@@ -27,6 +28,7 @@ from __future__ import annotations
 
 import json
 import os
+import shutil
 import subprocess
 import sys
 import time
@@ -76,29 +78,89 @@ def wanted(root: Path) -> bool:
         return True
 
 
-def worker(root: Path, d: Path) -> None:
+def worker(root: Path, d: Path) -> int:
     lock, pending, log = d / "site-build.lock", d / "site-build.pending", d / "site-build.log"
     lock.write_text(str(os.getpid()))
+    result = 0
     try:
         while pending.exists():
             api = pending.read_text().strip() == "api"
             pending.unlink()
             with open(log, "w", encoding="utf-8") as out:
-                subprocess.run([sys.executable, str(HERE / "build_site.py"), "--docs", str(root / "documentation"),
-                                "--out", str(root / "documentation" / "_web-docs")] + ([] if api else ["--keep-api"]),
-                               cwd=root, stdout=out, stderr=subprocess.STDOUT, timeout=600)
+                try:
+                    built = subprocess.run([sys.executable, str(HERE / "build_site.py"), "--docs", str(root / "documentation"),
+                                            "--out", str(root / "documentation" / "_web-docs")] + ([] if api else ["--keep-api"]),
+                                           cwd=root, stdout=out, stderr=subprocess.STDOUT, timeout=600)
+                    result = built.returncode
+                except (OSError, subprocess.TimeoutExpired) as exc:
+                    out.write(f'site: build did not finish: {exc}\n')
+                    result = 1
+            (d / 'site-build.result').write_text(str(result), encoding='utf-8')
     finally:
         lock.unlink(missing_ok=True) if sys.version_info >= (3, 8) else None
+    return result
 
 
-def wait(root: Path, d: Path) -> None:
+def wait(root: Path, d: Path) -> int:
     lock, pending = d / "site-build.lock", d / "site-build.pending"
     for _ in range(1200):  # up to 10 minutes: a contract rebuild bundles the spec
         if not running(lock):
             break  # idle — or queued with no worker: run it now, in the foreground
         time.sleep(0.5)
     if pending.exists() and not running(lock):
-        worker(root, d)
+        return worker(root, d)
+    if running(lock):
+        print('site: build still running after wait timeout')
+        return 1
+    result = d / 'site-build.result'
+    try:
+        return int(result.read_text(encoding='utf-8')) if result.exists() else 0
+    except (OSError, ValueError):
+        return 1
+
+
+def for_rebase(root: Path) -> int:
+    """Build merged sources in the foreground; no queue, installs or server."""
+    if not (HERE / 'build_site.py').is_file() or not (HERE / 'mdhtml.py').is_file():
+        print('site: required builder or Markdown renderer is missing')
+        return 1
+    if not (root / 'documentation').is_dir():
+        print('site: documentation/ is missing')
+        return 1
+    docs = root / 'documentation'
+    scratch = docs / '._web-docs.building'
+    if docs.resolve() != docs or (docs / '_web-docs').is_symlink() or scratch.exists() or (docs / '._web-docs.old').exists():
+        print('site: symlinked output or existing build scratch requires inspection before rebase')
+        return 1
+    d = work_dir(root)
+    lock = d / 'site-build.lock'
+    try:
+        fd = os.open(lock, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+    except FileExistsError:
+        print('site: another build owns the lock; rebase build refused')
+        return 1
+    try:
+        with os.fdopen(fd, 'w', encoding='utf-8') as stream:
+            stream.write(str(os.getpid()))
+        if (d / 'site-build.pending').exists():
+            print('site: a queued build must finish before rebase recovery')
+            return 1
+        try:
+            result = subprocess.run([sys.executable, str(HERE / 'build_site.py'), '--docs',
+                                     str(root / 'documentation'), '--out',
+                                     str(root / 'documentation/_web-docs'), '--offline'],
+                                    cwd=root, capture_output=True, text=True, timeout=600)
+        except (OSError, subprocess.TimeoutExpired) as exc:
+            if scratch.is_dir() and not scratch.is_symlink():
+                shutil.rmtree(scratch)
+            print(f'site: synchronous build did not finish: {exc}')
+            return 1
+        if result.returncode and scratch.is_dir() and not scratch.is_symlink():
+            shutil.rmtree(scratch)
+        print(result.stdout + result.stderr, end='')
+        return result.returncode
+    finally:
+        lock.unlink()
 
 
 def if_outdated(root: Path) -> int:
@@ -109,7 +171,8 @@ def if_outdated(root: Path) -> int:
         print("site: documentation/ нет — показывать нечего")
         return 1
     d = work_dir(root)
-    wait(root, d)
+    if wait(root, d):
+        return 1
     sys.path.insert(0, str(HERE))
     from build_site import plugin_version  # noqa: E402 — only here: the builder's imports are not needed otherwise
     want = plugin_version()
@@ -123,7 +186,9 @@ def if_outdated(root: Path) -> int:
             return 0
         why = f"пересобран для плагина {want or '?'}" + (f" (был собран плагином {have})" if have else "")
     (d / "site-build.pending").write_text("api")
-    worker(root, d)
+    if worker(root, d):
+        print('site: rebuild failed; inspect site-build.log')
+        return 1
     print(f"site: {why} — в git войдёт со следующим коммитом документов")
     return 0
 
@@ -131,6 +196,8 @@ def if_outdated(root: Path) -> int:
 def main() -> None:
     args = sys.argv[1:]
     root = Path(next((a for a in args if not a.startswith("--")), os.getcwd())).resolve()
+    if '--for-rebase' in args:
+        sys.exit(for_rebase(root))
     if "--if-outdated" in args:
         sys.exit(if_outdated(root))
     first = not (root / "documentation" / "_web-docs" / "index.html").exists()
@@ -139,14 +206,13 @@ def main() -> None:
     d = work_dir(root, create="--wait" not in args)
     lock, pending = d / "site-build.lock", d / "site-build.pending"
     if "--wait" in args:
-        wait(root, d)
+        result = wait(root, d)
         if "--report" in args:
             log = d / "site-build.log"
             print(log.read_text(encoding="utf-8").rstrip() if log.exists() else "no build has run yet")
-        return
+        sys.exit(result)
     if "--worker" in args:
-        worker(root, d)
-        return
+        sys.exit(worker(root, d))
     api = "--api" in args or first  # the first build makes the API page as well
     if api or not pending.exists() or pending.read_text().strip() != "api":
         pending.write_text("api" if api else "page")

@@ -155,6 +155,23 @@ class Checkpoints(unittest.TestCase):
         self.assertTrue(manifest['completeness']['portable'])
         self.assertEqual(manifest['completeness']['scope'], 'owned')
 
+    def test_local_only_recovery_never_publishes_or_rewrites_portable_state(self) -> None:
+        module = self.module()
+        published = self.capture(module, [])
+        before = {p.relative_to(self.plans).as_posix(): p.read_bytes()
+                  for p in self.plans.rglob('*') if p.is_file()}
+        owned = self.dirty()
+        inventory, index = self.inventory(self.repo), self.raw_index(self.repo)
+        local = self.capture(module, owned, local_only=True)
+        self.assertEqual(local['completeness'], {'local': True, 'portable': False, 'scope': 'local'})
+        self.assertEqual({p.relative_to(self.plans).as_posix(): p.read_bytes()
+                          for p in self.plans.rglob('*') if p.is_file()}, before)
+        self.assertTrue(self.portable(published).is_dir())
+        self.assertFalse(self.portable(local).exists())
+        self.assertTrue((self.local(local) / 'manifest.json').is_file())
+        self.assertEqual(self.inventory(self.repo), inventory)
+        self.assertEqual(self.raw_index(self.repo), index)
+
     def test_roundtrip_preserves_layers_untracked_binary_delete_exec_and_symlink(self) -> None:
         owned = self.dirty()
         expected = self.inventory(self.repo)

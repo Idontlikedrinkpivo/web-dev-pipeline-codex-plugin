@@ -384,7 +384,7 @@ def capture(checkout: Path | str, version: str, chat_key: str, state: object,
             owned_paths: list[str] | tuple[str, ...], *, event: str = 'CHECKPOINT',
             successor_id: str | None = None, ownership_confirmed: bool = False,
             writers_stopped: bool = False, checks_stopped: bool = False,
-            runtime: object = None) -> dict[str, Json]:
+            runtime: object = None, local_only: bool = False) -> dict[str, Json]:
     """Save full local recovery plus owned portable payload; do not stop a run."""
     paths = _paths(checkout, version, chat_key)
     portable_state = _validated_state(state)
@@ -402,19 +402,22 @@ def capture(checkout: Path | str, version: str, chat_key: str, state: object,
             observed = _observe(paths, owned)
             checkpoint_id = uuid.uuid4().hex
             local_root = contained_path(paths.gitdir, paths.local / 'checkpoints')
-            portable_root = contained_path(paths.checkout, paths.plans / 'checkpoints')
             local_root.mkdir(parents=True, exist_ok=True)
-            portable_root.mkdir(parents=True, exist_ok=True)
             local_stage = local_root / ('.pending-' + checkpoint_id)
-            portable_stage = portable_root / ('.pending-' + checkpoint_id)
             all_names = tuple(entry.path for entry in observed.entries)
             local_inventory, local_payload = _write_payload(local_stage, paths, observed, all_names)
-            inventory, payload = _write_payload(portable_stage, paths, observed, owned)
+            inventory: list[Json] = []
+            payload: dict[str, Json] = {}
+            if not local_only:
+                portable_root = contained_path(paths.checkout, paths.plans / 'checkpoints')
+                portable_root.mkdir(parents=True, exist_ok=True)
+                portable_stage = portable_root / ('.pending-' + checkpoint_id)
+                inventory, payload = _write_payload(portable_stage, paths, observed, owned)
             if _observe(paths, owned) != observed:
                 raise CheckpointError('concurrent-drift', 'source/index/HEAD/plan changed during capture')
             events: list[Json] = []
             current = contained_path(paths.checkout, paths.plans / 'run-state.json')
-            if current.exists():
+            if current.exists() and not local_only:
                 previous = _read_json(current, 'invalid-state')
                 if previous.get('schema_version') != 1 or previous.get('run_id') != portable_state['run_id']:
                     raise CheckpointError('invalid-state', 'existing checkpoint belongs to another run/schema')
@@ -429,10 +432,17 @@ def capture(checkout: Path | str, version: str, chat_key: str, state: object,
                              'inventory': inventory, 'payload': payload})
             local_manifest = dict(manifest)
             local_manifest.update({'inventory': local_inventory, 'payload': local_payload,
-                                   'completeness': {'local': True, 'portable': True, 'scope': 'local'},
+                                   'completeness': {'local': True, 'portable': not local_only, 'scope': 'local'},
                                    'local_identity': _identity(paths)})
             _put(local_stage, 'runtime.json', _encode({'identity': _identity(paths), 'runtime': runtime_state}), local_payload)
             _put(local_stage, 'manifest.json', _encode(local_manifest), {})
+            if local_only:
+                _fsync_dir(local_stage / 'blobs') if (local_stage / 'blobs').exists() else None
+                _fsync_dir(local_stage)
+                os.rename(local_stage, local_stage.with_name(checkpoint_id))
+                _fsync_dir(local_stage.parent)
+                return local_manifest
+            assert portable_stage is not None
             _put(portable_stage, 'manifest.json', _encode(manifest), {})
             _publish(paths, local_stage, portable_stage, manifest)
             return manifest
@@ -666,6 +676,7 @@ def main() -> int:
     capture_parser.add_argument('--owned', action='append', default=[])
     capture_parser.add_argument('--runtime', type=Path)
     capture_parser.add_argument('--event', default='CHECKPOINT', choices=sorted(EVENTS))
+    capture_parser.add_argument('--local-only', action='store_true')
     capture_parser.add_argument('--successor-id')
     for flag in ('ownership-confirmed', 'writers-stopped', 'checks-stopped'):
         capture_parser.add_argument('--' + flag, action='store_true')
@@ -678,7 +689,7 @@ def main() -> int:
             result = capture(args.checkout, args.version, args.chat_key, _read_json(args.state, 'invalid-state'),
                              args.owned, event=args.event, successor_id=args.successor_id,
                              ownership_confirmed=args.ownership_confirmed, writers_stopped=args.writers_stopped,
-                             checks_stopped=args.checks_stopped, runtime=runtime)
+                             checks_stopped=args.checks_stopped, runtime=runtime, local_only=args.local_only)
         else:
             result = restore(args.checkout, args.version, args.chat_key, args.checkpoint_id, source=args.source)
         sys.stdout.buffer.write(_encode(result))

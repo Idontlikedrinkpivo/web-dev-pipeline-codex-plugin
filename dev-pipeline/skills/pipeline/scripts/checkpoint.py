@@ -169,6 +169,7 @@ class Observation:
     head: str
     branch: str
     plan_hash: str
+    plan_source: str
     index: bytes
     dirty: tuple[str, ...]
     entries: tuple[Entry, ...]
@@ -212,6 +213,27 @@ def _dirty(paths: StatePaths) -> tuple[str, ...]:
     return tuple(sorted(name for name in names if not _managed(paths, name)))
 
 
+def _plan_fingerprint(paths: StatePaths, code: str = 'invalid-state') -> tuple[str, str]:
+    """Keep normal hashes; small mode binds only its validated stable identity."""
+    try:
+        plan = contained_path(paths.checkout, paths.plans / 'plan.md')
+        if plan.exists():
+            return 'plan.md', _digest(plan.read_bytes())
+        # This public schema reader also validates mode/version, logical chat,
+        # opening time and base syntax for the opening/closing workflow.
+        from open_iteration import iteration_metadata
+        marker = contained_path(paths.checkout, paths.plans / 'iteration.json')
+        metadata = iteration_metadata(marker, paths.version)
+        if metadata['mode'] != 'small' or not OBJECT_ID.fullmatch(metadata['base_head']):
+            raise ValueError('a missing plan requires validated small iteration metadata')
+        _git(paths.checkout, 'merge-base', '--is-ancestor', metadata['base_head'], 'HEAD')
+        identity = _object({key: metadata[key] for key in
+                            ('schema_version', 'mode', 'version', 'started_at', 'base_head', 'chat_id')}, code)
+        return 'iteration.json:small-identity-v1', _digest(_encode(identity))
+    except (OSError, ValueError, KeyError, TypeError) as exc:
+        raise CheckpointError(code, 'missing or invalid plan/small iteration identity') from exc
+
+
 def _observe(paths: StatePaths, extra: tuple[str, ...]) -> Observation:
     index = (paths.gitdir / 'index').read_bytes()
     indexed = _index_entries(paths)
@@ -227,10 +249,10 @@ def _observe(paths: StatePaths, extra: tuple[str, ...]) -> Observation:
         value = indexed.get(name)
         index_value = None if value is None else IndexValue(*value, _git(paths.checkout, 'cat-file', 'blob', value[1]))
         entries.append(Entry(name, _tree(path), index_value))
-    plan = contained_path(paths.checkout, paths.plans / 'plan.md')
+    plan_source, plan_hash = _plan_fingerprint(paths)
     return Observation(_git(paths.checkout, 'rev-parse', 'HEAD').decode().strip(),
                        _git(paths.checkout, 'rev-parse', '--abbrev-ref', 'HEAD').decode().strip(),
-                       _digest(plan.read_bytes()), index, dirty, tuple(entries))
+                       plan_hash, plan_source, index, dirty, tuple(entries))
 
 
 def _validated_state(value: object) -> dict[str, Json]:
@@ -427,6 +449,7 @@ def capture(checkout: Path | str, version: str, chat_key: str, state: object,
             manifest: dict[str, Json] = dict(portable_state)
             manifest.update({'schema_version': 1, 'checkpoint_id': checkpoint_id, 'version': version,
                              'head': observed.head, 'branch': observed.branch, 'plan_sha256': observed.plan_hash,
+                             'plan_source': observed.plan_source,
                              'completeness': {'local': True, 'portable': True, 'scope': 'owned'},
                              'paused': event == 'HANDOVER', 'events': events,
                              'inventory': inventory, 'payload': payload})
@@ -610,9 +633,10 @@ def restore(checkout: Path | str, version: str, chat_key: str, checkpoint_id: st
             actual_head = _git(paths.checkout, 'rev-parse', 'HEAD').decode().strip()
             if actual_head != manifest.get('head'):
                 raise CheckpointError('wrong-base', 'switch explicitly to the captured full HEAD before restoring')
-            plan = contained_path(paths.checkout, paths.plans / 'plan.md')
-            if _digest(plan.read_bytes()) != manifest.get('plan_sha256'):
-                raise CheckpointError('wrong-plan', 'the checkout plan differs from the captured plan')
+            plan_source, plan_hash = _plan_fingerprint(paths, 'wrong-plan')
+            if (plan_source != manifest.get('plan_source', 'plan.md')
+                    or plan_hash != manifest.get('plan_sha256')):
+                raise CheckpointError('wrong-plan', 'the checkout plan/small identity differs from the captured state')
             before = _observe(paths, names)
             selected = tuple(entry for entry in before.entries if entry.path in names)
             if selected == expected and set(before.dirty).issubset(names):
@@ -644,6 +668,7 @@ def restore(checkout: Path | str, version: str, chat_key: str, checkpoint_id: st
                         _replace_tree(target, entry.tree)
                     after = _observe(paths, names)
                     if (after.head != before.head or after.plan_hash != before.plan_hash
+                            or after.plan_source != before.plan_source
                             or after.index != before.index or not set(after.dirty).issubset(names)
                             or any(_tree(_source_path(paths, entry.path)) != entry.tree for entry in expected)):
                         raise CheckpointError('dirty-target', 'target changed during restore; preserve partial state')

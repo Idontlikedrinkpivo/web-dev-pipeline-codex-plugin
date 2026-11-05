@@ -23,6 +23,7 @@ class AcceptanceTests(RepoTest):
         self.save_mapping()
         self.commit('initial case universe and implementation')
         self.base = self.git('rev-parse', 'HEAD')
+        self.git('switch', '-q', '-c', 'iteration/1.0.1')
 
     def save_mapping(self):
         self.write('documentation/ui/mapping.json', json.dumps(self.mapping))
@@ -108,6 +109,44 @@ class AcceptanceTests(RepoTest):
         self.assertTrue(close.acceptance_gate(self.root, folder)[0])
         self.write('src/view.py', 'changed again\n')
         self.assertFalse(close.acceptance_gate(self.root, folder)[0])
+
+    def test_real_report_commit_preserves_tested_sha_but_source_history_does_not(self):
+        manifest = self.passed()
+        tested = manifest['head']
+        folder = self.root / 'documentation/plans/1.0.1'
+        self.write('documentation/plans/1.0.1/ui-acceptance.json', json.dumps(manifest))
+        self.write('documentation/plans/1.0.1/work-run.md', 'Full acceptance observed\n')
+        self.commit('docs: preserve acceptance report after checks')
+        self.assertNotEqual(self.git('rev-parse', 'HEAD'), tested)
+        self.assertTrue(scope.check(self.root, manifest)[0])
+        self.assertTrue(close.acceptance_gate(self.root, folder)[0])
+        self.assertEqual(manifest['head'], tested)
+        self.assertEqual(manifest['runs'][0]['head'], tested)
+        self.write('src/api.py', 'dirty source\n')
+        self.assertFalse(scope.check(self.root, manifest)[0])
+        self.commit('fix: source changed after acceptance')
+        self.assertFalse(scope.check(self.root, manifest)[0])
+        self.write('src/api.py', 'old\n')
+        self.commit('fix: restore source bytes after intervening change')
+        self.assertEqual(scope.fingerprints(self.root, manifest['mapping'])[0], manifest['fingerprints'])
+        self.assertFalse(scope.check(self.root, manifest)[0])
+
+    def test_identical_code_on_non_descendant_does_not_reuse_acceptance(self):
+        manifest = self.passed()
+        self.git('switch', '-q', '-c', 'unrelated-review', self.base + '^')
+        self.git('checkout', self.base, '--', '.')
+        self.commit('chore: identical source on a sibling history')
+        self.assertEqual(scope.fingerprints(self.root, manifest['mapping'])[0], manifest['fingerprints'])
+        self.assertFalse(scope.check(self.root, manifest)[0])
+
+    def test_arbitrary_plan_files_and_other_iteration_reports_are_not_report_proof(self):
+        for path in ('documentation/plans/1.0.1/source.py', 'documentation/plans/2.0.0/work-run.md'):
+            with self.subTest(path=path):
+                manifest = self.passed()
+                self.write(path, 'not a report of the reviewed iteration\n')
+                self.commit('docs: file outside recognized current report scope')
+                self.assertEqual(scope.fingerprints(self.root, manifest['mapping'])[0], manifest['fingerprints'])
+                self.assertFalse(scope.check(self.root, manifest)[0])
 
 
 if __name__ == '__main__':

@@ -70,6 +70,47 @@ class SmallIterationTests(RepoTest):
         self.assertIn('normal planned iteration', result.stdout)
         self.assertFalse((self.root / 'documentation/plans/1.0.1/iteration.json').exists())
 
+    def reviewed_metadata(self):
+        self.write('source.py', 'reviewed source\n')
+        self.commit('fix: settled small implementation')
+        self.assertEqual(self.open('1.0.1').returncode, 0)
+        marker = self.root / 'documentation/plans/1.0.1/iteration.json'
+        data = json.loads(marker.read_text())
+        head = self.git('rev-parse', 'HEAD')
+        data['result'] = {'scope': ['source.py'], 'head': head, 'affected_tests': ['unittest: PASS'],
+                          'unit_review': {'head': head, 'status': 'PASS'},
+                          'full_review': {'head': head, 'status': 'PASS'},
+                          'ui': {'applicable': False, 'reason': 'command parser only'}}
+        marker.write_text(json.dumps(data))
+        return data
+
+    def test_committed_small_report_reuses_reviews_but_source_or_dirty_code_blocks(self):
+        data = self.reviewed_metadata()
+        tested = data['result']['head']
+        self.write('documentation/plans/1.0.1/work-run.md', 'Both reviews and tests passed\n')
+        self.commit('docs: preserve small result and reviews')
+        self.assertNotEqual(self.git('rev-parse', 'HEAD'), tested)
+        self.assertTrue(close.small_gate(self.root, data)[0])
+        self.assertEqual(data['result']['unit_review']['head'], tested)
+        self.write('unrelated.py', 'dirty code outside result scope\n')
+        self.assertFalse(close.small_gate(self.root, data)[0])
+        (self.root / 'unrelated.py').unlink()
+        self.write('source.py', 'changed source\n')
+        self.commit('fix: source changed after review')
+        self.assertFalse(close.small_gate(self.root, data)[0])
+        self.write('source.py', 'reviewed source\n')
+        self.commit('fix: restored source is still new review history')
+        self.assertFalse(close.small_gate(self.root, data)[0])
+
+    def test_small_reviews_reject_identical_scope_on_sibling_history(self):
+        data = self.reviewed_metadata()
+        tested = data['result']['head']
+        self.commit('docs: preserve result before switching fixture history')
+        self.git('switch', '-q', '-c', 'other-history', tested + '^')
+        self.git('checkout', tested, '--', '.')
+        self.commit('fix: same reviewed source on unrelated history')
+        self.assertFalse(close.small_gate(self.root, data)[0])
+
 
 if __name__ == '__main__':
     import unittest

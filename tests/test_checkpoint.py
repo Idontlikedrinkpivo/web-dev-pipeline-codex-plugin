@@ -155,6 +155,30 @@ class Checkpoints(unittest.TestCase):
         self.assertTrue(manifest['completeness']['portable'])
         self.assertEqual(manifest['completeness']['scope'], 'owned')
 
+    def test_direct_capture_refuses_peer_git_environment_without_writes(self) -> None:
+        peer = self.clone('peer')
+        (peer / 'same.txt').write_bytes(b'peer staged\n')
+        self.git(peer, 'add', 'same.txt')
+        (peer / 'same.txt').write_bytes(b'peer unstaged\n')
+        module = self.module()
+
+        def snapshot(repo: Path) -> dict:
+            return {'head': self.git(repo, 'rev-parse', 'HEAD'),
+                    'index': self.raw_index(repo),
+                    'files': {p.relative_to(repo).as_posix(): p.read_bytes()
+                              for p in repo.rglob('*') if p.is_file() and not p.is_symlink()
+                              and '.git' not in p.relative_to(repo).parts},
+                    'registry': {p.relative_to(repo / '.git').as_posix(): p.read_bytes()
+                                 for p in (repo / '.git/pipeline-work').rglob('*') if p.is_file()}}
+
+        before = {repo: snapshot(repo) for repo in (self.repo, peer)}
+        with patch.dict(os.environ, GIT_DIR=str(peer / '.git'), GIT_WORK_TREE=str(peer)):
+            with self.assertRaisesRegex(module.CheckpointError, 'Git repository overrides'):
+                self.capture(module, ['same.txt'])
+        self.assertEqual({repo: snapshot(repo) for repo in (self.repo, peer)}, before)
+        self.assertFalse((self.repo / '.git/pipeline-work').exists())
+        self.assertFalse((peer / '.git/pipeline-work').exists())
+
     def test_local_only_recovery_never_publishes_or_rewrites_portable_state(self) -> None:
         module = self.module()
         published = self.capture(module, [])

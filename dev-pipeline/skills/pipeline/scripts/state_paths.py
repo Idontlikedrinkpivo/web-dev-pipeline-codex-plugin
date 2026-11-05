@@ -15,6 +15,17 @@ import subprocess
 
 
 def _git(checkout: Path, *args: str) -> str:
+    # -C does not override these variables. Refuse before discovery can bind a
+    # checkpoint or session registry to another repository's paths.
+    overrides = ('GIT_DIR', 'GIT_COMMON_DIR', 'GIT_WORK_TREE', 'GIT_INDEX_FILE',
+                 'GIT_OBJECT_DIRECTORY', 'GIT_ALTERNATE_OBJECT_DIRECTORIES',
+                 'GIT_NAMESPACE', 'GIT_CONFIG_PARAMETERS')
+    active = [key for key in overrides if key in os.environ]
+    if os.environ.get('GIT_CONFIG_COUNT', '0') != '0':
+        active.append('GIT_CONFIG_COUNT')
+    if active:
+        raise ValueError('Git repository overrides are set: ' + ', '.join(active)
+                         + '; unset them before explicit-checkout state discovery')
     try:
         result = subprocess.run(['git', '-C', str(checkout), *args],
                                 capture_output=True, text=True, timeout=10)

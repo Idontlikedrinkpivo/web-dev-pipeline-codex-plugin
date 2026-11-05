@@ -55,8 +55,14 @@ Small-mode CLI: `open_iteration.py [VERSION] [ROOT] --small`. Its checkout-local
 plans file `iteration.json` has schema_version 1, mode small, version, started_at
 UTC, base_head, chat_id `chat-1` and result. Fill result with scope paths, full
 head, affected_tests evidence, unit_review and full_review (each head + PASS),
-and ui applicability/reason. Close validates matching HEAD/evidence and prepares
-close only; small mode never satisfies the release-tag gate.
+and ui applicability/reason. Preserve that tested SHA in result and both reviews
+when committing this metadata. Close accepts the exact SHA or a proven descendant
+whose intervening commits change only recognized current-iteration report files
+(`ui-test-cases/references/run-report.md` → Acceptance evidence), with unchanged
+reviewed scope and no dirty code. Source commits, non-descendants, arbitrary
+files under plans and a source change later reverted still invalidate review.
+Close prepares only; small mode never satisfies the release-tag gate. Checkpoint
+restore keeps its separate exact-HEAD requirement.
 
 One line in the chat, always with both checks named:
 

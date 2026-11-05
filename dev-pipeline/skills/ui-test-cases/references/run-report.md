@@ -219,3 +219,15 @@ results. One current full suite on the final fingerprint is required before tag;
 stale subset results cannot be combined into that evidence. Non-applicable UI
 has a reason; missing mapping/tool/live stand is BLOCKED/not-run, never PASS.
 The gate only validates evidence and does not launch a browser without authority.
+
+Keep the tested SHA and run provenance when committing the report. A later HEAD
+can reuse the run only if Git proves it descends from that SHA and every
+intervening commit changes recognized reports of the same iteration only:
+`iteration.json`, `ui-acceptance.json`, `test-run.md`, `summary.md`, `progress.md`,
+`work-run.md`, `resume.md`, `context-handover.md`, `run-state.json`, or checkpoint
+manifest/patch/blob artifacts. Arbitrary files under plans are not reports.
+Code/case fingerprints and the full case universe must still match; dirty code,
+source commits (even reverted later), unknown history and non-descendants block
+reuse. Empty commits are not report evidence. The manifest's `version` records
+the active iteration for this proof. This policy does not change checkpoint
+restore's exact-HEAD requirement.

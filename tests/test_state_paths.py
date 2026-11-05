@@ -7,6 +7,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from unittest.mock import patch
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -100,6 +101,26 @@ class StatePaths(unittest.TestCase):
         locals_ = {self.paths(checkout, chat=chat).local
                    for checkout in (self.main, self.one, self.two) for chat in ('chat-a', 'chat-b')}
         self.assertEqual(len(locals_), 6)
+
+    def test_resolver_refuses_git_environment_redirection(self):
+        peer_gitdir = self.git(self.two, 'rev-parse', '--absolute-git-dir')
+        overrides = (
+            {'GIT_DIR': peer_gitdir, 'GIT_WORK_TREE': str(self.two)},
+            {'GIT_DIR': peer_gitdir}, {'GIT_WORK_TREE': str(self.two)},
+            {'GIT_COMMON_DIR': peer_gitdir},
+            {'GIT_INDEX_FILE': str(Path(peer_gitdir) / 'index')},
+            {'GIT_OBJECT_DIRECTORY': str(self.main / '.git/objects')},
+            {'GIT_ALTERNATE_OBJECT_DIRECTORIES': str(self.main / '.git/objects')},
+            {'GIT_NAMESPACE': 'peer'},
+            {'GIT_CONFIG_PARAMETERS': f"'core.worktree={self.two}'"},
+            {'GIT_CONFIG_COUNT': '1', 'GIT_CONFIG_KEY_0': 'core.worktree',
+             'GIT_CONFIG_VALUE_0': str(self.two)},
+        )
+        for override in overrides:
+            with self.subTest(override=tuple(override)), patch.dict(os.environ, override):
+                with self.assertRaisesRegex(ValueError, 'Git repository overrides'):
+                    self.paths(self.one)
+        self.assertEqual(self.paths(self.one).checkout, self.one)
 
     def test_resolver_rejects_missing_and_non_git_roots(self):
         outside = self.base / 'outside'

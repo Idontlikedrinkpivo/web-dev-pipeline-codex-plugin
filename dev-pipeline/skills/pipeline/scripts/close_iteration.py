@@ -40,6 +40,7 @@ HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE.parents[1] / "reflect" / "scripts"))
 import sessions  # noqa: E402
 from open_iteration import iteration_metadata  # noqa: E402
+from review_state import report_only_descendant  # noqa: E402
 
 
 def stamp_gate(root: Path) -> tuple[bool, str]:
@@ -53,16 +54,19 @@ def stamp_gate(root: Path) -> tuple[bool, str]:
 
 
 def small_gate(root: Path, metadata: dict) -> tuple[bool, str]:
-    _, head = git(root, "rev-parse", "HEAD")
     result = metadata.get("result")
     if not isinstance(result, dict):
         return False, "small result missing"
-    if result.get("head") != head or not isinstance(result.get("scope"), list) or not result["scope"] or not all(isinstance(p, str) and p.strip() for p in result["scope"]):
-        return False, "small result needs scope + current HEAD"
+    if not isinstance(result.get("scope"), list) or not result["scope"] or not all(isinstance(p, str) and p.strip() for p in result["scope"]):
+        return False, "small result needs scope + reviewed SHA"
     if any(Path(p).is_absolute() or '..' in Path(p).parts or not (root / p).resolve().is_relative_to(root.resolve()) for p in result['scope']):
         return False, "small result scope must stay in checkout"
     if git(root, "status", "--porcelain", "--", *result["scope"])[1]:
         return False, "small result scope has uncommitted changes after review"
+    head = result.get('head')
+    current_head, reason = report_only_descendant(root, head, version=metadata.get('version'), protected=tuple(result['scope']))
+    if not current_head:
+        return False, reason
     if not isinstance(result.get("affected_tests"), list) or not result["affected_tests"] or not all(str(x).strip() for x in result["affected_tests"]):
         return False, "small affected tests/evidence missing"
     for key in ("unit_review", "full_review"):

@@ -54,6 +54,29 @@ class StageSelectionTests(unittest.TestCase):
         self.assertEqual(rows[1]['id'], 'child-api')
         self.assertFalse(any(r['authorized'] for r in rows))
 
+    def test_plan_refuses_peer_git_environment_without_registry_writes(self):
+        peer = self.repo / 'peer'
+        subprocess.run(['git', 'init', '-q', str(peer)], check=True)
+        for repo in (self.repo, peer):
+            (repo / 'file.txt').write_bytes(b'base\n')
+            subprocess.run(['git', '-C', str(repo), 'add', 'file.txt'], check=True)
+            subprocess.run(['git', '-C', str(repo), '-c', 'user.name=Test',
+                            '-c', 'user.email=test@example.com', 'commit', '-qm', 'fixture'], check=True)
+        self.ok('plan', 'work')
+        peer_registry = MOD.resolve_paths(peer, '1.0.0', 'parent').local / 'sessions.md'
+        MOD.write(peer_registry, '1.0.0', 'parent', MOD.rows_for('1.0.0', 'srs'))
+
+        def snapshot():
+            return {p.relative_to(self.repo).as_posix(): p.read_bytes()
+                    for p in self.repo.rglob('*') if p.is_file()}
+
+        before = snapshot()
+        self.env.update(GIT_DIR=str(peer / '.git'), GIT_WORK_TREE=str(peer))
+        result = self.cli('plan', 'audit')
+        self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn('Git repository overrides', result.stderr)
+        self.assertEqual(snapshot(), before)
+
     def test_every_subset_preserves_canonical_numbers_order_and_roundtrip(self):
         keys = ('srs', 'api', 'work', 'audit')
         for size in range(len(keys) + 1):

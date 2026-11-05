@@ -59,8 +59,21 @@ unclassified physical metadata into portable state.
 | `reports` | UTF-8 text for `work-run.md`, `resume.md`, and `context-handover.md`. |
 
 Capture adds `schema_version: 1`, unique `checkpoint_id`, `version`, full `head`,
-`branch`, SHA-256 of this checkout's `plan.md` (`plan_sha256`), `paused`, `events`,
+`branch`, `plan_source`, `plan_sha256`, `paused`, `events`,
 `completeness`, `inventory`, and `payload`. Input collections are copied.
+
+Normal mode keeps `plan_source: 'plan.md'` and the exact file SHA-256 in
+`plan_sha256`; existing schema-1 manifests without a source tag still mean
+`plan.md`. If the plan is absent, only validated schema-1 small-mode
+`iteration.json` is accepted. Its `plan_source` is
+`iteration.json:small-identity-v1`; `plan_sha256` hashes the canonical JSON of
+`schema_version`, `mode`, `version`, `started_at`, `base_head`, and `chat_id`.
+These fields bind the logical small iteration/scope without a synthetic plan.
+The opening timestamp must be timezone-aware, the logical chat valid, and the
+full base object a real ancestor of current HEAD. Missing/malformed metadata or
+an absent plan and marker fail closed. Mutable result/review/source-scope
+evidence is excluded from this identity fingerprint; it remains ordinary file
+inventory, so a divergent uncommitted target marker still blocks restore.
 
 `events` is the run's stable event history. Each record has unique `event_id`,
 `type` (`CHECKPOINT`, `HANDOVER`, `RESUME`, `COMPACT`), `source_id`, and nullable
@@ -128,7 +141,7 @@ callers must include the complete owned checkpoint directory and reports in Git.
 
 Restore validates schema, identity, completeness, safe inventory/payload paths,
 all hashes and index object bytes **before** touching target source/index. It
-requires exact captured HEAD and plan hash. Export Git-carried payload before
+requires exact captured HEAD and the tagged plan/small-identity hash. Export Git-carried payload before
 switching explicitly to the captured base when a later artifact commit changed
 HEAD. An exact already-restored index/worktree with no unrelated dirt is a no-op.
 Partial, divergent or unrelated dirty targets are refused without changes.

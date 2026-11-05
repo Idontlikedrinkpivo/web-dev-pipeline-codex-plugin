@@ -13,7 +13,12 @@ import hashlib
 import json
 import subprocess
 import stat
+import sys
+import re
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / 'pipeline' / 'scripts'))
+from review_state import report_only_descendant
 
 
 def git(root: Path, *args: str) -> str:
@@ -112,21 +117,25 @@ def select(root: Path, base: str, mapping: str | None) -> dict:
     if unmapped or data.get("unavailable"):
         for case in data["cases"]:
             include(case["id"], "conservative full set: uncertain mapping")
+    branch = git(root, 'rev-parse', '--abbrev-ref', 'HEAD').strip()
+    iteration = re.fullmatch(r'iteration/(\d+\.\d+\.\d+)', branch)
     return {"schema_version": 1, "base": base_sha, "head": head, "mapping": mapping,
+            "version": iteration[1] if iteration else None,
             "fingerprints": hashes, "universe": sorted(c["id"] for c in data["cases"]),
             "selected": selected, "unmapped": unmapped,
             "blocked": data.get("unavailable"), "applicability": {"ui": True, "reason": None}, "runs": []}
 
 
-def current(root: Path, manifest: dict) -> tuple[bool, str]:
+def current(root: Path, manifest: dict, *, allow_dirty: bool = False) -> tuple[bool, str]:
     if not isinstance(manifest, dict) or manifest.get("schema_version") != 1:
         return False, "legacy/malformed acceptance manifest"
     try:
         hashes, data = fingerprints(root, manifest["mapping"])
         if hashes != manifest["fingerprints"]:
             return False, "code/case fingerprint changed"
-        if git(root, "rev-parse", "HEAD").strip() != manifest["head"]:
-            return False, "acceptance HEAD changed"
+        current_head, reason = report_only_descendant(root, manifest['head'], version=manifest.get('version'), allow_dirty=allow_dirty)
+        if not current_head:
+            return False, reason
         expected = select(root, manifest["base"], manifest["mapping"])
         if manifest.get("universe") != expected["universe"] or manifest.get("selected") != expected["selected"]:
             return False, "acceptance coverage/selection differs from current case universe"
@@ -139,7 +148,7 @@ def current(root: Path, manifest: dict) -> tuple[bool, str]:
 
 def record(root: Path, manifest: dict, scope: str, status: str, evidence: str,
            tool: str | None = None, stand: str | None = None, no_ui_reason: str | None = None) -> dict:
-    ok, reason = current(root, manifest)
+    ok, reason = current(root, manifest, allow_dirty=True)
     if not ok:
         raise ValueError(reason)
     if not evidence.strip():

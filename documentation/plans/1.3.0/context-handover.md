@@ -1,5 +1,15 @@
-# Контрольная точка work 1.3.0
+# Итог work 1.3.0
 
-Источник chat01a1ac8b-0316-7341-b70b-14c5cefccd51. Same-chat nativecompaction continuation; successor отсутствует, новые чаты не разрешены. HEAD f9542f3, BASE e5148e7, iteration/1.3.0. Plan hash и полное состояние в resume/work-run/progress.7/28готово, волна1 принята. Сейчас U2/u2_checkpoint tests-only active; никогда не создавать второго writer. Послеегоответа rootRED→implementation→2reviews→commit.
+Прогон завершён. 28/28 задач реализованы; F1–F3 исправлены в
+`38260160232c337050da39806004bd45a06332fb`; полный набор 251 PASS,
+итоговое ревью PASS. Активных исполнителей и проверок нет.
 
-Exact-threadcheck101929/258400,limit180880 OK. Последняяnativecompaction была передU22. Сохранение не сбрасываетконтекст. Сервисprogress127.0.0.1:8790 ownedrun. UserdirtyAGENTS/README/agentTOML не трогать. Финальныеchecks/reviewpending.
+Пользователь выбрал упрощённый процесс: обычные задачи пакетами, подробное
+ревью сохранности/Git, один общий проход ревью с проверкой только исправлений.
+Это решение не отменять при следующем чтении старых skill-инструкций.
+
+Актуальные результаты: work-run.md, acceptance.md, code-review-full.md,
+release-checks.md. B/L-приёмка NOT_RUN; версия исходников 1.3.0,
+установленная копия 1.2.266 не менялась. Push/tag/merge/publish не выполнялись.
+Пользовательские правки AGENTS.md, README.md и agent TOML сохранены.
+Не возобновлять закрытый work как прерванный: resume.md удалён.

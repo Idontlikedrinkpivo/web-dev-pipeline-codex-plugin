@@ -50,3 +50,34 @@ The typist also uses Sol: its only possible savings are lower reasoning effort
 and narrower context, against an additional dispatch and rereading. Measure
 that tradeoff before adding or removing nesting. Terra/Astra are candidates
 for a separate controlled comparison, not automatic replacements in this policy.
+
+## Paired strict-review effort experiment
+
+This is a protocol for a future authorized experiment. Do not run this experiment as part of U25;
+models.json and agents/*.toml remain unchanged, as do current role defaults and effort.
+
+Predeclare baseline and candidate settings, fixed task/diff hashes, packet/rules/checks, rubric, sample size,
+aggregation and stop conditions before collecting evidence. Use same-task/same-diff pairs with the same
+baseline inputs in fresh independent contexts; randomize order and retain both reports. Only the declared
+effort variable differs. Use at least 5 pairs per representative task class, including auth/security and
+query/transaction risk, and report all pairs, failures and exclusions with reasons. Do not change the rubric
+or remove difficult pairs after seeing results.
+
+Score against an independently adjudicated finding set: material misses are omitted or wrongly dismissed
+defects affecting correctness, security or the contract, with severity recorded; style preferences do not count.
+Measure material miss rate (missed material findings / reference material findings) and returns/re-review
+rate (reviews requiring correction / reviews), plus re-review rounds and first-pass acceptance. Record each
+pair's elapsed time and known units through accepted completion, including returns and re-review costs;
+do not count just the first cheap dispatch. Keep U13 telemetry's unknown/incomplete usage as null, never zero,
+and state coverage, units and source. Known tokens are not subscription quota or money.
+
+Reject the candidate immediately for any missed mandatory high-risk finding (for example authorization
+bypass, secret exposure or unsafe transaction retry), even if cheaper. Stop on quality regression, retain
+evidence and rollback to the baseline; do not silently change running chats. Other acceptance requires
+nonworse material miss and return rates AND at least 10% reduction in comparable known units or elapsed time
+over the predeclared paired sample. Report the selected aggregate, both cost/time metrics, sample size,
+per-class results and uncertainty (paired dispersion/interval and missing-data coverage). Incomplete pairs
+or null metrics cannot justify a change; collect complete evidence instead. A small sample or an interval
+crossing the acceptance boundary is inconclusive, not statistical proof. Only an explicit subsequent policy
+decision backed by complete quality and savings evidence may change defaults; monitor and rollback on a
+later quality regression.

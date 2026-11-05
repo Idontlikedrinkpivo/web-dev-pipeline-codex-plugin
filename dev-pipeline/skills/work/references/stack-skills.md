@@ -4,7 +4,9 @@ A worker writes better code with the house rules of its language and libraries �
 unless `work` names them in the packet. Pick them from the architecture's §1 «Стек» and the unit's `Файлы` (and
 its «Цель» where the table says so), and list in `STACK SKILLS` the absolute path of each `SKILL.md` under
 `SKILLS ROOT` (a `references/` file only where the table names it or the skill's text sends the worker to it for
-this unit), plus any skill the user attached. The worker reads them from disk before it writes code. They are not
+this unit), plus any skill the user attached. For every entry specify main rules + named sections, their exact
+headings (or the whole short file), and the files/goal that require them. The worker reads that scope from disk
+before it writes code. They are not
 pasted: three or four skills are tens of kilobytes the session would type into every dispatch, two per unit for a
 two-phase one (`executor-catalog` → Dispatch contract → Paths, not pasted documents). A skill's
 `references/version-checks.md` is never listed: Step 2b turns it into the answers in `CURRENT LIB DOCS`
@@ -33,3 +35,22 @@ pack: `none — no stack skill for <stack>`.
 
 The reviewer of the unit (`code-review-unit`) receives the «The reviewer checks» section of each of these skills
 that has one — every language and library skill above does — so the review looks at what the linter cannot.
+
+## Bounded reading coverage
+
+Keep each selected skill's main rules, runtime/conflict instructions and any dependency needed to understand
+the selected sections. Do not split a short file artificially: read it whole; also expand to a whole file when
+the selected rules depend on it. There is no arbitrary byte limit. Selection narrows unrelated material, never
+mandatory auth, authorization, security, error handling or tests triggered by the files or goal. The selection
+table above still applies in full; the fixtures below show the required scope, not substitute skill contents.
+
+| Routing fixture | Required anchors and scope |
+|---|---|
+| Hook-only (`use*.ts`) | `typescript` and `react`: main rules, `The machine checks` and `The reviewer checks` (use the full heading from each file); no unrelated `frontend` screen/profile or `web-design-guidelines` pack. |
+| Auth by files or goal | TypeScript: `typescript-fastify` — `Which contract and layout apply`, `Rules`, `Errors`, `references/auth.md`; Python: `fastapi` — `Conventions`, `Errors as problem+json`, `Auth and configuration`, `references/jwt-auth.md`; required guards, authorization, secrets and auth tests remain mandatory. |
+| Query/repository | `typescript-drizzle-orm` — `Which layout applies`, `Rules`, `Shape of a repository adapter`; `fastapi-sqlalchemy` — `Which layout governs — decide first`, applicable layout, `Session and unit of work`, `Driver errors and install`, plus `Models and column types`, `Relationships under AsyncSession` or `Migrations` when touched; preserve security/isolation and transaction/error rules. |
+| Reviewer | Every applicable skill's `The reviewer checks` section is mandatory, including auth/security/query references selected for the implementer; use exact headings, keep their dependencies and the unit's independent checks. |
+
+For test files retain the language and test-skill rows above; React tests still get `react` without a screen
+pack. For a mixed unit take the union of all applicable scopes. A missing anchor or uncertain dependency means
+read the containing file and resolve coverage before dispatch, not silently omit a mandatory rule.

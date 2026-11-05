@@ -65,14 +65,19 @@ FROM DEPENDENCIES
   design, stop and report BLOCKED with both quoted.
 
 SKILLS ROOT     <absolute folder holding the plugin's skills>
-STACK SKILLS    read each file in full before you write any code; a
+STACK SKILLS    main rules + named sections: read the selected scope before
+                you write code, including mandatory conditional auth/security/reviewer anchors; a
                 `<skill>/references/…` path a skill names resolves under
                 SKILLS ROOT
   <absolute paths of the stack skills `work` picked for this unit from
    architecture §1 «Стек» and the unit's «Файлы»
-   (`work/references/stack-skills.md`) — each SKILL.md, a references/ file
+   (`work/references/stack-skills.md`) — each entry gives the absolute file
+   path, main-rule anchors, relevant named sections and why they apply;
+   include required dependencies and conditional security/test rules.
+   Read a whole file when short or needed to resolve dependencies; do not
+   split short files artificially. A references/ file is included
    only when the skill sends you there for this unit — plus any skill the
-   user attached; for a frontend unit, also the `frontend` SKILL.md, its
+   user attached (retain the user's requested scope); for a screen/component unit, also the `frontend` SKILL.md, its
    one stack profile and the `web-design-guidelines` SKILL.md;
    or: none — no stack skill for <stack>>
 

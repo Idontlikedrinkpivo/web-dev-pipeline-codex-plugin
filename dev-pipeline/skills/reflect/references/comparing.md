@@ -32,3 +32,20 @@ what a maintainer can run.
 
 The table and the summary `compare.py` prints, the number of runs per version and task, and what the input was.
 Say what was not measured (the input tokens of a stage that reads no logs, a task with one run).
+
+## Strict-review effort comparisons
+
+Use `executor-catalog/references/model-economics.md` → `Paired strict-review effort experiment` as the
+acceptance protocol: same-task/same-diff pairs on identical baseline inputs, fixed rubric and predeclared
+sample size (at least 5 pairs per representative task class). The general three-run minimum above does not
+replace this stricter protocol. Include auth/security and query/transaction cases; changing defaults or
+running the experiment is not part of documenting the protocol.
+
+Report material misses against an independent reference set, returns/re-review and all rounds through an
+accepted result, elapsed time and known units. Keep U13 unknown or incomplete telemetry as null, never zero;
+record measurement coverage and source. Incomplete pairs or null metrics cannot support an effort change.
+Reject any missed mandatory high-risk finding regardless of savings; stop and rollback on quality regression.
+Acceptance requires nonworse material miss and return rates AND at least 10% reduction in comparable known
+units or elapsed time on the predeclared paired sample. Publish both metrics, per-class outcomes, sample size,
+exclusions and uncertainty; an interval crossing the boundary or an insufficient sample is inconclusive.
+Do not present this protocol, a small sample or unknown usage as statistical proof or measured savings.

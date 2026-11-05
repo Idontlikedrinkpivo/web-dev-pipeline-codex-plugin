@@ -7,7 +7,8 @@ history. What is not in the packet does not exist for it.
 The orchestrator fills every slot from
 `executor-catalog/references/design-complexity.md` and the stage skill.
 The writer follows the **Writer** half of that skill, not the Orchestrator
-half. The documents go by path, every part of each; only what is on no
+half. The documents go by path, every part of each except the scoped
+architecture increment below; only what is on no
 disk is pasted (`executor-catalog` → Dispatch contract → Paths, not pasted
 documents). A writer handed `srs.md` alone reads a table of contents and
 designs without most of the requirements.
@@ -93,7 +94,15 @@ DIAGRAM PATH    <by document; a `diagrams/` folder next to the document:
                 openapi-spec-generator: `none`>
 
 READ FROM DISK  <repo-relative paths, every part of each document — read them
-                all before deciding anything:
+                all before deciding anything, except clean-architecture-design
+                increment: list affected areas, types and operations and their
+                section/file anchors, plus referenced shared foundation/dependencies
+                (level/stack, area contracts, ports, shared types and rules).
+                This scope overrides the full-input lists below for that mode.
+                Do not preload unrelated areas, API files, migrations or scenarios.
+                Widen only for a real dependency conflict: name the conflicting
+                type/operation/rule and owner path, explain the expansion, and read
+                the necessary section. Report the scope and any expansion.
                 SRS: documentation/requirements/srs/srs.md and every
                   documentation/requirements/srs/areas/*.md (srs.md alone
                   is the table of contents).
@@ -108,9 +117,10 @@ READ FROM DISK  <repo-relative paths, every part of each document — read them
                   a fact; on a split greenfield's second dispatch, the
                   foundation and the domain model the first one wrote.
                 increment: the current files of the documents in MODE —
-                  for architecture every architecture document (a name may
-                  have to be added to one outside MODE) and the `.d2` /
-                  `.puml` files of the documents being edited; say which
+                  for architecture the affected sections and referenced shared
+                  dependencies only, plus `.d2` / `.puml` sources for the
+                  sections being edited. A missing name outside MODE is resolved
+                  at its owner, not by loading every document in advance. Say which
                   file wins if a diagram and its document disagree.>
 
 ANSWERS         <pasted — the only text here: each answer the user gave in
@@ -120,7 +130,11 @@ ANSWERS         <pasted — the only text here: each answer the user gave in
                 existing database is documented. openapi-spec-generator:
                 the auth scheme, the status of an exception the SRS left
                 open, whether anyone outside the project calls the API.
-                clean-architecture-design: the stack pick. Or: none>
+                clean-architecture-design: the stack pick and any explicit lighter level,
+                its tradeoffs and constraints (or the existing «Уровень» row).
+                Honor that choice; do not ask again. Only a real requirement conflict
+                permits one question naming the requirement and incompatible boundary;
+                wait for the answer before changing level. Or: none>
 
 POPULATED       <db-schema-design on an increment: one line per existing
                 table the slice changes — `rows: yes` (its creating
@@ -156,7 +170,8 @@ LANGUAGE        Russian prose. Do not translate cited tokens (ids, paths,
 RULES
 - The print — the typist, or you on PRINT self — writes OUTPUT PATH and
   the diagram and migration files named above, nothing else, and renders
-  each `.svg`. If `d2` or PlantUML is missing, the report says so.
+  each `.svg`. If `d2` or PlantUML is missing, keep the `.d2` / `.puml` source
+  and report `svg: missing`. Do not install a renderer or fabricate an SVG.
 - The document is in Russian. Do not translate cited tokens.
   Template headings and frontmatter keys stay as the skill specifies.
 - Do not change `version`, `updated`, `info.version`, or the changelog.
@@ -186,6 +201,8 @@ RULES
   defers to an earlier version; no live heading is left empty.
 - On clean-architecture-design: write the documents MODE names, each
   with its template's Russian headings (`output-template-<mode>.md`). A
+  chosen lighter level keeps its limits and machine-checkable boundaries
+  (`architecture-level.md`); generic layer/tree examples do not promote it. A
   fact another document owns is cited, never restated — not even a
   rule's value. A name a document outside MODE lacks (port method, named
   error and its HTTP row, config variable, file line, entity method,

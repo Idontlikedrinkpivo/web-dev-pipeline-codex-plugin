@@ -8,6 +8,23 @@ file and not a new version number. Read the `doc-versioning` skill and
 follow it. A write touches neither `version` nor the changelog: the
 stamping commit writes the version and one typed row per changed name.
 
+## Reading scope
+
+Start with the request and SRS/schema/OpenAPI diffs. Locate affected areas,
+types and operations through the entry maps; do not read unrelated areas in advance.
+Read the touched groups, entity/rule sections, API operations and schema
+constraints, plus referenced shared foundation/dependencies (level and stack,
+area contracts, ports, shared types and rules). Read diagram sources only
+for the sections being edited. A document being printed remains complete;
+that does not require loading every architecture document as an input.
+
+Expand only for a real dependency conflict: name the unresolved or conflicting
+type, operation or rule and its owner path, explain the expansion, then read
+the necessary section. A possible missing name elsewhere is not a reason
+to preload every area. Record the scope, shared dependencies and any expansion
+in the packet and report; an untouched verdict states its scope and reason,
+not a claim to have revalidated unread documents.
+
 ## Which modes run
 
 Pick from what changed in the inputs (SRS diff, schema diff, OpenAPI
@@ -37,9 +54,12 @@ document of this increment like the picked ones.
 ## What changes in each document
 
 - **Steps 2 and 2b are already answered** — read them from foundation
-  §1 «Ключевые решения». Do not re-propose either. Promote the level
-  only when this feature is itself a Full trigger; then the foundation
-  edits the «Уровень» row and the report names the promotion. A
+  §1 «Ключевые решения». Do not re-propose either. Honor an explicit lighter
+  level with its recorded tradeoffs and machine boundaries. A new Full trigger
+  calls for checking its concrete requirement against that choice, not automatic
+  promotion. Only a real requirement conflict permits one question naming the
+  requirement and incompatible boundary; wait for the answer before changing level.
+  An agreed promotion edits foundation's «Уровень» row and the report names it. A
   promotion reaches the domain model and every scenarios document
   (input and output types, query ports per audience), so it runs all
   modes.
@@ -80,8 +100,8 @@ document of this increment like the picked ones.
   commit copies them. Name `repo-scaffold` when foundation
   §5 gained a folder or §1 Стек changed; it adds folders and lint rules
   to the live repo in its increment mode.
-- **Rebuild the diagrams of the document you changed.** Foundation: the
-  D2 views in `diagrams/` and their embeds from §1 / §2 / §4 / §5 (a
+- **Rebuild only the diagrams affected by the changed sections.** Foundation: the
+  affected D2 views in `diagrams/` and their embeds from §1 / §2 / §4 / §5 (a
   second area adds `modules.*` and its embed in §2), unless this
   increment is applying a newer diagram (then apply first, then
   rebuild). Scenarios: the

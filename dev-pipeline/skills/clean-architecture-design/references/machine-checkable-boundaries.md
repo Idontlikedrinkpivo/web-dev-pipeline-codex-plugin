@@ -45,6 +45,15 @@ the instructions.
 
 ## Encoding the Dependency Rule as lint
 
+Apply the examples below to the chosen level from `architecture-level.md`.
+Do not impose the Modest or Full folder tree on an explicit Framework-first
+choice for a durable service. Keep its one framework-free rule module and
+one machine-checkable edge; record framework coupling and extraction costs.
+Only require contracts, ports, mappers and structural tests for artifacts the
+chosen level actually contains. Every production folder is accounted for in
+the boundary table, including the framework side and its allowed imports;
+that does not turn every folder into a new layer or lint contract.
+
 Write the allowed directions first, as a table in the design document:
 
 | From | May import | Must not import |

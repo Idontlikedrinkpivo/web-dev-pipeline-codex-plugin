@@ -51,8 +51,11 @@ The session dispatches the typist only for a check's lines (`executor-catalog`
      architecture places use cases, rules and ports, and none of those depends on how a screen looks.
    - As-is: from `upgrade-docs` (`MODE as-is`, `upgrade-docs/references/as-is.md`) the code stands in for a
      missing document.
-   - Increment or resumed greenfield: when any of the three documents already exists, read `doc-versioning`,
-     every existing one and its diagrams (`.d2`, `.puml`), and treat this as an increment — unless it is this
+   - Increment or resumed greenfield: when any of the three documents already exists, read `doc-versioning`
+     and `references/increment.md` → Reading scope. Locate affected areas, types and operations from the
+     request and input diffs; read their sections and referenced shared foundation/dependencies, including
+     the relevant diagram sources (`.d2`, `.puml`). Do not load unrelated areas in advance. Widen only for a
+     real dependency conflict; explain the expansion with the conflicting name and path. Treat this as an increment — unless it is this
      iteration's greenfield left open after its writer (no `version` yet, «этап не закрыт»): it resumes as
      greenfield with only the documents not written yet, the written ones as inputs.
    - Edited `.d2`: one the user asked to apply goes into the foundation packet with
@@ -75,7 +78,10 @@ The session dispatches the typist only for a check's lines (`executor-catalog`
    stack is the «Стек» row of foundation §1.
 4. **Level.** Decide the level (Step 2) far enough to grade. The
    foundation writer records it as the «Уровень» row of §1 «Ключевые
-   решения»; domain and scenarios writers read it from there.
+   решения»; domain and scenarios writers read it from there. Honor an
+   explicit lighter level from the user, including a durable Framework-first
+   choice: record its tradeoffs and machine boundaries, do not ask again.
+   Only a real requirement conflict warrants a named question (Step 2).
 5. **Dispatch one writer for the sitting.** No progress file: one
    writer settles every document at once and they move through its
    steps together, so a row per document showed four rows in lockstep
@@ -83,8 +89,8 @@ The session dispatches the typist only for a check's lines (`executor-catalog`
    Read `executor-catalog` and
    `executor-catalog/references/design-complexity.md`. Grade each picked
    document by its mode's rules there, and dispatch the highest grade
-   once for all of them. Why one: every writer re-reads the SRS, the
-   schema and the API, and a writer that never saw the scenarios leaves
+   once for all of them. Why one: the writer sees the relevant SRS,
+   schema and API inputs within the reading scope, and a writer that never saw the affected scenarios leaves
    the ports, errors and import rules they need as gaps for another
    round. Fill the packet in
    `executor-catalog/references/design-writer-prompt.md`: `MODE`
@@ -147,7 +153,8 @@ name: return `HARDER_THAN_EXPECTED` with it.
 
 You are a software architect turning development requirements into an
 architecture an AI coding agent (or a human) can implement without
-losing control of the system. The design follows Clean Architecture with
+losing control of the system. The design follows the chosen level from
+`references/architecture-level.md`. At Modest and Full it uses Clean Architecture with
 **rich domain models**: business rules live inside entities, use cases
 only orchestrate, frameworks stay at the edge, and every boundary is
 written down in a form a machine can check.
@@ -215,8 +222,10 @@ case, not the whole architecture.
 **The schema and OpenAPI already exist** when the product stores data or
 has HTTP. The schema (`documentation/db/schema.md`, migrations in
 `documentation/db/migrations/`) says which constraints SQL already
-enforces; OpenAPI says the `operationId`s and declared error codes. Read
-them. Do not invent a table, a column, or an operation. A use case whose
+enforces; OpenAPI says the `operationId`s and declared error codes. On
+greenfield read these inputs in full; on an increment read the affected
+sections and referenced dependencies per `references/increment.md` → Reading scope.
+Do not invent a table, a column, or an operation. A use case whose
 operation is missing is a gap to send back to `openapi-spec-generator`,
 not a route this document adds.
 
@@ -271,6 +280,9 @@ so a diff-only version leaves them reading half a design.
 
 Read `references/architecture-level.md`: the levels (Framework-first,
 Modest, Full), the triggers for each, and how the level is recorded.
+An explicit choice or the existing «Уровень» row answers this step. Keep
+the choice and its constraints; if a requirement cannot be met within it,
+name that requirement and the incompatible boundary in one question before changing level.
 
 ### Step 2b (orchestrator, in chat). Propose the stack — then write only what the user picked
 

@@ -9,6 +9,13 @@ description: >-
 
 # Clean Architecture Design from Requirements
 
+## Главные правила
+
+[Guardrails](#guardrails) · [Before you finish](#before-you-finish).
+
+Read these mandatory rules with the named relevant sections before implementation
+or review; preserve their dependencies (`executor-catalog/references/worker-prompt.md`).
+
 The architecture is three documents under `documentation/architecture/`
 (paths below are relative to it). Each has its own mode, its own version
 and changelog. They are split by how often they change, so that a new

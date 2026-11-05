@@ -8,6 +8,13 @@ description: >-
 
 # Executor Catalog
 
+## Главные правила
+
+[Dispatch contract](#dispatch-contract) · [Routing](#routing).
+
+Read these mandatory rules with the named relevant sections before implementation
+or review; preserve their dependencies (`executor-catalog/references/worker-prompt.md`).
+
 Plans name **executors**. This file says **who** each executor is and **when**
 it runs: its tier, its branch, and the skill that dispatches it. **How** it
 runs lives in one agent file per row, `_agents/<name>.md` in this skills

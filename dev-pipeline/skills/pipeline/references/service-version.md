@@ -111,8 +111,9 @@ already run (the user, 2026-11-03).
 - **Committed by `scripts/push_branch.py`** before each push — «chore: отчёты итерации <version>», nothing but
   `documentation/plans/` in it — at every stage's close and every stop (`references/pause-and-resume.md`). No other
   commit stages them: a unit's commit stays that unit's, and `plan_state.py` skips these commits when it maps a run.
-- **In a linked worktree** the folder is read and written in the main tree (`hooks/guard.py` lets that edit
-  through); the worktree's copy is the branch's last commit.
+- **In a linked worktree** plans are read and written in that checkout. Use
+  `state_paths.resolve_paths` and [checkpoint-state.md](checkpoint-state.md);
+  do not redirect writes to the main tree or share mutable run state.
 - **A project from before this rule** (the folder ignored whole) moves on at its next stage: `open_iteration.py`
   replaces the old line and commits the files already there.
 - **A public repository:** `security-audit.md` names live weaknesses — `security-audit` asks before its push.

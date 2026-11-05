@@ -9,6 +9,13 @@ description: >-
 
 # Fastify
 
+## Главные правила
+
+[Rules](#rules) · [Errors](#errors) · [The reviewer checks](#the-reviewer-checks).
+
+Read these mandatory rules with the named relevant sections before implementation
+or review; preserve their dependencies (`executor-catalog/references/worker-prompt.md`).
+
 ## Which contract and layout apply
 
 The cases (architecture document, Framework-first, existing repo) and the contract's authority are in
@@ -69,11 +76,9 @@ first. Fastify's placement in them:
   - a conflict the repository expects (a duplicate key, a dangling reference) it classifies into a named
     error (`typescript-drizzle-orm`), answered with the status the contract gives that error — never a
     bare 409;
-  - a serialization failure (`40001`) or deadlock (`40P01`) is first rerun by the server: a use case
-    whose transaction can lose to a concurrent one is wrapped in `bootstrap/` by one shared helper that
-    reruns its whole run a bounded number of times (the repository never loops). When the attempts run
-    out, the handler answers the contract's 503 with `Retry-After`, read through the persistence error
-    helper;
+  - eligible serialization/deadlock retry and exhaustion follow the shared
+    [DBND-5/DBND-6 mapping table](../work/references/data-boundaries.md), including
+    demonstrated whole-operation idempotency and safe external side effects;
   - any other driver error — an unexpected violation included — is the third case: logged with its
     SQLSTATE, the contract's 500.
 - Every extension member an error can emit (`errors`, `retryable`, a context key) is declared in the
@@ -160,8 +165,8 @@ of fetching docs. Outside `work`, read the file and check each point you rely on
 1. **A handler parses, calls one use case or query, and maps the result** — no business rule, no body of an error
    built in a route or hook.
 2. **Every status a route can answer is one the contract declares for that operation**: a duplicate is a named
-   error, never a bare 409 from a SQLSTATE; a serialization failure or deadlock is 503 with `Retry-After` only
-   after the bounded reruns.
+   error, never a bare 409 from a SQLSTATE; conditional retry/exhaustion follows
+   [DBND-5/DBND-6](../work/references/data-boundaries.md), including whole-operation safety.
 3. **A cursor is decoded inside `try` and checked for shape, value types and sort before the query**; anything else
    is the contract's 400, never a 500.
 4. **An idempotency key or a duplicate is settled by the database constraint**, never by an in-process map or a
@@ -181,3 +186,7 @@ of fetching docs. Outside `work`, read the file and check each point you rely on
     field the client may not set — the owner, a role, a status, a price — is not in the request schema, and the
     schema refuses extra fields (`additionalProperties: false`; with Zod the strict object form, `zod-skill` →
     Boundary rules), so a sent one is refused, not stored.
+
+## Shared data boundaries
+
+Executor and reviewer apply [DBND-1, DBND-3, DBND-4, DBND-5, DBND-6, DBND-7](../work/references/data-boundaries.md). Use its database failure mapping/retry table; keep adapter-specific accessors here.

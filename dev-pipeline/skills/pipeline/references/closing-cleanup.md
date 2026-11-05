@@ -14,7 +14,7 @@ question.
 |---|---|
 | `documentation/plans/<version>/summary.md` | **stays** — the iteration's numbers and the mark that it is closed |
 | the rest of `documentation/plans/<version>/`: `plan.md`, `plan-review.md`, every `progress*.md` and its `.html` page, `.progress-server`, `test-run.md`, `docs-consistency.md`, `security-audit.md`, inventories and other working files | removed |
-| `$(git rev-parse --path-format=absolute --git-common-dir)/pipeline-work/` files of this iteration's runs (diffs, run reports, stand logs) | removed |
+| checkout-local runtime artifacts of this closed run from `state_paths.resolve_paths` | removed only after verified portability and stopped writers; never the shared common-dir or another run's files |
 | contract documents — SRS, schema, API, architecture, screen specs, test cases — and everything else in git | never touched here |
 
 Earlier closed folders that still hold more than `summary.md` get the
@@ -54,3 +54,11 @@ options «A. Удалить рабочие файлы (рекомендую)», 
 documents follow as their own questions. Report what was removed in one
 line («Убрано: 14 файлов, 2,3 МБ; оставлены summary.md итераций 2.0.0 и
 2.1.0»).
+
+## Ownership and portability
+
+Resolve this checkout/run's exact local paths through state_paths and verify
+portable reports/checkpoints before cleanup. Never recursively delete the shared
+common-dir pipeline-work root. Details there may belong to another run; preserve
+anything not explicitly owned by this cleanup. Retained historical reports stay
+truthful, and source/foreign work is never cleanup input.

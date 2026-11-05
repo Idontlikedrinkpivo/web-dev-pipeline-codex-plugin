@@ -9,6 +9,13 @@ description: >-
 
 # FastAPI
 
+## Главные правила
+
+[Conventions](#conventions) · [Errors as problem+json](#errors-as-problemjson) · [The reviewer checks](#the-reviewer-checks).
+
+Read these mandatory rules with the named relevant sections before implementation
+or review; preserve their dependencies (`executor-catalog/references/worker-prompt.md`).
+
 The project's conventions for the FastAPI web layer: routes, dependencies, request and response models, the
 problem+json error handlers, login and settings, tooling. The database layer (models, repositories, sessions,
 Alembic) belongs to `fastapi-sqlalchemy`.
@@ -60,7 +67,8 @@ The container, and any run the platform stops, starts through the production ent
   - a named domain or use-case error → the status and `code` the contract gives it (foundation §4 named-error → HTTP table), in the contract's Problem body;
   - a request that fails its schema → the contract's validation status, `code` and per-field list, field names in the wire casing. FastAPI's default `{"detail": [...]}` body is not that answer, so the handler for `RequestValidationError` replaces it;
   - a request that cannot be parsed (malformed JSON, an undecodable cursor) → the contract's status for it;
-  - a serialization failure (`40001`) or deadlock (`40P01`) that is left after the bounded reruns (`fastapi-sqlalchemy` → Driver errors and install) → the contract's 503 with `Retry-After`;
+  - eligible serialization/deadlock retry and exhausted-safe-retry responses follow
+    [DBND-5 and DBND-6](../work/references/data-boundaries.md); never retry without safety evidence;
   - anything unnamed → logged with its cause, the contract's 500 with a generic `detail` — never the message, stack or SQL. An unexpected constraint violation is this case: the repository classifies the conflicts it expects into named errors, and a duplicate is never answered as a bare 409 (`openapi-spec-generator` → Step 6).
 - Routes and use cases raise named errors; they do not build bodies or `raise HTTPException(detail=...)`.
 - Brownfield without `openapi.yaml`: keep the error format the repo already returns. Never introduce a second one.
@@ -123,3 +131,7 @@ Outside `work`, read the file and check each point you rely on against the insta
 9. **A write takes the request model's fields by name**: no `**body.model_dump()` into a record or an update, and
    a field the client may not set — the owner, a role, a status, a price — is not in the request model; request
    models forbid extra fields (`extra="forbid"`), so a sent one is refused, not stored.
+
+## Shared data boundaries
+
+Executor and reviewer apply [DBND-1, DBND-3, DBND-4, DBND-5, DBND-6, DBND-7](../work/references/data-boundaries.md). Use its database failure mapping/retry table; keep adapter-specific accessors here.

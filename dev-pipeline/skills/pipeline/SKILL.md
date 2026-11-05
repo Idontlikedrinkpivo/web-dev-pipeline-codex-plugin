@@ -29,13 +29,12 @@ architecture change»). A working note to yourself is not printed.
 
 ## Parent session and nested sessions
 
-In Claude Desktop the session the user opens is the iteration's **parent**, titled «iteration <version>»: it runs
-no stage itself; at the iteration's start — or its continuation, on any machine — it opens one waiting **nested
-session** per job still left, each titled for it, with a fresh context, and starts each in turn by a message, while
-a session whose first message names a parent is a nested one and runs its stage. Read `references/parent-session.md` before the first
-step — which one you are (a new project counts), the session tool and how to load it, the list kept by
-`scripts/subsessions.py` and asked once, and the app's rule on who may open a session; without that tool the session
-runs the stages itself.
+For explicitly selected separate stage chats, this chat is the iteration's
+**parent** and coordinates only the selected stages. A chat whose first message
+names a parent runs its named stage. Read `references/parent-session.md` before
+creation: proposals and authorization are distinct in `scripts/subsessions.py`;
+resume never opens unselected chats. Without that choice or the needed tool,
+continue the stages in the current chat using Codex runtime mappings.
 
 ## Two kinds of transition
 
@@ -326,10 +325,10 @@ every verdict, also with nothing to fix. Every later stage — the plan, its run
 the audit, the release — runs it at its close too, and so does every stop (`references/pause-and-resume.md`):
 before the push it commits the iteration's files in `plans/` (`references/service-version.md` → The iteration's files in git). Drafts stay committed on
 this machine until then, so people on the branch see each other's documents
-once they are final. Only the stages before `work` push this way; the code of
-`work`, the tag and the iteration's close are pushed by the user, who reviews
-the whole result first, and the user merges the branch into `main` on GitHub
-— no skill opens a PR or merges. The
+once they are final. Workflow-authorized close/handoff may commit + push owned
+iteration reports/checkpoint payload, including work; general code permission
+alone is insufficient. Main/merge/tag/release and PR publication remain separately
+authorized. Follow `references/pause-and-resume.md`. The
 script pushes `iteration/<version>` to `origin` when the project has one,
 after taking the others' commits (`git pull --rebase`); never `main`, never a
 tag, never `--force`. Its one line goes into the message. Exit 1 (no access,

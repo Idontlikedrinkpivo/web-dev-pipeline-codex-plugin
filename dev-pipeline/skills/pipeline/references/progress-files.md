@@ -142,12 +142,12 @@ documents at once, so their rows moved in lockstep and told the user nothing.
   the ids of the watchers it started and, when it ends — finished, failed
   or stopped — stops any still running (TaskStop) before its last line. A
   watcher left behind keeps waking the session for nothing; an agent that tries to end with one still running
-  is held back by the plugin's hook (`hooks/watchers.py`) until it stops it.
+  must inspect available agent/process tools and stop its own tasks before reporting;
+  unknown status blocks transfer, and no watchers.py hook is promised.
 - **Results from background work** (stands, long commands) wake the agent,
   and the agent edits: watch their output with the Monitor tool, which
-  wakes the session on each new line, or — without it — a background
-  `sleep 30` whose finish wakes the session to edit what changed and start
-  the next one.
+  wakes the session on each new line, or bounded shell-session polling through the Codex runtime mapping;
+  do not invent a Monitor or watcher tool the host does not expose.
 - **A subagent** that changes rows gets the path in its packet as
   `PROGRESS FILE` and changes only its rows, the bar and the count line;
   the title, the other sections and the state line stay the session's.

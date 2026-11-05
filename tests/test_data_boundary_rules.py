@@ -19,6 +19,34 @@ RULES = {
 
 
 class DataBoundaryRulesTests(unittest.TestCase):
+    def test_stack_consumers_link_applicable_rules(self) -> None:
+        consumers = {
+            "react/SKILL.md": ("DBND-1", "DBND-3"),
+            "frontend/SKILL.md": ("DBND-1", "DBND-3"),
+            "fastapi/SKILL.md": ("DBND-1", "DBND-3", "DBND-4", "DBND-5", "DBND-6", "DBND-7"),
+            "fastapi/references/jwt-auth.md": ("DBND-1",),
+            "typescript-fastify/SKILL.md": ("DBND-1", "DBND-3", "DBND-4", "DBND-5", "DBND-6", "DBND-7"),
+            "typescript-fastify/references/auth.md": ("DBND-1",),
+            "fastapi-sqlalchemy/SKILL.md": ("DBND-2", "DBND-4", "DBND-5", "DBND-6", "DBND-7"),
+            "typescript-drizzle-orm/SKILL.md": ("DBND-2", "DBND-4", "DBND-5", "DBND-6", "DBND-7"),
+            "typescript-drizzle-orm/references/repository-adapter.md": ("DBND-2", "DBND-4", "DBND-5", "DBND-6", "DBND-7"),
+        }
+        for relative, rules in consumers.items():
+            with self.subTest(consumer=relative):
+                path = ROOT / "dev-pipeline/skills" / relative
+                text = path.read_text(encoding="utf-8")
+                section = text.split("## Shared data boundaries", 1)[1]
+                for rule in rules:
+                    self.assertIn(rule, section)
+                links = re.findall(r"\]\(([^)]+data-boundaries\.md)\)", section)
+                self.assertTrue(links)
+                for link in links:
+                    self.assertEqual((path.parent / link).resolve(), POLICY.resolve())
+                if "DBND-4" in rules:
+                    self.assertIn("mapping/retry table", section)
+                self.assertNotIn("attempts = 3", text)
+                self.assertNotIn("three, with a short random", text)
+
     def policy(self) -> str:
         self.assertTrue(POLICY.is_file(), "missing shared data boundary rules")
         return POLICY.read_text(encoding="utf-8")

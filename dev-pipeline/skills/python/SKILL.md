@@ -9,6 +9,13 @@ description: >-
 
 # Python
 
+## Главные правила
+
+[The machine checks](#the-machine-checks) · [The reviewer checks](#the-reviewer-checks).
+
+Read these mandatory rules with the named relevant sections before implementation
+or review; preserve their dependencies (`executor-catalog/references/worker-prompt.md`).
+
 The same rules as `typescript`, in Python's words. A machine-checked rule is one line with its rule; the config is
 `repo-scaffold/references/quality-gates.md`.
 

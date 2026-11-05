@@ -63,6 +63,14 @@ Commit each document) — and the stage closes as usual, its stamp included.
 After the last stage this person took, the «готовы и запушены»
 line replaces the offer of a stage someone else has.
 
+## Changed mockups mode
+
+An explicit request to accept changed frames uses
+[changed-frames.md](references/changed-frames.md): compare nodeIds against the
+existing register, classify added/changed/unchanged/deleted, preserve S/M IDs and
+route only affected specs/cases. Missing Figma tool/login is a prerequisite,
+deleted frames are named open questions. Finish with the changed mockups path.
+
 ## Inputs
 
 | Input | When |

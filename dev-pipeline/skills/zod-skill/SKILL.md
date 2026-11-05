@@ -16,6 +16,13 @@ metadata:
 
 # Zod
 
+## Главные правила
+
+[Boundary rules](#boundary-rules) · [Schema evolution and tests](#schema-evolution-and-tests) · [The reviewer checks](#the-reviewer-checks).
+
+Read these mandatory rules with the named relevant sections before implementation
+or review; preserve their dependencies (`executor-catalog/references/worker-prompt.md`).
+
 Adapted from Anivar Aravind's zod skill (MIT, see `LICENSE`).
 
 Zod validates at **runtime** data the app does not control: request bodies, query strings, forms,
@@ -71,8 +78,12 @@ await registerUser.execute(toRegisterUserInput(result.data)) // use case gets it
 
 ## Schema evolution and tests
 
-- Additive changes are safe (new optional field, loosened constraint, new union member); anything
-  else breaks consumers: ship it optional or deprecated first, remove in the next major. A
+- Compatibility is directional. An input enum expansion or loosened request
+  constraint is judged by the accepted request set and existing callers. A new
+  output enum/union variant can break old exhaustive consumers and schema
+  validators: check them and require a compatibility action/version when needed.
+  A new union member is never unconditionally safe. Ship breaking removals
+  optional or deprecated first, remove in the next major. A
   non-strict object schema (a response, a partner's payload) drops unknown keys, so a removed field fails
   silently; a strict request schema refuses a client still sending it — which is why removing a request field is a
   breaking change.

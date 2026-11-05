@@ -1,7 +1,9 @@
 # What a stage must not lose after a compaction
 
 Printed by the session-start hook after a compaction (`scripts/keep_rules.py`): the section of the stage skill the
-session ran last, found in its transcript. A compaction keeps a summary, not the skills read before it, and the
+saved as active in durable checkout/chat state, then a matching active subsession.
+Transcript mentions are labeled hints only and never replace known stage identity;
+missing/conflicting state gets general recovery instructions. A compaction keeps a summary, not the skills read before it, and the
 reflect reports keep finding the same rules broken right after one — a progress file written from the shell, the
 security audit not offered, a question asked in a card. Each section is the few rules a stage broke after a
 compaction, or would cost most to break; the stage's skill stays the whole truth — read it again. One section per
@@ -101,8 +103,9 @@ stage skill, its heading the skill's folder name; a stage with no section gets �
 
 - `progress.md` changes with Edit or `progress_set.py` — never from the shell; the line `progress_link.py` prints
   goes to the chat as printed.
-- After each commit `context_size.py "$PWD" --next <next unit's grade>`: exit 2 — hand over now, exit 0 — the next
-  unit; never a pause or a question to the user over the context.
+- After each safe boundary `context_size.py "$PWD" --next <next unit's grade>`: exit 2 saves a checkpoint and
+  immediately continues authorized work in the same chat; exit 3 is UNKNOWN, never zero. A transfer needs
+  separately authorized successor ownership, not a context threshold.
 - A unit: the executor, `run_check.py`, `code-review-unit`, then its own commit with `Plan-Unit:` and
   `Co-Authored-By:` in the last paragraph — never chained to a check.
 - A parallel unit works in its worktree with repo-relative paths.

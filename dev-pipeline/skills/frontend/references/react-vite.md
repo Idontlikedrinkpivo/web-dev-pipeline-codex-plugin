@@ -23,7 +23,7 @@ Name the `S-n` in the page file's first comment line so a search for `S-1` finds
 | Concern | Default | Note |
 |---|---|---|
 | Routing | React Router; TanStack Router if already in the repo | one route per `S-n`, lazy-loaded; declarative routes with TanStack Query as the one source of server data |
-| Server state | TanStack Query | query per read `operationId`, mutation per write; invalidate the list after a write |
+| Server state | TanStack Query | query per read `operationId`, mutation per write; core invalidation behavior: `react` reviewer rules; installed API syntax below |
 | API client | openapi-typescript types + openapi-fetch | @hey-api/openapi-ts or Orval if the repo already uses one |
 | Forms | React Hook Form + Zod via its resolver | schema typed against the generated request body |
 | Styling / UI kit | Tailwind CSS + shadcn/ui | Radix-based primitives bring dialog focus trap and keyboard handling |
@@ -50,3 +50,10 @@ Name the `S-n` in the page file's first comment line so a search for `S-1` finds
 | API codegen | `<pm> run api:gen` — add it if missing |
 
 Version-sensitive points of this profile: `version-checks.md` → «Profile: React + Vite».
+
+## Mutation API syntax
+
+Use the installed TanStack Query query-key and `invalidateQueries`/`setQueryData`
+API from `version-checks.md`. The required affected detail/list/aggregate reads
+are defined in [React reviewer checks](../../react/SKILL.md#the-reviewer-checks--the-machine-cannot),
+not duplicated by this stack profile.

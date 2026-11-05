@@ -38,3 +38,11 @@ most returns, defects, or interventions), or «слабых мест не вид
 two lower tables start empty; the user fills them later. Escaped defects
 are the main measure of the pipeline: each one names the stage whose skill
 needs a fix.
+
+## Small iteration
+
+For small-mode metadata, summarize the concrete version/branch, result scope +
+full HEAD, affected tests, unit review, full-diff review and close checks, without
+inventing a plan. Explain UI non-applicability. Legacy records remain normal
+mode; ambiguous release/version evidence blocks. This summary grants no separate
+main/merge/tag/release permission (`work/references/chat-change.md`).

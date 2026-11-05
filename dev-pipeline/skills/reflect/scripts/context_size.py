@@ -1,6 +1,7 @@
 """Read this Codex chat's context, never a neighbour's.
 
-context_size.py <project-dir> [--thread-id ID] [--limit TOKENS] [--json]
+context_size.py <project-dir> [--thread-id ID] [--limit TOKENS]
+                [--next {0,Low,Mid,High}] [--reserve TOKENS] [--json]
 CODEX_THREAD_ID is used unless --thread-id is given. Without either, only a
 single unambiguous main chat is accepted. Exit 0 below threshold, 2 checkpoint
 needed, 3 unknown (never interpreted as an empty context). Read-only.
@@ -22,7 +23,17 @@ def positive(value: str) -> int:
     return number
 
 
-def measure(cwd: str, thread_id: str | None, limit: int | None = None) -> dict:
+RESERVES = {'0': 10_000, 'Low': 25_000, 'Mid': 50_000, 'High': 75_000}
+
+
+def measure(cwd: str, thread_id: str | None, limit: int | None = None,
+            next_task: str | None = None, reserve: int | None = None) -> dict:
+    if limit is not None and (type(limit) is not int or limit <= 0):
+        raise ValueError('limit must be positive')
+    if next_task is not None and next_task not in RESERVES:
+        raise ValueError('unknown next task grade')
+    if reserve is not None and (type(reserve) is not int or reserve <= 0):
+        raise ValueError('reserve must be positive')
     root = os.path.realpath(cwd)
     candidates = []
     for path in sessions.rollouts():
@@ -64,8 +75,18 @@ def measure(cwd: str, thread_id: str | None, limit: int | None = None) -> dict:
     _, tokens, window, sid = latest
     # Leave headroom to finish an item and save its checkpoint before host compaction.
     threshold = limit if limit is not None else min(300_000, window * 7 // 10) if window else 300_000
-    return {'status': 'CHECKPOINT' if tokens >= threshold else 'OK', 'thread_id': sid,
-            'input_tokens': tokens, 'model_context_window': window, 'limit': threshold}
+    estimate = RESERVES.get(next_task, 0)
+    planned = reserve if reserve is not None else min(estimate, window // 5) if window else estimate
+    if window and reserve is not None and reserve >= window:
+        raise ValueError('explicit reserve must fit inside the recorded context window')
+    reason = ('baseline reached' if tokens >= threshold else
+              'next action reaches context window' if window and tokens + planned >= window else
+              'below baseline and reserved capacity')
+    status = 'CHECKPOINT' if tokens >= threshold or window and tokens + planned >= window else 'OK'
+    return {'status': status, 'decision': status, 'thread_id': sid,
+            'input_tokens': tokens, 'model_context_window': window, 'limit': threshold,
+            'baseline': threshold, 'reserve': planned, 'reserve_source': 'explicit' if reserve is not None else 'policy',
+            'next': next_task, 'reason': reason}
 
 
 def main() -> None:
@@ -73,9 +94,14 @@ def main() -> None:
     parser.add_argument('project')
     parser.add_argument('--thread-id', default=os.environ.get('CODEX_THREAD_ID'))
     parser.add_argument('--limit', type=positive)
+    parser.add_argument('--next', dest='next_task', choices=RESERVES)
+    parser.add_argument('--reserve', type=positive)
     parser.add_argument('--json', action='store_true')
     args = parser.parse_args()
-    result = measure(args.project, args.thread_id, args.limit)
+    try:
+        result = measure(args.project, args.thread_id, args.limit, args.next_task, args.reserve)
+    except ValueError as exc:
+        parser.error(str(exc))
     if args.json:
         print(json.dumps(result, ensure_ascii=False))
     elif result['status'] == 'UNKNOWN':

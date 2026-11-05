@@ -7,6 +7,7 @@ An explicit --legacy <sessions.md> copies identity-validated old local state;
 the source is preserved and an existing local copy is never overwritten.
 
     python3 subsessions.py <project dir> <version> plan <stage>...
+    python3 subsessions.py <project dir> <version> authorize [<stage>...]
     python3 subsessions.py <project dir> <version> set <row> <session id>
     python3 subsessions.py <project dir> <version> mark <row | session id> <state>
     python3 subsessions.py <project dir> <version> parent <session id>
@@ -22,8 +23,11 @@ plan    the stages kept for this iteration (keys below, any order) become rows i
         the file keep their ids and states, so a later plan — a continued iteration, a stage added — only adds rows.
         A document stage whose documents all carry this version's stamp is closed and skipped, with a note: on a
         fresh clone (sessions.md is out of git: its ids are this machine's) the list holds only the stages left.
-        Prints the rows still to open, in order: the parent opens them in this user turn with these titles.
-set     a row's session id, once opened (state → ждёт).
+        These are proposals only. Replanning never grants or expands permission to create chats.
+authorize records the user's explicit selected subset of proposed stages, in canonical order;
+        replaces previous authorization, with no arguments revokes it. Historical rows are facts, not consent.
+        Only authorized unopened rows are printed as ready to open. No command creates a chat.
+set     an authorized row's session id, once opened (state → ждёт).
 mark    a row's state: ждёт · идёт · закрыт · передан (handed over, to be cleared and started again) · убран.
 parent  the parent's own session id, so a parent after a compaction or a new one on «продолжим» finds the list.
 show    the table, then: the stage in work, the next one to start, the rows not opened yet — the input of «продолжим».
@@ -35,6 +39,7 @@ check plan work ui audit deploy ops ci close. Standard library only.
 from __future__ import annotations
 
 import re
+import json
 import os
 import sys
 from pathlib import Path
@@ -88,11 +93,19 @@ def parse(text: str) -> tuple[str, list[dict]]:
     if len(parents) != 1 or not parents[0].strip():
         raise ValueError("sessions registry requires exactly one parent header")
     parent, rows = parents[0].strip(), []
+    selections = [line.removeprefix('Authorized stages: ') for line in lines
+                  if line.startswith('Authorized stages: ')]
+    if len(selections) > 1:
+        raise ValueError('duplicate authorization header')
+    authorized = json.loads(selections[0]) if selections else []
+    if not isinstance(authorized, list) or any(not isinstance(key, str) or key not in STAGES for key in authorized):
+        raise ValueError('invalid authorized stage selection')
     for line in lines:
         m = ROW.match(line)
         if m:
             _, title, stage, skill, when, sid, state = (c.strip() for c in m.groups())
-            rows.append(dict(title=title, stage=stage, skill=skill, when=when, id=sid.strip("`"), state=state))
+            rows.append(dict(title=title, stage=stage, skill=skill, when=when, id=sid.strip("`"), state=state,
+                             authorized=stage in authorized))
     return parent, rows
 
 
@@ -106,7 +119,10 @@ def write(path: Path, version: str, parent: str, rows: list[dict]) -> None:
     lines = [f"# Подсессии итерации {version}", "",
              "Ведёт родительская сессия; правит только `pipeline/scripts/subsessions.py` "
              "(pipeline → references/parent-session.md). В git не хранится.", "",
-             f"Родительская сессия: {parent or '—'}", "", HEAD, "|---|---|---|---|---|---|---|"]
+             f"Родительская сессия: {parent or '—'}",
+             'Authorized stages: ' + json.dumps([key for key in STAGES if any(
+                 r['stage'] == key and r.get('authorized') for r in rows)]),
+             "", HEAD, "|---|---|---|---|---|---|---|"]
     for i, r in enumerate(rows, 1):
         sid = f"`{r['id']}`" if r.get("id") else ""
         lines.append(f"| {i} | {r['title']} | {r['stage']} | {r['skill']} | {r['when']} | {sid} | "
@@ -138,7 +154,8 @@ def show(rows: list[dict]) -> None:
               + ("" if r["when"] == "по очереди" else f" ({r['when']})"))
     busy = [r for r in rows if r.get("state") == "идёт"]
     nxt = next((r for r in rows if r.get("state") == "ждёт" and r["when"] == "по очереди"), None)
-    unopened = [r for r in rows if r.get("state") in ("не открыта", "", None) and r["when"] == "по очереди"]
+    unopened = [r for r in rows if r.get("state") in ("не открыта", "", None)
+                and r["when"] == "по очереди" and r.get('authorized')]
     later = [r for r in rows if r.get("state") in ("не открыта", "", None) and r["when"] != "по очереди"]
     print()
     print("в работе: " + (", ".join(f"«{r['title']}» ({r['id']})" for r in busy) or "ничего"))
@@ -146,6 +163,9 @@ def show(rows: list[dict]) -> None:
     if unopened:
         print("не открыты — открыть ВСЕ в этот ход пользователя, с этими названиями, без нового вопроса: " + "; ".join(
             f"{rows.index(r) + 1}. «{r['title']}»" for r in unopened))
+    proposed = [r['stage'] for r in rows if not r.get('authorized') and not r.get('id')]
+    if proposed:
+        print('предложены, не разрешены — не открывать: ' + ' '.join(proposed))
     if later:   # a part from a list made before 1.2.256: a stage now goes on in its own session after a clear
         print("старые строки частей — не открывать, этап продолжается в своей подсессии (mark … убран): " + "; ".join(
             f"{rows.index(r) + 1}. «{r['title']}»" for r in later))
@@ -217,6 +237,8 @@ def main() -> None:
         if legacy is not None:
             migrate_legacy(paths, legacy, path)
         parent, rows = read(path)
+        if parent not in ('', '—', paths.chat_key):
+            raise ValueError('registry parent does not match current chat')
     except (ValueError, OSError) as exc:
         sys.exit(f"sessions: {exc}")
 
@@ -236,8 +258,22 @@ def main() -> None:
         rows.sort(key=lambda r: order_key(r["stage"]))   # stable: a part stays after its stage
         write(path, version, parent if parent and parent != "—" else paths.chat_key, rows)
         show(rows)
+    elif cmd == 'authorize':
+        proposed = {r['stage'] for r in rows}
+        if any(key not in STAGES or key not in proposed for key in rest):
+            sys.exit('sessions: authorize accepts only previously proposed stage keys')
+        for row in rows:
+            row['authorized'] = row['stage'] in rest
+        write(path, version, paths.chat_key, rows)
+        show(rows)
     elif cmd == "set" and len(rest) == 2 and rest[0].isdigit() and 0 < int(rest[0]) <= len(rows):
         r = rows[int(rest[0]) - 1]
+        if not r.get('authorized'):
+            sys.exit('sessions: stage not explicitly authorized; record user selection with authorize')
+        if r.get('id') and r['id'] != rest[1]:
+            sys.exit('sessions: row already belongs to another session')
+        if rest[1] in (row.get('id') for row in rows if row is not r):
+            sys.exit('sessions: duplicate child session identity')
         r["id"], r["state"] = rest[1], "ждёт"
         write(path, version, parent if parent and parent != "—" else paths.chat_key, rows)
         print(f"sessions: {rest[0]}. «{r['title']}» — {rest[1]}, ждёт")
@@ -245,10 +281,14 @@ def main() -> None:
         hit = [r for i, r in enumerate(rows, 1) if rest[0] in (str(i), r.get("id"))]
         if not hit:
             sys.exit(f"sessions: строки «{rest[0]}» нет — subsessions.py … show")
+        if rest[1] in ('ждёт', 'идёт', 'передан') and not hit[0].get('id'):
+            sys.exit('sessions: cannot activate an unopened row')
         hit[0]["state"] = rest[1]
         write(path, version, parent if parent and parent != "—" else paths.chat_key, rows)
         print(f"sessions: «{hit[0]['title']}» — {rest[1]}")
     elif cmd == "parent" and len(rest) == 1:
+        if rest[0] != paths.chat_key:
+            sys.exit('sessions: parent must match current chat identity')
         write(path, version, rest[0], rows)
         print(f"sessions: родительская сессия — {rest[0]}")
     elif cmd == "show":

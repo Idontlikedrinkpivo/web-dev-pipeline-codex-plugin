@@ -22,8 +22,12 @@ and the user's words are the spec for a change this size. A new screen still nee
 
 ## Steps
 
-1. **Branch.** The open iteration's `iteration/<version>`. With no open iteration (the last one is merged), a
-   branch `fix/<short-name>` from `main`; the user merges it, as an iteration.
+1. **Concrete iteration.** Reuse a valid open `iteration/<version>`. Otherwise
+   use `pipeline/scripts/open_iteration.py` small mode: explicit version wins;
+   derive the next PATCH only from one authoritative release and within authorized
+   scope. Ambiguous base/conflicting or malformed metadata blocks before mutation.
+   Keep small-mode metadata in this checkout's plans folder, never an empty fake
+   plan or an undefined `<version>` trailer. Legacy metadata remains normal mode.
 2. **Executor.** Write a unit spec from the user's words — a goal sentence, the files, the scenario that proves
    it («поле «Отчество» пустое → форма сохраняется, в карточке прочерк») — for a defect («работало, а теперь
    нет»), a scenario that reproduces it, so the test fails without the fix and passes with it; when a regression's
@@ -39,9 +43,20 @@ and the user's words are the spec for a change this size. A new screen still nee
    verify skill.
 5. **Commit** the change alone with the trailer `Plan-Unit: <version>/chat-<n>` (`n` counts the iteration's chat
    changes from 1; `plan_state.py` lists the ones already made under `other`), so `code-review-full` maps it
-   when it falls inside a run's range. On a `fix/` branch, stop here: the merge is the user's.
+   when it falls inside a run's range. Record a result row with scope + full HEAD,
+   affected tests and their outcomes, unit review and full-diff review. Small-mode
+   close checks still apply; no UI impact needs a reason rather than omitted
+   acceptance. Prepare close through `close_iteration.py`; main/tag/release and
+   pushes outside workflow authorization are not automatic.
 
 ## The report
+
+Small-mode CLI: `open_iteration.py [VERSION] [ROOT] --small`. Its checkout-local
+plans file `iteration.json` has schema_version 1, mode small, version, started_at
+UTC, base_head, chat_id `chat-1` and result. Fill result with scope paths, full
+head, affected_tests evidence, unit_review and full_review (each head + PASS),
+and ui applicability/reason. Close validates matching HEAD/evidence and prepares
+close only; small mode never satisfies the release-tag gate.
 
 One line in the chat, always with both checks named:
 
@@ -50,4 +65,6 @@ One line in the chat, always with both checks named:
 ```
 
 A check that did not run is named in that line with the reason — «тесты: e2e не запускались — стенд не поднят» —
-never left out. The push stays the user's step, after the line.
+never left out. Iteration-branch report/checkpoint push requires authorized
+workflow close/handoff (`pipeline/references/pause-and-resume.md`); no automatic
+main/merge/tag/release follows a chat fix.

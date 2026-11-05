@@ -235,16 +235,34 @@ named at the close. Only with both scripts at exit 0, or every remaining
 line written down this way, is the set final: its commit, then the push
 (`pipeline` → Commit each document).
 
+## Changed mockups
+
+For explicit changed-mockups mode read
+[changed-frames.md](../ui-design/references/changed-frames.md). Update only the
+affected case list from the affected screen specs; keep stable TC/S/M IDs.
+Deleted/missing nodes remain named open questions, never silently reused IDs.
+
 ## Mode run
 
 **When:** after `work` closed its run and `code-review-full` passed (or the
 user chose to go on without it). Cases must exist; without them, offer
 mode write first.
 
+**Acceptance scope and fingerprint.** A selective run takes the union of changed
+screens/operations, added/changed cases and prior failures, with a reason per
+case. Uncertain mapping expands scope. Record base/head, scope/result, code-tree
+hash and case-set hashes including the complete universe. Code/case changes
+invalidate affected subset and full results. Before a tag require one current
+full suite against the final fingerprint; combining stale subsets is not a full
+run. UI non-applicability requires a reason. Missing mapping/tool/live stand is
+blocked/not-run, never PASS. Gate validation does not authorize a browser run.
+
+**The app must start locally.**
+
 **The app must start locally.** Read the project's verify skill
 (`.agents/skills/verify/`) and run its doctor first; with none, write and
 prove it before the dispatch (`deploy-topology` →
-`references/verify-skill.md`), from `.claude/launch.json`, the README and
+`references/verify-skill.md`), from the project's Codex runtime configuration, README and
 the test compose file. Pass its path to the runner as `VERIFY`. The runner
 starts the database and the app, seeds the preconditions through the API
 or the seed scripts the project has, and signs in with test credentials
@@ -274,7 +292,8 @@ backend.
 **Two passes.** The run is two passes with a bar each, so the user always
 sees how far the full picture is:
 
-1. **Pass 1 — the whole set, once.** Every case is written and run once and
+1. **Pass 1 — the declared scope, once.** Every selected case (the whole set for
+   a full run) is written and run once and
    gets a pass-1 result: `✅ прошёл`, `❌ не прошёл` (with what was seen
    against what was expected), `⛔ заблокирован: <причина>` (a missing
    piece that can be added — a test stub for sign-in or SMS), or

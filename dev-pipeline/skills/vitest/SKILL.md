@@ -9,6 +9,13 @@ description: >-
 
 # Vitest
 
+## Главные правила
+
+[House rules](#house-rules) · [The reviewer checks](#the-reviewer-checks).
+
+Read these mandatory rules with the named relevant sections before implementation
+or review; preserve their dependencies (`executor-catalog/references/worker-prompt.md`).
+
 **Which layering applies.** The cases (architecture document, Framework-first, existing repo) are in
 `typescript/references/which-layout-governs.md`, and the rules every test suite shares (mapper round-trip, race
 test, property test, grouping, mutants, no database reachable) in `typescript/references/shared-test-rules.md` —

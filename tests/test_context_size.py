@@ -90,6 +90,38 @@ class ContextSizeTests(unittest.TestCase):
         code, data = self.run_reader('current', '--limit', '12000')
         self.assertEqual((code, data['limit']), (2, 12000))
 
+    def test_documented_next_grade_reserves_capacity(self):
+        self.rollout('current', 10000)
+        code, data = self.run_reader('current', '--next', 'Mid')
+        self.assertEqual((code, data['baseline'], data['reserve']), (0, 280000, 50000))
+        self.assertEqual(data['decision'], 'OK')
+
+    def test_explicit_reserve_changes_decision_without_changing_baseline(self):
+        self.rollout('current', 60000, 100000)
+        small = self.run_reader('current', '--reserve', '10000')[1]
+        large = self.run_reader('current', '--reserve', '40000')[1]
+        self.assertEqual((small['status'], large['status']), ('OK', 'CHECKPOINT'))
+        self.assertEqual(small['baseline'], large['baseline'])
+        self.assertIn('next action', large['reason'])
+
+    def test_policy_reserve_and_baseline_fit_every_small_window(self):
+        for window in (5, 101, 1000, 32000, 200000, 1000000):
+            self.rollout('current', 1, window)
+            for grade in ('0', 'Low', 'Mid', 'High'):
+                _, data = self.run_reader('current', '--next', grade)
+                self.assertLessEqual(data['baseline'], min(300000, window * 7 // 10))
+                self.assertLessEqual(data['reserve'], window // 5)
+
+    def test_invalid_reserve_or_grade_is_cli_error_not_checkpoint_json(self):
+        self.rollout('current', 10000, 100000)
+        env = dict(os.environ, CODEX_HOME=str(self.home), CODEX_THREAD_ID='current')
+        for args in (('--reserve', '-1'), ('--reserve', '100000'), ('--next', 'Impossible')):
+            result = subprocess.run(['python3.12', str(SCRIPT), str(self.project), '--json', *args],
+                                    env=env, capture_output=True, text=True)
+            self.assertEqual(result.returncode, 2)
+            self.assertEqual(result.stdout, '')
+            self.assertIn('error:', result.stderr)
+
     def test_old_usage_after_host_compaction_is_unknown(self):
         path = self.rollout('current', 390000)
         with path.open('a') as out:

@@ -55,3 +55,12 @@ each answered, or why you wrote `none`, in the run report's **Lib docs** line.
 
 This is a lookup inside the stage, not a pipeline row. Do not offer Context7
 to the user as a next step.
+
+## Client behavior and installed versions
+
+Core React mutation coverage (affected detail/list/aggregate reads) remains in
+React's reviewer rules, including hook-only `use*.ts` packets. Fetch/probe only
+the installed TanStack/lint API details used here; React lint names live in
+frontend/references/version-checks.md. Reading an installed version never implies
+an upgrade. Input enum expansion and output union compatibility are directional;
+new response variants require old exhaustive consumer/schema-validator checks.

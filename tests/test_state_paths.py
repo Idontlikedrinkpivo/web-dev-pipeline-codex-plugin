@@ -190,7 +190,7 @@ class StatePaths(unittest.TestCase):
     def test_subsessions_isolate_runtime_ids_by_chat_and_checkout(self):
         for checkout, chat, sid in ((self.one, 'chat-a', 'child-a'),
                                     (self.one, 'chat-b', 'child-b'), (self.two, 'chat-a', 'child-c')):
-            for args in (('plan', 'work'), ('set', '1', sid)):
+            for args in (('plan', 'work'), ('authorize', 'work'), ('set', '1', sid)):
                 result = self.cli(PIPELINE / 'subsessions.py', checkout, '1.0.0', *args,
                                   checkout=checkout, chat=chat)
                 self.assertEqual(result.returncode, 0, result.stderr)
@@ -341,7 +341,7 @@ class StatePaths(unittest.TestCase):
         return {p.relative_to(runtime): p.read_bytes() for p in runtime.rglob('*') if p.is_file()}
 
     def test_review_child_whoami_finds_parent_read_only_and_keeps_writes_local(self):
-        for args in (('plan', 'work', 'audit'), ('set', '1', 'child-c'), ('set', '2', 'sibling-secret')):
+        for args in (('plan', 'work', 'audit'), ('authorize', 'work', 'audit'), ('set', '1', 'child-c'), ('set', '2', 'sibling-secret')):
             result = self.cli(PIPELINE / 'subsessions.py', self.one, '1.0.0', *args, chat='parent-p')
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         before = self.runtime_snapshot(self.one)
@@ -364,7 +364,7 @@ class StatePaths(unittest.TestCase):
 
     def test_review_child_whoami_rejects_ambiguous_parent_registries(self):
         for parent, stage in (('parent-p', 'work'), ('parent-q', 'audit')):
-            for args in (('plan', stage), ('set', '1', 'child-c')):
+            for args in (('plan', stage), ('authorize', stage), ('set', '1', 'child-c')):
                 result = self.cli(PIPELINE / 'subsessions.py', self.one, '1.0.0', *args, chat=parent)
                 self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         before = self.runtime_snapshot(self.one)
@@ -376,7 +376,7 @@ class StatePaths(unittest.TestCase):
 
     def test_review_child_whoami_does_not_discover_foreign_checkout(self):
         for checkout in (self.main, self.two):
-            for args in (('plan', 'audit'), ('set', '1', 'child-c')):
+            for args in (('plan', 'audit'), ('authorize', 'audit'), ('set', '1', 'child-c')):
                 result = self.cli(PIPELINE / 'subsessions.py', checkout, '1.0.0', *args,
                                   checkout=checkout, chat='foreign-parent')
                 self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
@@ -389,7 +389,7 @@ class StatePaths(unittest.TestCase):
             self.assertEqual(self.runtime_snapshot(checkout), state)
 
     def test_review_child_whoami_ignores_unproven_owner_namespace(self):
-        for args in (('parent', 'parent-p'), ('plan', 'work'), ('set', '1', 'child-other')):
+        for args in (('parent', 'parent-p'), ('plan', 'work'), ('authorize', 'work'), ('set', '1', 'child-other')):
             result = self.cli(PIPELINE / 'subsessions.py', self.one, '1.0.0', *args, chat='parent-p')
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         original = self.paths(self.one, chat='parent-p').local / 'sessions.md'

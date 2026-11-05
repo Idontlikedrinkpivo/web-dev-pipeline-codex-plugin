@@ -80,3 +80,10 @@ A session that finds neither asks again. D is kept as `"design": "без мак�
 until it is there — screen specs written without mockups and never decided went unnoticed into an iteration once
 (Дашборд руководителя 1.1.0). It is separate from
 **Кадры рисует**, which says who draws the frames inside the design stage.
+
+## Current participant
+
+The recorded design owner explains inputs and proposed responsibility. It does
+not restrict another participant's choice of any ready stage. Only concurrent
+file ownership limits edits; resolve overlap before dispatch. Explicit current
+selection wins over historical assignments (`team.md`, `parent-session.md`).

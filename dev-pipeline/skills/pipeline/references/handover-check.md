@@ -8,7 +8,7 @@ is the session's own; this check is a second reader that did not write the stage
 ## When
 
 - Before «ЭТАП <stage> ЗАКРЫТ» — after the stage's commits, before the message to the parent.
-- Before «<stage> ПЕРЕДАН» — the session is cleared and starts again from the files too.
+- Before «<stage> ПЕРЕДАН» — verified ownership actually transfers and the successor recovers from files.
 - Not in a session without a parent (a terminal run keeps its chat), and not for a stage that asked the user
   nothing: no answer, no decision to lose.
 
@@ -45,3 +45,12 @@ MISSING         one line per decision not on disk: «<the user's words, quoted> 
 DIFFERENT       one line per decision on disk in another form than the chat settled: «<the words> — в файле: <what
                 the file says>», or none
 ```
+
+## Verified transfer
+
+Apply [checkpoint-state.md](checkpoint-state.md) and
+[pause-and-resume.md](pause-and-resume.md). Inspect available agent/process tools
+to confirm every writer/check stopped; unknown status blocks transfer. Require
+owned portable payload, reports and verified iteration-branch remote commit.
+Local-only evidence is not proof another machine can resume. Continuing
+same-chat CHECKPOINT neither runs this check nor opens a reflect window.

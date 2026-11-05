@@ -9,6 +9,13 @@ description: >-
 
 # Drizzle ORM
 
+## Главные правила
+
+[Rules](#rules) · [The reviewer checks](#the-reviewer-checks).
+
+Read these mandatory rules with the named relevant sections before implementation
+or review; preserve their dependencies (`executor-catalog/references/worker-prompt.md`).
+
 ## Which layout applies
 
 The cases (architecture document, Framework-first, existing repo) are in
@@ -61,8 +68,9 @@ first. Drizzle's placement in them:
    spanning aggregates goes through a `UnitOfWork` port only when the architecture names one.
    Idempotent create: a unique constraint on the key plus an insert that does nothing on conflict
    (or catches `23505`) and re-reads the winner. Never an in-process map as the source of truth. A
-   serialization failure or deadlock is rerun around the use case's whole run by the one shared
-   helper `bootstrap/` wires (`references/repository-adapter.md` → Reading the SQLSTATE).
+   serialization failure/deadlock follows
+   [DBND-5/DBND-6](../work/references/data-boundaries.md); retry is conditional
+   on whole-operation safety, never automatic.
 10. **Migrations are the SQL files in `documentation/db/migrations/`**, written by `db-schema-design`;
     `schema.ts` follows them, not the other way round. Do not `drizzle-kit generate` them — that
     writes a second migration history from `schema.ts`. Apply them with the command `repo-scaffold`
@@ -113,3 +121,7 @@ of fetching docs. Outside `work`, read the file and check each point you rely on
    pre-check.
 6. **A repository returns entities or read models through the mapper**, which has a round-trip test; a business
    rule in a query uses its owner's constant, never a literal.
+
+## Shared data boundaries
+
+Executor and reviewer apply [DBND-2, DBND-4, DBND-5, DBND-6, DBND-7](../work/references/data-boundaries.md). Use its database failure mapping/retry table; keep adapter-specific accessors here.

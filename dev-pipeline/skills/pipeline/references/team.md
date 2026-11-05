@@ -19,9 +19,11 @@ the plan, its review, the progress files, `resume.md` and the reports are in
 goes on on another from `resume.md`.
 
 Everyone works in the **iteration's branch** (`iteration/<version>`). No
-personal branches: at any time a stage's documents belong to one person, so
-commits never collide, and `git pull --rebase` before every push (the plugin's
-`scripts/push_branch.py` does it) is all the coordination the branch needs. `main` gets the iteration once, at the end.
+personal branches are required by this workflow. Assign temporary ownership of
+simultaneously edited files and preserve others' work. Historical author/design
+ownership does not restrict the recipient's ready-stage menu. `push_branch.py`
+verifies report publication; source rebase conflicts stop for reconciliation,
+while generated-only conflicts use its recovery path. `main` gets the iteration once, at the end.
 
 ## What a stage needs on the branch
 
@@ -46,8 +48,8 @@ stage 10 and everything after it.
 1. When the user hands work over — at the fork after the SRS (`SKILL.md` →
    Two branches) or at any message — ask which stages go to whom: one
    question per person, the stages from the table. When the iteration's
-   design owner is a designer with the plugin
-   (`references/design-owner.md`), `ui-design` is theirs without asking.
+   design owner is a designer with the plugin, that history is a proposal only:
+   the current user still chooses stages and concurrent file ownership.
 2. Make sure everything those stages read is committed on the iteration
    branch and pushed (`scripts/push_branch.py`) — finished documents only,
    their reviews and fixes done.
@@ -79,9 +81,9 @@ each finished document so the others can pull it.
   ready to forward («Нужно решение: …»), mark the item `⛔ остановлено: ждёт
   решения`, go on with the rest, and pull once it has landed. In any other
   document it lands as `references/decision-changes.md` says, and is pushed.
-- **Between this person's own stages**, offer the next of them as usual
-  (`SKILL.md` → Asking before a transition). A stage someone else took is
-  not offered: name who has it.
+- **Between stages**, offer every dependency-ready stage as usual. For active
+  simultaneous writers, resolve overlapping file ownership before edits; historical
+  assignments do not remove stages from the current user's menu.
 - **Done** — after the last stage this person took: its close plus one line,
   ready to forward: «<этапы> готовы и запушены в `iteration/<version>`:
   <что сделано>. Дальше: <следующий этап> — <кто>».
@@ -96,3 +98,13 @@ screen spec has `reviewed:` or a named skip. Say who can start now — the
 analyst once the frames are there, the test cases once the screen specs are
 — with the line to forward. The meeting point (stage 10) waits until every
 stage of 2–9 the iteration has is on the branch.
+
+## Transfer evidence
+
+Use [pause-and-resume.md](pause-and-resume.md) and
+[checkpoint-state.md](checkpoint-state.md), including mid-work portable payload,
+review ranges and remaining gates. Workflow close/handoff may authorize
+iteration-branch commit + push, never automatic main/merge/tag/release. A local
+patch or missing report on the recipient's machine is incomplete transfer.
+The forwarding text asks the recipient to record any plugin failure immediately
+in the chat. Without tools or permission continue in the same chat.

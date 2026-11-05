@@ -37,14 +37,19 @@ rules (check them — the session may have run an older version).
 
 ## Steps
 
-1. **Scope.** `python3 "<folder of this SKILL.md>/scripts/sessions.py" window "$PWD"` (add `--version <v>` when the
-   iteration being closed is not the current branch's) prints the window's start as `--since <…>` — the
-   iteration's first commit, or the end of the last «Окно» already in the feedback file when that is later (a
-   part read before a restart, a run by hand mid-iteration), so no moment is read twice; exit 1 means neither a
-   branch nor a folder names the iteration: ask the user from which date (`YYYY-MM-DD`, or
-   `YYYY-MM-DDTHH:MM` for a time). That `--since` goes into every command
-   below. List this project's sessions in it:
-   `python3 "<folder of this SKILL.md>/scripts/sessions.py" list "$PWD" --since <the window's start>`.
+1. **Scope.** Read the concrete iteration/version, then run
+   `python3 "<folder of this SKILL.md>/scripts/sessions.py" window "$PWD" --version <v> --until <offset-aware ISO end> --boundary stop|handoff|ownership`.
+   It prints JSON, not shell flags, and does not publish a report. Use its exact
+   `window.start` / `window.end` as the half-open UTC [start,end) bounds. A durable
+   iteration-start timestamp wins; otherwise use earliest iteration commit or
+   recorded opening with provenance, never folder mtime. The next start is the
+   previous complete end. Corrupt/gapped/out-of-order/partial windows do not
+   advance it; ambiguous legacy minute prose requires migration/UNKNOWN, never
+   invented seconds. Missing version/base is an input error, not a successful
+   empty window. Without an actual stop/handoff/ownership boundary (including
+   `--boundary checkpoint`) the record is partial, never a completed window.
+   List sessions with
+   `python3 "<folder of this SKILL.md>/scripts/sessions.py" list "$PWD" --since <window.start> --until <window.end>`.
    Only this project's sessions — never another project's. The script finds
    them under every name the app gives this project's folder: the plain one,
    a long path shortened with a hash, and the repository's worktrees
@@ -57,11 +62,11 @@ rules (check them — the session may have run an older version).
    and skips one that a later session continued (its messages are the start
    of the longer one) as «повтор».
 2. **Digest.** For each session:
-   `python3 "<folder of this SKILL.md>/scripts/sessions.py" digest <rollout.jsonl> <tmp>/<n>.md --since <the same start>`
+   `python3 "<folder of this SKILL.md>/scripts/sessions.py" digest <rollout.jsonl> <tmp>/<n>.md --since <window.start> --until <window.end>`
    — the user's typed messages, Codex's replies, the skills and agents
    run, and the compaction marks, in order; tool output is left out. Then
    the failed calls of the whole window, the agents' own logs included:
-   `python3 "<folder of this SKILL.md>/scripts/sessions.py" errors "$PWD" <tmp>/errors.md --since <the same start>`
+   `python3 "<folder of this SKILL.md>/scripts/sessions.py" errors "$PWD" <tmp>/errors.md --since <window.start> --until <window.end>`
    (and the same `--also`) — an agent that fixed its own failed command
    never told the session, and a wrong flag or path a skill gave shows up
    only there.
@@ -80,11 +85,11 @@ rules (check them — the session may have run an older version).
    that already says the right thing is marked «уже в правилах с <version>,
    нарушено» rather than proposed again.
 5. **Measure.**
-   `python3 "<folder of this SKILL.md>/scripts/measure.py" "$PWD" --since <the same start>` (and the same `--also`)
+   `python3 "<folder of this SKILL.md>/scripts/measure.py" "$PWD" --since <window.start> --until <window.end>` (and the same `--also`)
    plus `--progress documentation/plans/<version>/progress.md` for each iteration of the window — at the close
    the file is still there, and the script keeps its numbers outside the project for a later run after the
-   cleanup — and `--units <previous tag>..HEAD` — what the iteration's sessions and agents spent, from Claude
-   Code's own logs: by group and by agent, the models, the context each agent reached, «Принятие задач» (units
+   cleanup — and `--units <previous tag>..HEAD` — what the iteration's sessions and agents spent, from Codex
+   CODEX_HOME/sessions and archived_sessions logs: by group and by agent, the models, the context each agent reached, «Принятие задач» (units
    accepted at the first review, units sent back, the cost of one accepted unit), and the flags it raises. Its output goes into the section unchanged,
    under «### Расход»: the maintainer tunes unit size, reviews and packets from these numbers, and a paraphrase
    loses them. A flag becomes a finding only when a skill caused it (a stage pasting whole documents, a
@@ -94,12 +99,32 @@ rules (check them — the session may have run an older version).
    Отказы хука» unchanged. Read the samples: a refused command that was right is a finding on the hook (the rule
    is too wide); one rule firing again and again is a finding on the skill that keeps asking for that command.
 6. **Write.** Append one section to
-   `~/.codex/dev-pipeline-feedback/<project folder's basename>.md` (create the
+   `${CODEX_HOME:-~/.codex}/dev-pipeline-feedback/<project folder's basename>.md` (create the
    folder and the file when missing; never rewrite earlier sections). Shape
    below. Nothing is written into the project and nothing is committed.
 7. **Report** in one line: the file as a clickable link, how many findings,
    how many sessions read, the run's total from the measure. With none, write the section anyway, saying so —
    the maintainer sees the iteration was reviewed.
+
+## Window and evidence contract
+
+Append the exact reader JSON in a fenced `reflect-window` block alongside the
+human report. Do not mark partial/unavailable complete. Cursor advancement and
+close validation use that block, not the human heading's minute timestamp.
+The guard_report diagnostic block may use its own supported filtering; do not
+claim an unbounded diagnostic proves exact session-window coverage.
+
+Record the reader's schema, exact UTC window, project/version, source hash,
+event cursor and completion metadata with each report. A real stop/handoff/new
+ownership creates a new window; continuing CHECKPOINT only saves durable events.
+close_iteration uses the same parser and requires complete exact coverage, no
+ten-minute slack or Claude fallback. Missing logs are unavailable, never zero.
+Separate coordinator, plugin implementers, reviewers, guardian and unknown spend.
+Task ID, grade, attempt and review acceptance require observed dispatch/report
+evidence; otherwise null + reason. Deduplicate cumulative continuation/archive
+events by source identity/counter. Conditional token units do not prove billing.
+Legacy reports have unknown provenance; comparisons need matching windows and
+baselines or an explicit incomplete-comparison label. Do not rewrite history.
 
 ## The section
 

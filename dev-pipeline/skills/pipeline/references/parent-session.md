@@ -1,10 +1,9 @@
 # Stage chats in Codex — fresh context for each stage
 
-The pipeline always runs this way — the user's choice: the parent chat
-coordinates, and every stage runs in its own fresh chat with its own skill and
-named subagents. There is no «all in this chat» option. Only without chat tools
-(a CLI with no chat creation) do the stages run in the current chat, as
-executor-catalog/references/codex-runtime.md describes.
+When the user selects separate stage chats, the parent coordinates and each selected
+stage runs in a fresh chat with named subagents. Tool availability alone authorizes
+nothing. Without this choice or without chat tools, continue in the current chat
+as executor-catalog/references/codex-runtime.md describes.
 
 ## Which one am I
 
@@ -15,9 +14,8 @@ here before they read anything.
 - A chat whose first message names a parent («Ты — чат этапа …», «ты —
   подсессия», «родительская сессия — …») runs its stage.
 - Any other chat searches the tools for create_thread before deciding it is
-  absent. Found → this chat is the iteration's parent, a new project (no
-  documentation/ yet, so no hook line) included: it runs no stage and follows
-  this file. Not found → the stages run in this chat.
+  absent. Found and separate chats explicitly selected → this chat coordinates
+  the selected stages under this file. Otherwise the stages run in this chat.
 
 At an iteration's start or continuation the parent asks once which stage
 chats to open — the same wherever the work starts: a new project, a stage the
@@ -29,8 +27,8 @@ for work already done or not wanted (Russian, as the user reads it):
 ```text
 **Чаты этапов итерации <version>**
 
-Пайплайн всегда идёт так: этот чат ведёт итерацию, а каждый этап — в своём
-свежем чате. У этапа чистый контекст: он видит только свои документы и не
+Можно вести выбранные этапы в отдельных чатах: этот чат ведёт итерацию,
+а каждый выбранный этап — в своём свежем чате. У этапа чистый контекст: он видит только свои документы и не
 тащит переписку прошлых этапов; правила этапа не теряются при сжатии
 переписки; весь план итерации виден в боковой панели. Codex может спросить
 подтверждение на создание каждого чата.
@@ -55,7 +53,12 @@ when presenting the list. Project membership is preserved.
 2. Build the remaining stages. Fixes a check sends back (UI tests, the audit) run
    inside that check's own chat, by agents — no chat of their own. Use pipeline/scripts/subsessions.py <project> <version> plan
    and show to maintain documentation/plans/<version>/sessions.md. Read the
-   script's usage before calling it. It records status; it does not create chats.
+   script's usage before calling it. `plan` records proposed stages only; `show`
+   never expands consent. `authorize <stage>...` explicitly replaces the selected
+   subset (empty revokes it); `set` requires authorization. Old opened rows remain
+   historical facts, not authorization. Canonical stage numbers/order stay stable.
+   Offer all ready stages regardless of historical author; file ownership limits
+   simultaneous writers only. These commands do not create chats.
 3. Ask the question above once, with these titles; a stage the user asked for
    directly is marked «— вы просили». «все», or the numbers chosen, authorizes
    exactly those chats. A stage left out is not run in this iteration; when it
@@ -140,6 +143,7 @@ For each stage packet include:
 Результат: статус DONE/BLOCKED/STOPPED, изменённые файлы, проверки,
 решения пользователя, следующий этап и точка продолжения.
 Перед завершением запиши все решения в файлы и выполни проверки этапа.
+Если плагин дал сбой, сразу запиши его в этот чат с наблюдаемым результатом.
 Если требуется ответ пользователя, не выдавай этап за завершённый.
 ```
 
@@ -173,7 +177,7 @@ turn a context checkpoint into a request for the user to say «продолжа�
 When an old stage returns HANDOVER_READY, wait for its turn and all writers to
 end, verify its saved checkpoint, then open/reuse its authorized fresh successor
 as context.md specifies. Update the existing sessions.md stage ID and sidebar
-position, retaining old/new IDs in the handover note. The stage remains open;
+position, retaining physical old/new IDs in checkout-local runtime metadata. The stage remains open;
 HANDOVER_READY is neither DONE nor a reason to start the next pipeline stage.
 After compaction or restart read the handover note before creating anything,
 so a previously recorded successor is reused rather than duplicated.

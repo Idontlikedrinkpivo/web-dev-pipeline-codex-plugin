@@ -9,6 +9,13 @@ description: >-
 
 # Frontend
 
+## Главные правила
+
+[Inputs and their authority](#inputs-and-their-authority) · [Verification](#verification).
+
+Read these mandatory rules with the named relevant sections before implementation
+or review; preserve their dependencies (`executor-catalog/references/worker-prompt.md`).
+
 The design is already decided: the look and the texts by the Figma frames, each screen's behaviour by its screen spec
 (`screen-spec`), calls by OpenAPI, placement by the architecture. This skill is how to transcribe them into code without
 inventing anything, on any stack. It teaches no framework: the model already knows the frameworks, and facts that change
@@ -171,3 +178,7 @@ Name: profile used (or "no profile"), files by `S-n`, each state and response ou
 run with results, the Figma comparison result or why it was skipped, the «Проверка экрана перед сдачей» items with their
 result (inside `work`, the report's SCREEN CHECK field), libraries added, and every gap sent back to `screen-spec` or
 `ui-design`.
+
+## Shared data boundaries
+
+Executor and reviewer apply [DBND-1, DBND-3](../work/references/data-boundaries.md). Trace the applicable client/server boundary in implementation and review.

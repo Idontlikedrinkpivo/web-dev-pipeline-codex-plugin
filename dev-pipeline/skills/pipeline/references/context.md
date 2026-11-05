@@ -20,14 +20,20 @@ After each safe item boundary (a committed plan unit, a finished screen, a
 completed audit area), before dispatching the next item, run:
 
 ```bash
-python3 <skills-root>/reflect/scripts/context_size.py <project-dir> --json
+python3 <skills-root>/reflect/scripts/context_size.py <project-dir> --next Mid --json
 ```
 
 It uses CODEX_THREAD_ID; if unavailable, pass the host-provided full ID with
 --thread-id. Never infer an ID by matching titles. Without an ID the reader
 accepts only one unambiguous main chat, never the latest neighbouring chat.
 Default threshold: min(300,000 tokens, 70% of the recorded model window), with
-300,000 only when window telemetry is absent; --limit allows an explicit policy.
+300,000 only when window telemetry is absent; --limit replaces only that baseline.
+`--next 0|Low|Mid|High` estimates a policy reserve of 10k/25k/50k/75k tokens,
+capped at 20% of a known window. `--reserve <positive tokens>` overrides it;
+impossible capacity is rejected. These are estimates, not measured task costs.
+CHECKPOINT means current >= baseline or current + reserve >= known window.
+JSON includes baseline, reserve, decision and reason; argparse errors are not
+valid CHECKPOINT measurements. Exact CODEX_THREAD_ID/--thread-id is required.
 Exit 0: continue. Exit 2 (CHECKPOINT): use the procedure below. Exit 3 (UNKNOWN):
 context has not been measured; save progress, attempt to resolve the ID/telemetry
 once and do not report a reset or treat it as zero. If still unknown, mention
@@ -37,20 +43,20 @@ A checkpoint request never cancels an in-flight item or bypasses its review.
 
 ## Save at a safe boundary
 
-1. Finish the item, required checks, review and commit. Wait for every dispatched
-   agent and shell job to stop. With parallel units, finish the entire active
-   wave; no work may still be writing to this checkout. Blocked work follows its
-   own stop rule, not this handover. Never mark the stage complete merely to reset.
-2. Refresh the progress file, run report and documentation/plans/<version>/resume.md
-   (pause-and-resume.md). Record the exact next item, HEAD, branch, plan path and
-   hash, BASE/review range, completed units, pending reviews, decisions and any
-   live services. Preserve existing user edits; don't stash/reset or reapply a
-   patch to an unchanged shared checkout.
-3. Record a short context-handover.md beside resume.md: source thread/host IDs,
-   checkpoint paths, HEAD, exact next action and the chosen continuation mode
-   (fresh-chat or native-compaction-pending), successor ID if known, and the
-   user's explicit continuation-chat permission, if given. Store no fabricated
-   permission. This is a checkpoint, not an iteration/stage close.
+1. Follow [checkpoint-state.md](checkpoint-state.md): use `checkpoint.py capture`
+   with the accepted state schema at unit, wave, Low-fix, final-checks,
+   whole-review and review-fix boundaries. A same-chat CHECKPOINT preserves the
+   logical source and next action with `paused: false`; it does not require a
+   transfer, a reflect window or stopping owned active work.
+2. Save portable `work-run.md`, `resume.md`, `context-handover.md`, full HEAD,
+   plan hash, BASE/review ranges, Low batches/findings, remaining gates and exact
+   next action. Physical host/thread/process IDs and dispatch/log paths stay in
+   checkout-local runtime state, never portable reports. Preserve staged and
+   unstaged work using verified payload; never reset or auto-apply a legacy patch.
+3. Only a real HANDOVER needs confirmed successor ownership and stopped writers
+   and checks. Inspect actual available agent/process tools; unknown status is
+   not permission to transfer. Publication alone proves neither commit nor push;
+   transferable handoff follows [pause-and-resume.md](pause-and-resume.md).
 
 The last implementation commit is also a boundary, not the end of work. For
 21/21 committed units, save the next action as the remaining final checks,
@@ -83,13 +89,12 @@ Use create_thread (never fork_thread), the same verified project, host, local
 checkout and branch, no new worktree. Discover list_projects and tool schemas;
 if the tool cannot target that checkout, do not create a chat elsewhere; use
 same-chat continuation instead, provided no successor is already running.
-Pass only paths, stage/iteration, source ID and the next-item checkpoint, not
+Pass only paths, stage/iteration, logical source_id and the next-item checkpoint, not
 history or a transcript. Keep model defaults unless specific overrides were
 explicitly chosen by the user. Record the returned real thread ID, or clientThreadId while setup is queued;
 wait for setup before treating it as runnable. On timeout keep that pending ID
 and inspect it before retrying; never create a second successor. Emit the host's created-thread directive. The parent updates this
-stage's sessions.md ID (not a new stage/part row), retains the old ID in
-context-handover.md, inserts the successor at the stage's sidebar position and
+stage's sessions.md ID (not a new stage/part row), retains physical old/new IDs in checkout-local runtime metadata, inserts the successor at the stage's sidebar position and
 tracks that successor. Do not archive the old chat without a separate request.
 
 The successor reads AGENTS.md, the active SKILL.md, codex-runtime.md, resume.md,

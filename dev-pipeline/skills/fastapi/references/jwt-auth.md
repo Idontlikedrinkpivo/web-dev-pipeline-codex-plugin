@@ -29,3 +29,7 @@ Read this only when the task implements registration, login or protected routes.
 - Registration takes the password rule the SRS states — a minimum length and a check against known breached passwords, not composition rules — and, when the SRS says so, leaves the account unconfirmed until the emailed link is followed.
 - Duplicate registration: rely on the unique constraint on email as the last line and map its violation to the contract's 409 error; a pre-check only makes the common case cheaper.
 - 401 / 403 / 409 bodies follow the contract: problem+json per `documentation/api/openapi.yaml`, or the repo's existing error format when there is no spec.
+
+## Shared data boundaries
+
+Executor and reviewer apply [DBND-1](../../work/references/data-boundaries.md). Trace the applicable client/server boundary in implementation and review.

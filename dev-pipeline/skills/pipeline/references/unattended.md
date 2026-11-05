@@ -21,8 +21,9 @@ default for each, so the user answers once:
   `references/live-pentest.md`): skip / run when it is set up — skip when not asked, it spends
   the user's own model budget.
 - **The e2e scope**: the whole suite / the areas the iteration touched.
-- **Merge, tag and push**: the plugin never pushes; merge to `main` and tag each
-  iteration as it closes / leave the branches for the user.
+- **Git scope**: explicitly authorize iteration-branch report/checkpoint commit + push
+  for workflow close/handoff when wanted. Main/merge/tag/release remain separate
+  choices; general code permission does not authorize them.
 - **Dependency updates** a stage proposes: take patch and minor / ask later.
 - **Stop conditions**: what stops the whole chain — a P0 security finding, data loss
   on a stand, a red suite after its fix rounds, a cost or time limit the user names.

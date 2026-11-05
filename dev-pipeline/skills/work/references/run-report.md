@@ -4,15 +4,20 @@ Read at Step 1, when the file is started, and at Step 7, before the report is fi
 one run. A second run in the same iteration (units appended to the plan) adds its own section, «прогон 2», under
 its own BASE; the first run's section stays above it.
 
+Portable path: `documentation/plans/<version>/work-run.md`. Keep physical host,
+thread, process and dispatch IDs/log paths in local runtime only. A legacy local
+report must be verified and exported before handoff; a missing file is incomplete
+transfer. Reports do not replace `run-state.json` and verified checkpoint payload.
+
 ```markdown
 ## Отчёт о прогоне — <plan path> · прогон <n>
 
 **Base** — `BASE` recorded at Step 1: the start of this run's diff (`BASE...HEAD`) for Step 7. Which units are
 done is never read from it — the trailers on the whole iteration branch decide (`plan_state.py`).
 **Прогресс** — `<сделано> из <всего>`, the same numbers as the progress line.
-**В работе** — each dispatch still out, `U7 → impl-medium (задача <id>)`, written before the `Agent` call and
-cleared when it returns; «нет» between dispatches. After a compaction a unit listed here is waited for, never
-dispatched again.
+**В работе** — logical units and responsibility only; physical dispatch IDs stay in checkout-local runtime.
+**Checkpoint** — phase, full HEAD, plan hash, BASE/review range, checked Low batches/findings,
+acceptance/code hashes, remaining gates and exact next action, per checkpoint-state.md.
 
 | U | Статус | Исполнитель | Эскалация | Коммит |
 |---|---|---|---|---|
@@ -43,10 +48,15 @@ it wrote `none`.
 
 A filled excerpt, for calibration — match its density, not its domain:
 
+Portable path: `documentation/plans/<version>/work-run.md`. Keep physical host,
+thread, process and dispatch IDs/log paths in local runtime only. A legacy local
+report must be verified and exported before handoff; a missing file is incomplete
+transfer. Reports do not replace `run-state.json` and verified checkpoint payload.
+
 ```markdown
 **Base** — `a41c9e2`
 **Прогресс** — `3 из 12`
-**В работе** — U7 → impl-medium (задача a3f9)
+**В работе** — U7 → impl-medium
 
 | U | Статус | Исполнитель | Эскалация | Коммит |
 |---|---|---|---|---|

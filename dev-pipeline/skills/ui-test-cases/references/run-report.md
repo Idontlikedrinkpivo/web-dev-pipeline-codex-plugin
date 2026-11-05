@@ -197,3 +197,25 @@ shell (`python`, `sed`, `cat >`): the plugin's hook rebuilds the report's
 `.html` page — the one the user watches — only after an Edit or Write call,
 so a shell write leaves that page stale, and the guard hook refuses it (`pipeline` → `references/progress-files.md` → Rules for every
 file, «The page» and «How»).
+
+## Acceptance evidence
+
+The close gate reads `documentation/plans/<version>/ui-acceptance.json`.
+The read-only gate is `scripts/acceptance_scope.py check ROOT --manifest FILE`.
+Before an authorized run use `select ROOT --base REF --mapping FILE --out FILE`;
+after observation use `record ROOT --manifest FILE --scope selected|full
+--status pass|blocked|not-run --evidence TEXT`. A pass also requires `--tool NAME
+--stand URL` (or a reasoned `--no-ui-reason REASON` exemption). Mapping contains cases
+(`id`, `path`, `screens`, `operations`), changed path-to-screen/operation mappings
+and prior_failures IDs. Missing mapping conservatively selects full scope with a
+blocked reason. Record genuine UI non-applicability using `--scope full --status
+pass --no-ui-reason REASON`; this is a reasoned exemption, not browser evidence.
+
+For each selection record base/head, changed screens/operations, added/changed
+cases and previous failures, with inclusion reasons. Uncertain mapping expands
+the union. Save code-tree and case-set hashes including the complete case
+universe, scope and result. Code/case changes invalidate affected subset and full
+results. One current full suite on the final fingerprint is required before tag;
+stale subset results cannot be combined into that evidence. Non-applicable UI
+has a reason; missing mapping/tool/live stand is BLOCKED/not-run, never PASS.
+The gate only validates evidence and does not launch a browser without authority.

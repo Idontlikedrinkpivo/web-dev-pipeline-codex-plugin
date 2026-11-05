@@ -9,6 +9,13 @@ description: >-
 
 # FastAPI + SQLAlchemy async
 
+## Главные правила
+
+[Session and unit of work](#session-and-unit-of-work) · [Driver errors and install](#driver-errors-and-install) · [The reviewer checks](#the-reviewer-checks).
+
+Read these mandatory rules with the named relevant sections before implementation
+or review; preserve their dependencies (`executor-catalog/references/worker-prompt.md`).
+
 ## Which layout governs — decide first
 
 The cases (architecture document, Framework-first, existing repo) are in
@@ -88,13 +95,9 @@ class SqlOrderRepository:                      # implements application.ports.Or
   where the constraint name sits is a version check), never from its message — and raised as a domain exception with fields
   (`raise BookingOverlap(room_id=…) from e`); its HTTP status is the contract's for that named error (`fastapi`).
   Never a bare re-raise of the driver's error as an answer, never `except Exception: pass` (`python`).
-- A serialization failure (`40001`) or a deadlock (`40P01`) propagates unchanged from the repository. A use case
-  whose transaction can lose to a concurrent one is wrapped in `bootstrap/` by one shared helper that reruns its
-  whole run — load → decide → save, with a fresh session — a bounded number of times (three, with a short random
-  wait); never one statement, never a loop in the repository, and the use case knows no driver codes. What is left
-  after the attempts the handler answers with the contract's 503 and `Retry-After`. Anything else the
-  repository does not classify propagates unchanged and ends as the contract's 500 (`fastapi` → «Errors as
-  problem+json»).
+- Database retry and unexpected-failure behavior is defined once in
+  [DBND-4–DBND-7 and the mapping table](../work/references/data-boundaries.md).
+  Keep SQLSTATE/constraint access adapter-specific; no repository retry loop.
 - Async SQLAlchemy needs `sqlalchemy[asyncio]`: from 2.1 greenlet is no longer installed by default, and without it
   the first async call fails with an error that names the missing greenlet library — install the extra.
   `MissingGreenlet` is a different failure: IO started outside an `await`, nearly always a lazy load — fix the
@@ -118,3 +121,7 @@ Outside `work`, read the file and check each point you rely on against the insta
 5. **An expected constraint violation becomes a named exception with fields, `from e`**, classified by SQLSTATE
    and constraint name; nothing else is swallowed or turned into a client answer here.
 6. **One `AsyncSession` per request or job**, never module-global, never shared by concurrent tasks.
+
+## Shared data boundaries
+
+Executor and reviewer apply [DBND-2, DBND-4, DBND-5, DBND-6, DBND-7](../work/references/data-boundaries.md). Use its database failure mapping/retry table; keep adapter-specific accessors here.

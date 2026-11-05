@@ -200,3 +200,11 @@ before the first fix (`work` → Step 7). Add this section under the units table
   table as `F4`, `F5`… When progress stops (`pipeline` →
   `references/convergence.md`): «Повторное ревью: <verdict> → остановлено,
   решает пользователь», the open rows `⛔ остановлено: ждёт решения`.
+
+## Recovery phases
+
+The bar counts unit commits, not completion of the run. Preserve `unit`, `wave`,
+`low-fix`, `final-checks`, `whole-review`, `review-fix`, checked Low batches,
+BASE/review ranges, findings, remaining gates and exact next action in the
+portable work-run.md and checkpoint-state.md schema. 100% still proceeds through
+final checks and full review. Same-chat checkpoints save and continue immediately.

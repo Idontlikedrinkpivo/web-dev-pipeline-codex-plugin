@@ -10,6 +10,13 @@ compatibility: 'Python, pytest, pytest-asyncio, httpx, factory_boy; versions com
 
 # Pytest Patterns
 
+## Главные правила
+
+[Real database, not mocks](#real-database-not-mocks) · [The reviewer checks](#the-reviewer-checks).
+
+Read these mandatory rules with the named relevant sections before implementation
+or review; preserve their dependencies (`executor-catalog/references/worker-prompt.md`).
+
 ## Which layout governs — decide first
 
 The cases (architecture document, Framework-first, existing repo) and the contract's authority over expected

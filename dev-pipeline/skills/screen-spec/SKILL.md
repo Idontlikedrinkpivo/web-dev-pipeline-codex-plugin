@@ -49,6 +49,14 @@ Commit each document) — and the stage closes as usual, its stamp included.
 After the last stage this person took, the «готовы и запушены»
 line replaces the offer of a stage someone else has.
 
+## Changed mockups input
+
+For an explicit changed-mockups handoff, read
+[changed-frames.md](../ui-design/references/changed-frames.md) and its affected
+screen-spec/case list. Keep existing S/M IDs and element anti-renumber rules;
+update affected specs only. Deleted/missing frames create named open questions,
+never silently remove or reuse IDs. Send affected cases to ui-test-cases write.
+
 ## Inputs
 
 | Input | Required | Use |

@@ -9,6 +9,13 @@ description: >-
 
 # TypeScript
 
+## Главные правила
+
+[The machine checks — keep them green, never disable one without a reason in the comment](#the-machine-checks--keep-them-green-never-disable-one-without-a-reason-in-the-comment) · [The reviewer checks — the machine cannot](#the-reviewer-checks--the-machine-cannot).
+
+Read these mandatory rules with the named relevant sections before implementation
+or review; preserve their dependencies (`executor-catalog/references/worker-prompt.md`).
+
 The model knows TypeScript; these are the places where code an agent writes goes wrong anyway — they are what an
 audit of a real project found. A rule a machine checks is one line here with its lint rule; the config is
 `repo-scaffold/references/quality-gates.md`. Examples «так / не так»: `references/examples.md`.
@@ -59,3 +66,11 @@ audit of a real project found. A rule a machine checks is one line here with its
 10. **A shared step lives in a module of shared steps**, never imported from another use case's file.
 
 Python has the same rules in its own words: `python`.
+
+## Wire compatibility
+
+Input enum expansion is assessed against the accepted request set and existing
+callers. New output enum/union variants require checking old exhaustive consumers
+and schema validators; choose an explicit compatibility action/version where
+needed. Exhaustiveness alone does not make response expansion compatible
+(`zod-skill` → Schema evolution and tests).

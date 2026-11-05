@@ -66,3 +66,12 @@ named agents while Codex handles native compaction. The threshold alone never
 requires a manual /compact or «продолжай». Do not claim that a checkpoint or a
 fresh subagent reset the coordinator's context. Final checks and whole-run review
 remain required after the last implementation commit. work/run-hygiene.md points here.
+
+## Durable recovery paths
+
+Use pipeline/scripts/state_paths.py for checkout-owned plans and local runtime,
+and pipeline/references/checkpoint-state.md for capture/restore. Common-dir
+detail files may remain local evidence; never use them as shared mutable run
+state or promise they exist on a recipient machine. No watchers.py or agent-callable
+clear tool is promised: inspect available agent/process tools and let the host
+perform native compaction while continuing authorized same-chat work.

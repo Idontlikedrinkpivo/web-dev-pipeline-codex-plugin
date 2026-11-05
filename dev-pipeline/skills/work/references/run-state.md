@@ -1,18 +1,23 @@
-# Run state outside git — the run report, the resume note, the task list, the progress line
+# Portable run state and local runtime
 
 Read by `work` at Step 1, and again after every compaction: what the run keeps besides its commits, where each
 lives, and when each is written. Where the run stands is still read from git (`plan_state.py`); these hold what
 git cannot — who is dispatched now, what was decided, and what the user sees.
 
-**The run report** (`references/run-report.md`) is a file at
-`$(git rev-parse --path-format=absolute --git-common-dir)/pipeline-work/<version>-run.md` — outside the
-tree, so the plan stays byte-identical and no unit's `Файлы` grows; a second
-run in the iteration adds its own section under its own BASE. Append to it
-after every commit and read it back after a compaction. Its «В работе» line
-lists each dispatch still out — `U7 → impl-medium (задача <id>)` — written
-before the `Agent` call and cleared when it returns. After a compaction a
-unit listed there is still running: wait for its result, or confirm its task
-ended, and never send it to a second executor.
+**The portable run report** is `documentation/plans/<version>/work-run.md`,
+with a separate run section and full BASE per run. Follow
+[checkpoint-state.md](../../pipeline/references/checkpoint-state.md): phases are
+`unit`, `wave`, `low-fix`, `final-checks`, `whole-review`, `review-fix`.
+Save full HEAD, plan hash, BASE/review ranges, checked Low batches/findings,
+decisions, acceptance/code hashes, remaining gates and exact next action at every
+boundary and fix/re-review round. Unit completion never closes pending gates.
+
+**Local runtime** holds physical dispatch/task/host IDs, logs and ownership in
+the checkout-local Git directory from `state_paths.resolve_paths`. A dispatch is
+recorded before its Agent call and removed after verified completion. After
+compaction inspect actual task state before redispatch; unknown is not finished.
+Legacy common-dir run reports may be read locally; export verified portable
+content before transfer. Missing local files on the recipient are not success.
 
 **The resume note.** On start read `documentation/plans/<version>/resume.md`
 when a run left one (`pipeline` → `references/pause-and-resume.md` → Picking

@@ -3,6 +3,16 @@
 Read by `work` at Step 7: the checks it runs itself before `code-review-full`, and the fix rounds when that
 review's verdict is not `PASS`.
 
+## Checkpoint boundaries
+
+Use [checkpoint-state.md](../../pipeline/references/checkpoint-state.md) for
+`final-checks`, `whole-review` and every `review-fix`/re-review boundary. Save full
+HEAD, plan hash, BASE/review ranges, Low batches, findings/attempts, remaining
+gates and exact next action in portable work-run.md; raw check/detail paths and
+physical dispatch IDs remain local. Preserve acceptance/code hashes. 100% units
+does not mean DONE. Confirm writers/checks stopped before actual handoff; unknown
+status blocks transfer. A same-chat CHECKPOINT saves and immediately continues.
+
 ## The checks
 
 When every unit in scope is committed, run these yourself and save each output under

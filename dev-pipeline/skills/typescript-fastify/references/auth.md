@@ -53,3 +53,7 @@ says, and of this file only the guard rules (401 / 403, role from the database) 
   pre-check only makes the common case cheaper.
 - 401 / 403 / 409 / 429 bodies are the contract's Problem, rendered by the one global error handler (`SKILL.md` →
   Errors); the guard throws named errors, it never builds a body.
+
+## Shared data boundaries
+
+Executor and reviewer apply [DBND-1](../../work/references/data-boundaries.md). Trace the applicable client/server boundary in implementation and review.

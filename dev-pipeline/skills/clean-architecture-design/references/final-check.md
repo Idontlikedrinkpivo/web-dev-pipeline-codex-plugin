@@ -183,3 +183,15 @@ not the whole list.
   «Данные» beside Хранилища, «Каналы», «Ограничения»;
 - a second name for one concept — the word «агрегат», or any «агрегат
   = сущность» equation; the documents say «сущность».
+
+## Mechanical terminology check
+
+Run `scripts/architecture_lint.py FILE... [--json]` on the applicable active architecture documents.
+Use its finite rule IDs and file:line locations for unambiguous heading/term
+errors; fenced examples, historical sections and citations are outside those
+active rules. Semantic synonyms remain warnings/manual review, never a global
+substring ban. This read-only check complements the final checks above.
+`ARCH-H001` checks fixed banned headings; `ARCH-H002` checks foundation duplicate
+headings; `ARCH-T001` checks aggregate headings/equations; `ARCH-M001` is manual
+aggregate prose review. Exit 0 means clean/manual warnings, 1 definite violations,
+2 invalid input. Keep the reported rule ID and file:line with each finding.

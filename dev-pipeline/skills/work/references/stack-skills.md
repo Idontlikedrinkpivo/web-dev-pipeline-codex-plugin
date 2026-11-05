@@ -54,3 +54,9 @@ table above still applies in full; the fixtures below show the required scope, n
 For test files retain the language and test-skill rows above; React tests still get `react` without a screen
 pack. For a mixed unit take the union of all applicable scopes. A missing anchor or uncertain dependency means
 read the containing file and resolve coverage before dispatch, not silently omit a mandatory rule.
+
+## Hook-only mutations
+
+The `use*.ts` row includes React's core mutation rule: every affected
+detail/list/aggregate read, not only a list. Include the full reviewer checks in
+implementer/reviewer scope even without a screen/profile pack.

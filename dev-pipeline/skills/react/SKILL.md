@@ -9,6 +9,13 @@ description: >-
 
 # React
 
+## Главные правила
+
+[The machine checks — keep them green](#the-machine-checks--keep-them-green) · [The reviewer checks — the machine cannot](#the-reviewer-checks--the-machine-cannot).
+
+Read these mandatory rules with the named relevant sections before implementation
+or review; preserve their dependencies (`executor-catalog/references/worker-prompt.md`).
+
 `frontend` says what a screen must do; this skill says how its React code stays changeable. The rules come from
 react.dev (Rules of React, You Might Not Need an Effect, Choosing the State Structure) and from what an audit of a
 real project found: one oversized page holding all its state and effects, network calls in components, a reference
@@ -18,10 +25,10 @@ list loaded several ways. Examples «так / не так»: `references/example
 
 | Rule | Lint |
 |---|---|
-| rendering is pure: no request, no outside change, no ref write, no `setState` during render | react-hooks v7 `recommended`: `purity`, `refs`, `set-state-in-render`, `immutability`, `globals` |
-| no `setState` inside an effect to mirror other state | `set-state-in-effect` |
+| rendering is pure: no request, no outside change, no ref write, no `setState` during render | [installed-version equivalents](../frontend/references/version-checks.md#react-lint) |
+| no `setState` inside an effect to mirror other state | installed-version effect/state rule (version-checks → React lint) |
 | hooks rules and complete effect dependencies; wanting to disable `exhaustive-deps` means the effect is wrong | `rules-of-hooks`, `exhaustive-deps` |
-| no component defined inside a component | `static-components` |
+| no component defined inside a component | installed-version static component rule (version-checks → React lint) |
 | a list key is a stable id from the data, not the index | `@eslint-react/no-array-index-key` |
 | no `fetch` or API client outside the data layer (`shared/api`, `features/*/api.ts`) | `no-restricted-imports`, `no-restricted-globals` |
 | no regex literal in a component — a format comes from the rules module | `no-restricted-syntax` |
@@ -62,8 +69,16 @@ list loaded several ways. Examples «так / не так»: `references/example
     needs one goes through the backend. A session token never goes into `localStorage` or `sessionStorage`; how
     the session travels is the architecture §1 decision — the API's `HttpOnly` cookie (credentials sent), or a
     Bearer token, the backend skills' default, held in memory only.
-15. **Tests**: Testing Library through `renderWithProviders` from the shared test folder, the network mocked by
+15. **After a mutation**, update or invalidate every affected detail/list/aggregate
+    read (for example card, list and count), using the data layer's query keys.
+    Include related views and rollback/error paths; list-only invalidation is
+    insufficient. `frontend/references/react-vite.md` holds installed TanStack API syntax.
+16. **Tests**: Testing Library through `renderWithProviders` from the shared test folder, the network mocked by
     MSW, the component's own hooks and modules never mocked, one behaviour per test (`vitest`).
 
 React-version facts (`ref` as an ordinary prop, `<Context>` as its own provider) are points to check:
 `frontend/references/version-checks.md` → React major.
+
+## Shared data boundaries
+
+Executor and reviewer apply [DBND-1, DBND-3](../work/references/data-boundaries.md). Trace the applicable client/server boundary in implementation and review.

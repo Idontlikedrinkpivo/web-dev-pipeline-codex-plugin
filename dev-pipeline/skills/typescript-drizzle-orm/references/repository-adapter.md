@@ -19,35 +19,13 @@ export function sqlState(e: unknown): string | undefined {
 }
 ```
 
-| SQLSTATE | Meaning | Repository throws |
-|---|---|---|
-| `23505` | unique violation | the named error for that key (`EmailAlreadyTaken`), or re-reads the winner for an idempotency key |
-| `23503` | FK violation | the named error for the missing reference (`AuthorNotFound`) |
-| `23514` | check violation | usually a bug: the entity should have refused first; rethrow |
-| `40001`, `40P01` | serialization failure, deadlock | rethrow unchanged — the shared helper reruns the use case's whole transaction a bounded number of times (below); what is left is the contract's 503 with `Retry-After` |
-| anything else | | rethrow unchanged; the global handler logs it with its SQLSTATE and answers the contract's 500 |
-
-A uniqueness clash reaches the client only as its named error, never as a bare 409 (`typescript-fastify` → Errors,
-`openapi-spec-generator` → Step 6).
-
-A rerun wraps load → decide → save, not one statement — the decision was made on the rows the lost transaction
-read. One shared helper does it, wired in `bootstrap/` around each use case whose transaction can lose to a
-concurrent one, so the use case itself knows no driver codes:
-
-```typescript
-// adapters/persistence/rerun.ts — the only loop; the repository never retries
-// bootstrap: const cancelBooking = (input: CancelInput) => rerunOnConflict(() => cancelBookingUseCase.execute(input))
-export async function rerunOnConflict<T>(run: () => Promise<T>, attempts = 3): Promise<T> {
-  for (let attempt = 1; ; attempt++) {
-    try { return await run() }
-    catch (e) {
-      const state = sqlState(e)
-      if (attempt >= attempts || (state !== '40001' && state !== '40P01')) throw e
-      await new Promise((r) => setTimeout(r, 20 * attempt + Math.random() * 30))
-    }
-  }
-}
-```
+The normative mapping/retry table is
+[DBND-4–DBND-7](../../work/references/data-boundaries.md). The accessor above is
+adapter-specific; classify expected constraints by SQLSTATE + constraint name.
+Keep unexpected failures intact. Safe retry wraps the whole transaction with a
+fresh session and contract-owned limits, only after demonstrated idempotency and
+safe external side effects. No default retry helper or fixed attempt budget is
+prescribed here; no loop belongs in the repository.
 
 Match on the constraint name when one table has several unique constraints, so a duplicate
 slug is not reported as a duplicate email.
@@ -147,3 +125,7 @@ Across aggregates only through the `UnitOfWork` port the architecture names.
   as owed (`typescript/references/shared-test-rules.md` → 6); the classification itself can be shown meanwhile by
   throwing an error shaped like the wrapped one (code on `cause`, not top level) from a stubbed insert.
 - Use-case tests use an in-memory fake of the port, never a mocked Drizzle client.
+
+## Shared data boundaries
+
+Executor and reviewer apply [DBND-2, DBND-4, DBND-5, DBND-6, DBND-7](../../work/references/data-boundaries.md). Use its database failure mapping/retry table; keep adapter-specific accessors here.

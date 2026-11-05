@@ -37,6 +37,13 @@ shrink to zero with the plan.
 
 ## Inputs
 
+For a validated small iteration without a plan, use its concrete iteration.json
+metadata, user-settled scope/spec, result row and full base/head diff instead of
+inventing a plan. Require affected-test evidence, prior unit review and the
+small-mode close checks (`work/references/chat-change.md`). The ordinary plan
+requirements below remain unchanged for normal mode; missing small metadata or
+evidence is a blocker, never an empty placeholder plan.
+
 | Input | Required | Notes |
 |---|---|---|
 | Plan document `documentation/plans/<version>/plan.md` | **yes** | all units, §1 digest, §2 unit map, §5 критерии готовности |
@@ -44,14 +51,24 @@ shrink to zero with the plan.
 | Cited design documents | **yes** | every section any unit cited, once each, de-duplicated — under `documentation/`: `requirements/srs/srs.md`, `db/schema.md` and `db/migrations/`, `api/openapi.yaml`, `architecture/` (`architecture.md`, `domain.md`, `scenarios/<area>/<group>.md`), `ui/screen-specs/` |
 | Declared NFR and configuration decisions | **yes** when they exist | foundation §1 «Решения по NFR» rows and the §4 configuration table — the baseline the NFR lens checks against |
 | Declared security requirements | **yes** when either exists | the SRS's Security NFR sub-checklist rows and the architecture's security decisions table — the baseline the security lens checks against |
-| Run report `$(git rev-parse --path-format=absolute --git-common-dir)/pipeline-work/<version>-run.md` | **yes** | per-unit statuses, evidence strategies, grade corrections, out-of-scope notes, the **Изменённые решения** of the run, and the **Cross-unit watch** list of `OPEN` suspicions carried up from unit reviews |
+| Run report `documentation/plans/<version>/work-run.md` | **yes** | per-unit statuses, evidence strategies, grade corrections, out-of-scope notes, the **Изменённые решения** of the run, and the **Cross-unit watch** list of `OPEN` suspicions carried up from unit reviews |
 | Definition-of-done output | **yes** | the plan's §5 commands as `work` Step 7 ran them, with exit codes, as a file path — the reviewer reads it and does not re-run them |
 | Code health | **yes** | the «Здоровье кода» table from `work` Step 7 (`work/references/health.md`): duplicates, functions and files over the thresholds, surviving mutants — each at BASE and HEAD; a row worse at HEAD without a reason in the run report is a finding |
 | Dead-code report | **yes** | the stack's detector output (`knip` / `vulture`) from `work` Step 7, as a file path; "could not run" with the reason is a valid input, a missing one is not |
 | Prior full-plan findings | on a re-review | the open findings with what each fix tried, and the closed ones, so a closed finding is not re-opened — the re-review packet (Step 5) |
 
-Without the plan and the run report this is a generic diff read that will
+Without the plan (or validated small-mode scope/result) and the run report this is a generic diff read that will
 invent its own idea of what the branch was supposed to do. Say so and stop.
+
+## Resume a review
+
+Read the passed portable work-run.md and accepted
+[checkpoint-state.md](../pipeline/references/checkpoint-state.md). Preserve
+`whole-review` / `review-fix`, full BASE/HEAD and re-review ranges, checked Low
+batches, findings/attempts, plan hash and remaining gates. Full-diff/details stay
+local-only common-dir files; export required evidence before transfer. A missing
+local report is not acceptance. A same-chat checkpoint saves and continues the
+exact next review action, without a handover or reflect window.
 
 ## Workflow
 

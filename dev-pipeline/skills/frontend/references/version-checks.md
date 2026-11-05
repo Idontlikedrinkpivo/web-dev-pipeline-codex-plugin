@@ -46,3 +46,13 @@ profile).
 - eslint-plugin-jsx-a11y: that it loads with the installed ESLint major — it
   has lagged ESLint releases; if it does not, say so in the report rather
   than pinning ESLint back.
+
+## React lint
+
+Read the installed eslint-plugin-react-hooks version from lockfile first; this
+does not require upgrading. Version 7 recommended names include `purity`, `refs`,
+`set-state-in-render`, `immutability`, `globals`, `set-state-in-effect` and
+`static-components`. Confirm availability against that installed version and
+use supported equivalents for the core React behaviors. Unsupported rule names
+are not permission to disable the behavior or force an upgrade. Keep
+`rules-of-hooks` and `exhaustive-deps` supported by the installed plugin.

@@ -29,16 +29,32 @@ dependency or a config file to the project for this step: that is a change no un
 
 ## Mutation runs
 
+Spec policy fields: `budget: {seconds: positive integer, workers: positive integer}`,
+`risk_scope: {mandatory: [file:start-end], optional: [...]}`, `elapsed_seconds`
+(default 0), `runner_available`, and `equivalent_mutants: [{id, reason, evidence}]`.
+Each cancelled part carries `status: "SKIPPED BY USER"`, `user_cancelled: true`,
+`reason` and `mutate` ranges. Incomplete/not-run parts identify uncovered ranges
+and `next_action`. Omitted mandatory ranges are rejected unless explicitly
+cancelled, exhausted or unavailable under that policy. A legacy string budget is
+legacy/unbounded evidence; a generated manifest is planned, never PASS.
+The generator validates and records budget, not a running timer: the supervising
+executor enforces the recorded seconds while executing the printed commands.
+
 Mutation testing changes the code on purpose — a `>` into `>=`, a condition into `true` — and runs the tests
 against each change, the **mutant**. A mutant the tests catch is **killed**; one they do not is a **survivor**: an
 assertion is missing. An **equivalent** mutant changes nothing anyone can observe (`i < n` and `i != n` in a loop
 that only counts up): no test can kill it. It is slow — the whole focused suite per mutant — so it stays narrow.
 
-**Tell the user once, before the first mutation run of the iteration**, in plain words: what the three words
-mean, what the run will take (the mutant count, the streams and the time estimate below), and one question
-about equivalent mutants — `A. Оставить с причиной в отчёте` (рекомендую), `B. Упростить код в следующей итерации, чтобы мутанта
-не было`, `C. Пометить в коде (`// Stryker disable next-line <mutator>: <причина>`)`. The answer holds for the
-iteration; the run report records it.
+**Before launch**, record a numeric time/resource budget, mandatory risk line
+ranges and optional scopes. Ordinary narrowing removes optional scope only.
+Equivalent mutants need ID + reason/evidence in the report, without a question
+for each one. An explicit user cancellation also overrides mandatory mutation
+ranges: synchronize active state/checkpoint, resume, remaining gates and unsent
+packet before dispatch; write `SKIPPED BY USER`, reason and uncovered ranges,
+never PASS or budget exhaustion. Do not ask again; other gates continue.
+Exhausted budget is incomplete; unavailable runner is not-run. Both name uncovered
+mandatory ranges and the next action. Validate the spec before file generation
+or work; keep runtime files in this checkout's local state_paths runtime root.
 
 **Scope: lines, not files.** The scope is the lines of the rules and guards the units enforce — an entity's
 method, a guard, a mapping — named as ranges: Stryker `--mutate "src/a.ts:40-72,src/b.ts:10-31"` (one argument,
@@ -63,7 +79,7 @@ stream are the default to avoid, not the safe choice.
    the same servers: a test database `<project>_test_mut_<k>` (the name holds «test» and differs from
    `DATABASE_URL`, so the test helper accepts it — `references/run-hygiene.md`), migrated before the start; its own
    bucket, queue or temp folder when the tests touch one. All of it through environment variables and temporary
-   configs under `$(git rev-parse --path-format=absolute --git-common-dir)/pipeline-work/<version>/mutation/` — never a change in the repository.
+   configs under the checkout-local runtime mutation directory from `state_paths.resolve_paths` — never a change in the repository.
    Stryker processes side by side share nothing on disk either: each share's config names its own
    `tempDirName`, `incrementalFile` and report files there, or one process's cleanup removes another's sandbox and
    the last one to finish overwrites the others' results. mutmut writes its mutants beside the code, so its shares
@@ -105,17 +121,16 @@ shares on their own databases run side by side and nothing else can join them.
    numbers against the tool's own final summary once: a mismatch means the log format changed — say so and fix
    that row by hand.
 5. The section «Выжившие и эквивалентные» below the table is the session's, kept with Edit: one row per survivor
-   as it is read — the mutant (file:line, mutator), the part, the decision (тест дописать, or the user's answer on
-   equivalents: оставить с причиной, упростить, пометить в коде), where it went (the final review's finding, «Задачи
+   as it is read — the mutant (file:line, mutator), the part, the decision (тест дописать, or equivalent ID + reason/evidence), where it went (the final review's finding, «Задачи
    на потом»), its status.
 
 The run's `progress.md` carries one line while it runs: «Мутации: см. progress-mutation» with the link.
 
-**Estimate first, ask past the budget.** The run prints the mutant count before it starts («Found N mutants»; a
-dry run only, when the version has one). Time ≈ initial test run × mutants ÷ the part's workers (its shares
-together). Plan the streams first, then estimate; over 30 minutes for a part even in parallel: ask before
-running — narrow the ranges, or run it as it is, or skip with «не измерено: долго». The progress line says the
-estimate.
+**Estimate before the budget starts.** Count mutants in a supported dry run and
+estimate time from focused-test duration × mutants / workers. Record the numeric
+budget before launch; never silently drop mandatory risk ranges to fit it.
+Stop at the agreed limit with incomplete coverage and next action. A user's
+explicit cancellation is `SKIPPED BY USER` with the uncovered ranges.
 
 **Never in place, never interrupted.** Stryker's default sandbox copies the project; keep it — `inPlace: true`
 rewrites the working tree, and an interrupted run leaves instrumented files in `src`. A project config with
@@ -125,7 +140,7 @@ over files someone else changed — and say so in the run report.
 
 **Read the result.** The report lists every file of the scope as mutated (a file missing means the scope did not
 reach it), the counts killed / survived / timed out / no coverage, and each survivor with its line and mutator.
-Survivors go to `code-review-full` as findings on the tests, equivalent ones by the user's answer.
+Survivors go to `code-review-full` as findings on the tests, equivalent ones with ID + reason/evidence.
 
 ## Simplify
 

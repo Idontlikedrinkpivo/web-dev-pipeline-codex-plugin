@@ -92,10 +92,10 @@ in a measured run its context grew by ~100,000 tokens per unit, a third of it ag
 ## Context checkpoints in Codex
 
 After each unit's reviewed commit (Step 5.6), before the next dispatch, follow
-`pipeline/references/context.md`: measure the current thread, finish all active
-work, save resume.md/progress/report and verify the handover. Exit 2 requests a
+`pipeline/references/context.md`: measure the current thread, save durable
+checkpoint/resume/progress/report state and continue authorized work. Exit 2 requests a
 checkpoint; exit 3 is unknown, never a zero context. With a parallel wave finish
-and join the whole wave before handing over. Continue in a fresh chat only when
+and join the whole wave before an actual ownership handover. Continue in a fresh chat only when
 the human explicitly requested continuation chats and the host permits it;
 otherwise save the checkpoint and continue automatically in this chat while
 Codex manages native compaction. Never stop solely for /compact or «продолжай». Never promise
@@ -162,10 +162,9 @@ orchestrator checks it when the unit returns:
 - a shared registry that parallel units would all edit — the lint ratchet list, a
   shared config, a barrel file — is not edited by the units: each reports its lines,
   and the orchestrator writes them once when it brings the wave home;
-- an executor stops every background task it started (a watch, a `run_in_background`
-  command) before its report — the plugin's hook (`hooks/watchers.py`) keeps an agent from ending while one it
-  started still runs, and names it. When the agent still shows as running after its report,
-  stop it (`TaskStop`) — a finished executor left «running» holds the panel for hours.
+- an executor stops every background task it started before reporting. Inspect
+  available agent/process tools and shell-session status; do not promise a
+  nonexistent watchers.py hook. Unknown status blocks ownership transfer.
 
 ## Finishing an older iteration while a newer one is open
 
@@ -174,9 +173,8 @@ in the same folder, the older one is finished in a worktree of its own, never by
 switching the main tree back and forth:
 
 1. `git worktree add ../<repo>-<old version> iteration/<old version>`;
-2. its plans folder comes with the branch (`plans/` is in git); the main tree's copy of it is not edited
-   meanwhile. A branch from before that rule has none: link the main tree's in — `ln -s <main
-   tree>/documentation/plans/<old version> ../<repo>-<old version>/documentation/plans/<old version>`;
+2. its plans folder belongs to that checkout (`state_paths.resolve_paths`);
+   recover missing committed inputs there, never link mutable plans to the main tree;
 3. install dependencies there (`npm ci` / `uv sync`), copy the local test settings
    (`.env.test.local`) and regenerate the generated files the build needs
    (a bundled OpenAPI, the client);
@@ -185,4 +183,4 @@ switching the main tree back and forth:
    older one's, and say so.
 
 The `where` line of Step 1 stops only on a worktree with **no** plan; a worktree of
-the older iteration's branch, its folder committed or linked, is this case.
+the older iteration's branch, its own folder committed, is this case.

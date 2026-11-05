@@ -113,8 +113,8 @@ units after losing your place is the single most expensive way a run fails.
 A follow-up that is not in the plan changes neither number.
 
 - **The `where` line.** A linked worktree whose branch has no plan committed
-  yet: stop and tell the user to open the session in the main folder the
-  line names. One on an older iteration's branch, with its plans folder, is that iteration being
+  yet: resolve the missing plan in this checkout before dispatch; never redirect
+  writes to another checkout's plans folder. One on an older iteration's branch, with its plans folder, is that iteration being
   finished (`references/run-hygiene.md`). On another branch, switch to
   `iteration/<version>` (`pipeline` → Service version); never run on `main`.
 - **Hygiene and the run base.** Read `references/run-hygiene.md` now — the test
@@ -123,11 +123,25 @@ A follow-up that is not in the plan changes neither number.
   first run); record it in the run report before the first dispatch. It bounds
   Step 7's diff and nothing else.
 
-**The run's state outside git** — the run report with its «В работе» line, the resume note, the task list,
+**Portable reports and local runtime** — the run report with its logical «В работе» line, the resume note, the task list,
 and the progress file with its progress line — is `references/run-state.md`: read it now and after every
 compaction. In short: write each dispatch into «В работе» before its `Agent` call and append to the run report
 after every commit; refresh `resume.md` after every commit and stop; one task per unit; the progress line comes
 from `progress_link.py` — before the first dispatch, after every commit and stop, and last — never by hand.
+
+**Checkpoint and finite scope.** Follow
+[checkpoint-state.md](../pipeline/references/checkpoint-state.md) at `unit`,
+`wave`, `low-fix`, `final-checks`, `whole-review`, `review-fix` boundaries. Save
+plan hash, full HEAD, BASE/ranges, checked Low batches/findings, acceptance/code
+hashes, remaining gates and exact next action in portable work-run.md. Physical
+IDs/logs stay local. R01: each next packet carries the finite agreed mandatory
+checks and proven regressions (`convergence.md` → Scope shrinks / Only what blocks
+circles). Excluded optional ideas stay in the report and do not reopen a circle;
+new proven blocking regressions follow convergence, mandatory checks remain.
+R02: before next dispatch synchronize a user's cancellation into this run's active
+state/checkpoint, resume, remaining gates and unsent packet. Record
+`SKIPPED BY USER`, reason and uncovered mutation ranges without asking again;
+preserve historical reports and other runs. Other gates continue.
 
 ### Step 2. Resolve the routing table
 
@@ -361,8 +375,11 @@ then the question about the next stage: read `pipeline` → "Asking before a
 transition" now and ask it as that section says — the stage the chain table names after `work` (the UI run, else
 the security audit), never «merge, push and prod are the owner's steps»: that line ended a run with the audit not
 offered at all (ai-initiatives 2.2.0). The reviews inside the run stayed automatic; this handoff
-is a question. No PR, no push, no CI watching: the branch stays local, and
-push and PR are the user's step after the whole pipeline.
+is a question. Workflow-authorized close/handoff may commit + push owned
+iteration reports and checkpoint payload through push_branch.py, including work.
+A general request to code is insufficient. Main/merge/tag/release and PR
+publication remain separately authorized steps; verify remote evidence before
+calling a handoff transferable.
 
 ## A change asked in chat outside a run
 

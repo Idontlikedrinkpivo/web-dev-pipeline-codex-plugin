@@ -31,6 +31,9 @@ import sys
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
+sys.path.insert(0, str(HERE))
+from state_paths import checkout_root, contained_path, portable_plans
+
 PLANS_RX = re.compile(r"^/?documentation/plans/?(\*\*?)?\s*$")   # the old line: the whole folder ignored
 LOCAL = ("# dev-pipeline: файлы итерации — в git, кроме файлов этой машины",
          "documentation/plans/**/sessions.md", "documentation/plans/**/.progress-*", "documentation/plans/**/*.html",
@@ -89,7 +92,7 @@ def merged(root: Path, ref: str, into: str) -> bool:
 def gitignore(root: Path) -> tuple[bool, bool]:
     """.gitignore keeps this machine's files of documentation/plans/ out, not the folder: (changed, the old
     whole-folder line was there)."""
-    p = root / ".gitignore"
+    p = contained_path(root, root / ".gitignore")
     text = p.read_text(encoding="utf-8") if p.exists() else ""
     lines = text.splitlines()
     old = any(PLANS_RX.match(l.strip()) for l in lines)
@@ -187,16 +190,20 @@ def main() -> None:
             git(root, "symbolic-ref", "HEAD", "refs/heads/main", check=True)
         notes.append("created a git repository (branch main)")
         top = git(root, "rev-parse", "--show-toplevel")
-    if not (root / "documentation").is_dir():  # a system in a subfolder keeps its own documentation/ there
-        root = Path(top.stdout.strip())
-
-    plans = root / "documentation" / "plans"
-    folder = plans / version
-    if (folder / "summary.md").exists():
+    try:
+        root = checkout_root(root)
+        folder = portable_plans(root, version)
+        summary = contained_path(root, folder / "summary.md")
+        plans = folder.parent
+        existing = [portable_plans(root, p.name) for p in plans.iterdir()
+                    if re.fullmatch(r"\d+\.\d+\.\d+", p.name)] if plans.is_dir() else []
+        others = sorted((p.name for p in existing if p.is_dir() and p.name != version
+                         and not contained_path(root, p / "summary.md").exists()), key=vkey)
+    except ValueError as exc:
+        fail(str(exc))
+    if summary.exists():
         fail(f"iteration {version} is closed (documentation/plans/{version}/summary.md): the next iteration takes the "
              "next number (pipeline → references/service-version.md).")
-    others = sorted((p.name for p in plans.iterdir() if p.is_dir() and re.fullmatch(r"\d+\.\d+\.\d+", p.name)
-                     and p.name != version and not (p / "summary.md").exists()), key=vkey) if plans.is_dir() else []
     if others and "--allow-open" not in flags:
         fail(f"iteration {', '.join(others)} is open (no summary.md): it is the current iteration — reuse it. "
              f"Open {version} beside it only on the user's yes: rerun with --allow-open.", 2)
@@ -272,6 +279,12 @@ def main() -> None:
                  "changes that conflict with it; ask the user how to handle them (never stash on your own).")
         notes.append(f"created {branch} from {start} and switched to it")
 
+    # Switching branches can replace a directory with a symlink. Validate again
+    # before the first portable-state write on the selected iteration branch.
+    try:
+        folder = portable_plans(root, version)
+    except ValueError as exc:
+        fail(str(exc))
     folder.mkdir(parents=True, exist_ok=True)
     commit_gitignore(root, gitignore(root), notes)
 
@@ -288,4 +301,7 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except ValueError as exc:
+        fail(str(exc))

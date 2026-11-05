@@ -44,6 +44,9 @@ import subprocess
 import sys
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "pipeline" / "scripts"))
+from state_paths import checkout_root, contained_path, portable_plans
+
 UNIT = re.compile(r"^###\s+U(\d+)\.", re.M)
 KINDS = re.compile(r"U\d+|review-fix-\d+|health-\d+|decision-\d+|verify-skill|stand|chat-\d+")
 DEPS = re.compile(r"^\|\s*\*\*(?:Зависит от|Depends on)\*\*\s*\|(.*)\|\s*$", re.M)
@@ -78,7 +81,10 @@ def units_of(text: str) -> list:
 
 def review_gate(plan: Path) -> tuple:
     """(ok, line) for plan-review.md beside the plan."""
-    rv = plan.parent / "plan-review.md"
+    try:
+        rv = contained_path(plan.parent, plan.parent / "plan-review.md")
+    except ValueError as exc:
+        return False, f"review    invalid checkout path: {exc}"
     if not rv.exists():
         return False, "review    none — plan-review.md is missing: run plan-review before the first dispatch"
     head = rv.read_text(encoding="utf-8", errors="replace").splitlines()[:6]
@@ -132,32 +138,24 @@ def main() -> int:
     if not args or args[0] in ("-h", "--help"):
         print(__doc__)
         return 0 if args else 1
-    plan = Path(os.path.abspath(args[0]))  # not resolved: a plans folder linked into a worktree stays the worktree's
+    plan = Path(os.path.abspath(args[0]))
     base = args[args.index("--base") + 1] if "--base" in args and args.index("--base") + 1 < len(args) else ""
     rbase = args[args.index("--range") + 1] if "--range" in args and args.index("--range") + 1 < len(args) else ""
     version = plan.parent.name
-    cwd = plan.parent
-    while cwd.is_symlink():  # git runs in the tree that holds the link, not in the tree it points to
-        cwd = cwd.parent
-    if not cwd.exists():
-        cwd = Path.cwd()
-
-    gitdir = git(cwd, "rev-parse", "--absolute-git-dir")
-    common = git(cwd, "rev-parse", "--path-format=absolute", "--git-common-dir")  # git ≥ 2.31
-    if not common and gitdir:
-        rel = git(cwd, "rev-parse", "--git-common-dir")
-        common = str((cwd / rel).resolve()) if rel else gitdir
-    linked = bool(gitdir and common and Path(gitdir).resolve() != Path(common).resolve())
-    main_tree = ""
-    if linked:
-        wl = git(cwd, "worktree", "list", "--porcelain").splitlines()
-        main_tree = wl[0][len("worktree "):] if wl and wl[0].startswith("worktree ") else str(Path(common).parent)
+    try:
+        cwd = checkout_root(Path.cwd())
+        folder = portable_plans(cwd, version)
+        plan = contained_path(cwd, plan)
+        if plan.parent != folder:
+            raise ValueError(f"plan is outside this checkout's iteration folder: {folder}")
+    except ValueError as exc:
+        print(f"plan      invalid checkout path: {exc}")
+        return 1
 
     if not plan.exists():
         print(f"plan      not found: {plan}")
-        if linked:
-            print(f"where     this session runs in a linked worktree ({Path.cwd()}); the plan is not committed on this "
-                  f"branch yet, so it lives in the main working tree {main_tree} — open the session there")
+        print("where     fetch and switch to the iteration branch, or integrate its plans into this checkout; "
+              "do not edit a plan in another checkout")
         return 1
 
     text = plan.read_text(encoding="utf-8", errors="replace")
@@ -179,19 +177,12 @@ def main() -> int:
             print(f"lint      {last}")
     branch = f"iteration/{version}"
     head = git(cwd, "rev-parse", "--abbrev-ref", "HEAD")
-    ref = branch if has_ref(cwd, branch) else "HEAD"
+    ref = branch if head == branch else "HEAD"
     if not base:
         base = next((b for b in ("main", "master", "origin/main", "origin/master") if has_ref(cwd, b)), "")
     rng = f"{base}..{ref}" if base and git(cwd, "rev-parse", base) != git(cwd, "rev-parse", ref) else ref
     where = f"where     done read from {rng}"
-    if linked and head == branch:
-        where += (" · a linked worktree with the plans folder linked in — finishing an older iteration "
-                  "(work → references/run-hygiene.md); one stand per machine")
-    elif linked:
-        where += (f" · this session runs in a linked worktree on {head or '?'}, not {branch}; the iteration's files "
-                  f"live in {main_tree} — stop and open the session there")
-        problems += 1
-    elif head != branch:
+    if head != branch:
         where += f" · HEAD is on {head or '?'}, not {branch} — switch to it before the first dispatch"
         problems += 1
     print(where)

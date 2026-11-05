@@ -52,10 +52,12 @@ class CodexCompatibility(unittest.TestCase):
             (wt / 'outside').symlink_to(main, target_is_directory=True)
             options = dict(worktree_root=str(wt), main_root=str(main))
             for header in ['Update File: ../../a.py', 'Delete File: ../../a.py',
-                           'Add File: outside/a.py', 'Move to: ../../a.py']:
+                           'Add File: outside/a.py', 'Move to: ../../a.py',
+                           'Add File: ../../documentation/plans/1.0/progress.md',
+                           'Update File: outside/documentation/plans/1.0/progress.md']:
                 patch = '*** Begin Patch\n*** ' + header + '\n*** End Patch'
                 self.assertIsNotNone(guard.decide('apply_patch', {'command': patch}, str(wt), **options))
-            for header in ['Update File: a.py', 'Add File: ../../documentation/plans/1.0/progress.md']:
+            for header in ['Update File: a.py', 'Add File: documentation/plans/1.0/progress.md']:
                 self.assertIsNone(guard.decide('apply_patch', {'command': '*** '+header}, str(wt), **options))
             self.assertIsNotNone(guard.decide('apply_patch', '*** Delete File: ../../a.py', str(wt), **options))
 

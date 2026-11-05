@@ -1,6 +1,10 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""The iteration's nested sessions — each named for its job before it opens — in documentation/plans/<version>/sessions.md.
+"""The iteration's nested sessions, isolated by checkout and CODEX_THREAD_ID.
+
+Stored in <absolute-git-dir>/pipeline-work/<version>/<chat-key>/sessions.md.
+An explicit --legacy <sessions.md> copies identity-validated old local state;
+the source is preserved and an existing local copy is never overwritten.
 
     python3 subsessions.py <project dir> <version> plan <stage>...
     python3 subsessions.py <project dir> <version> set <row> <session id>
@@ -31,10 +35,13 @@ check plan work ui audit deploy ops ci close. Standard library only.
 from __future__ import annotations
 
 import re
+import os
 import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+from state_paths import StatePaths, contained_path, legacy_source, resolve_paths
+
 try:
     import where_am_i as w  # the document registry and its stamps
 except Exception:  # a broken neighbour must not break the list
@@ -74,19 +81,25 @@ def rows_for(version: str, key: str) -> list[dict]:
     return [dict(title=f"{version} · {n:02d} {word}", stage=key, skill=skill, when="по очереди")]
 
 
-def read(path: Path) -> tuple[str, list[dict]]:
-    parent, rows = "", []
-    if not path.exists():
-        return parent, rows
-    for line in path.read_text(encoding="utf-8").splitlines():
-        m = re.match(r"^Родительская сессия:\s*(\S+)", line)
-        if m:
-            parent = m.group(1)
+def parse(text: str) -> tuple[str, list[dict]]:
+    lines = text.splitlines()
+    parents = [match.group(1) for line in lines
+               if (match := re.fullmatch(r"Родительская сессия:[ \t]*(.*)", line))]
+    if len(parents) != 1 or not parents[0].strip():
+        raise ValueError("sessions registry requires exactly one parent header")
+    parent, rows = parents[0].strip(), []
+    for line in lines:
         m = ROW.match(line)
         if m:
             _, title, stage, skill, when, sid, state = (c.strip() for c in m.groups())
             rows.append(dict(title=title, stage=stage, skill=skill, when=when, id=sid.strip("`"), state=state))
     return parent, rows
+
+
+def read(path: Path) -> tuple[str, list[dict]]:
+    if not path.exists():
+        return "", []
+    return parse(path.read_text(encoding="utf-8"))
 
 
 def write(path: Path, version: str, parent: str, rows: list[dict]) -> None:
@@ -138,14 +151,74 @@ def show(rows: list[dict]) -> None:
             f"{rows.index(r) + 1}. «{r['title']}»" for r in later))
 
 
+def migrate_legacy(paths: StatePaths, source: str, target: Path) -> None:
+    """Copy only after both location and recorded parent prove local identity."""
+    old = legacy_source(paths, source)
+    payload = old.read_bytes()
+    parent, _ = parse(payload.decode("utf-8"))
+    if parent != paths.chat_key:
+        raise ValueError("legacy sessions parent does not match this chat; no state copied")
+    target.parent.mkdir(parents=True, exist_ok=True)
+    # Exclusive creation preserves state changed after an earlier migration.
+    try:
+        with target.open("xb") as copied:
+            copied.write(payload)
+    except FileExistsError:
+        return
+
+
+def owner_of(paths: StatePaths, child: str) -> tuple[str, dict] | None:
+    """Read-only self lookup in identity-proven owner registries of this checkout.
+
+    The unique parent header must reproduce the registry's exact hashed namespace
+    through the resolver. A child row alone is never proof of an owning parent.
+    """
+    if child != paths.chat_key or not paths.local.parent.exists():
+        return None
+    matches = []
+    for folder in sorted(paths.local.parent.iterdir()):
+        try:
+            source = contained_path(paths.gitdir, folder / "sessions.md")
+            if not source.is_file():
+                continue
+            parent, rows = read(source)
+            owner = resolve_paths(paths.checkout, paths.version, parent)
+            if source != owner.local / "sessions.md":
+                continue
+        except ValueError:
+            continue  # invalid/unproven namespaces cannot establish ownership
+        hits = [row for row in rows if row.get("id") == child]
+        if len(hits) > 1:
+            raise ValueError("ambiguous child membership in parent registry")
+        if hits:
+            matches.append((parent, hits[0]))
+    if len(matches) > 1:
+        raise ValueError("ambiguous parent registries for this child session")
+    return matches[0] if matches else None
+
+
 def main() -> None:
-    args = [a for a in sys.argv[1:] if not a.startswith("--")]
-    flags = {a for a in sys.argv[1:] if a.startswith("--")}
+    raw = sys.argv[1:]
+    legacy = None
+    if "--legacy" in raw:
+        index = raw.index("--legacy")
+        if index + 1 >= len(raw) or raw.count("--legacy") != 1:
+            sys.exit("sessions: --legacy requires one explicit source path")
+        legacy = raw[index + 1]
+        raw = raw[:index] + raw[index + 2:]
+    args = [a for a in raw if not a.startswith("--")]
     if len(args) < 3:
         sys.exit(__doc__)
-    root, version, cmd, rest = Path(args[0]).resolve(), args[1], args[2], args[3:]
-    path = root / "documentation" / "plans" / version / "sessions.md"
-    parent, rows = read(path)
+    version, cmd, rest = args[1], args[2], args[3:]
+    try:
+        paths = resolve_paths(args[0], version, os.environ.get("CODEX_THREAD_ID", ""))
+        root = paths.checkout
+        path = contained_path(paths.gitdir, paths.local / "sessions.md")
+        if legacy is not None:
+            migrate_legacy(paths, legacy, path)
+        parent, rows = read(path)
+    except (ValueError, OSError) as exc:
+        sys.exit(f"sessions: {exc}")
 
     if cmd == "plan":
         bad = [k for k in rest if k not in STAGES]
@@ -161,30 +234,40 @@ def main() -> None:
                 if r["title"] not in have and key not in staged:
                     rows.append(dict(r, id="", state="не открыта"))
         rows.sort(key=lambda r: order_key(r["stage"]))   # stable: a part stays after its stage
-        write(path, version, parent, rows)
+        write(path, version, parent if parent and parent != "—" else paths.chat_key, rows)
         show(rows)
     elif cmd == "set" and len(rest) == 2 and rest[0].isdigit() and 0 < int(rest[0]) <= len(rows):
         r = rows[int(rest[0]) - 1]
         r["id"], r["state"] = rest[1], "ждёт"
-        write(path, version, parent, rows)
+        write(path, version, parent if parent and parent != "—" else paths.chat_key, rows)
         print(f"sessions: {rest[0]}. «{r['title']}» — {rest[1]}, ждёт")
     elif cmd == "mark" and len(rest) == 2 and rest[1] in STATES:
         hit = [r for i, r in enumerate(rows, 1) if rest[0] in (str(i), r.get("id"))]
         if not hit:
             sys.exit(f"sessions: строки «{rest[0]}» нет — subsessions.py … show")
         hit[0]["state"] = rest[1]
-        write(path, version, parent, rows)
+        write(path, version, parent if parent and parent != "—" else paths.chat_key, rows)
         print(f"sessions: «{hit[0]['title']}» — {rest[1]}")
     elif cmd == "parent" and len(rest) == 1:
         write(path, version, rest[0], rows)
         print(f"sessions: родительская сессия — {rest[0]}")
     elif cmd == "show":
         if not rows:
-            sys.exit(f"sessions: списка нет ({path.relative_to(root)}) — составьте: subsessions.py … plan <этапы>")
+            sys.exit(f"sessions: списка нет ({path}) — составьте: subsessions.py … plan <этапы>; "
+                     "для старого файла укажите --legacy <sessions.md> (нужна идентичность checkout/чата)")
         print(f"Родительская сессия: {parent or '—'}")
         show(rows)
     elif cmd == "whoami" and len(rest) == 1:
-        hit = next((r for r in rows if r.get("id") == rest[0]), None)
+        hits = [r for r in rows if r.get("id") == rest[0]]
+        if len(hits) > 1:
+            sys.exit("sessions: ambiguous child membership in local registry")
+        hit = hits[0] if hits else None
+        try:
+            owner = owner_of(paths, rest[0])
+        except (ValueError, OSError) as exc:
+            sys.exit(f"sessions: {exc}")
+        if owner is not None:
+            parent, hit = owner
         if not hit:
             sys.exit(f"sessions: сессии {rest[0]} в списке нет — спросите родительскую ({parent or 'id неизвестен'})")
         print(f"ты — «{hit['title']}»: этап {hit['stage']}, навык {hit['skill']}, {hit['when']}, состояние "

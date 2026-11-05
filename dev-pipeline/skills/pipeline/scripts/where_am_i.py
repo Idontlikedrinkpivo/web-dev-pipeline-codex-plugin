@@ -21,6 +21,9 @@ import sys
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
+sys.path.insert(0, str(HERE))
+from state_paths import checkout_root, contained_path, plans_root
+
 sys.path.insert(0, str(HERE.parent.parent / "docs-consistency" / "scripts"))
 try:
     import checked as dc_checked  # the document set and its hashes, shared with docs-consistency
@@ -208,7 +211,7 @@ def srs_gates(root: Path) -> tuple:
 def progress(folder: Path) -> list:
     out = []
     for name, (stage, unfinished) in PROGRESS.items():
-        p = folder / name
+        p = contained_path(folder, folder / name)
         text = read(p)
         if not text:
             continue
@@ -229,7 +232,12 @@ def iterations(plans: Path) -> tuple:
         return [], []
     vs = sorted((p for p in plans.iterdir() if p.is_dir() and re.fullmatch(r"\d+\.\d+\.\d+", p.name)),
                 key=lambda p: vkey(p.name))
-    return [p.name for p in vs if not (p / "summary.md").exists()], [p.name for p in vs if (p / "summary.md").exists()]
+    open_, closed = [], []
+    for p in vs:
+        p = contained_path(plans, p)
+        summary = contained_path(p, p / "summary.md")
+        (closed if summary.exists() else open_).append(p.name)
+    return open_, closed
 
 
 def main_ref(root: Path) -> str | None:
@@ -323,7 +331,8 @@ def unstamped(root: Path, doc: Doc, version: str | None) -> bool:
 
 def plan_state(folder: Path) -> list:
     out, opens = [], []
-    plan, review = folder / "plan.md", folder / "plan-review.md"
+    plan = contained_path(folder, folder / "plan.md")
+    review = contained_path(folder, folder / "plan-review.md")
     if plan.is_file():
         line = "план: plan.md"
         if not review.is_file():
@@ -346,7 +355,7 @@ def plan_state(folder: Path) -> list:
 
 
 def consistency(root: Path, folder: Path) -> tuple:
-    rep = folder / "docs-consistency.md"
+    rep = contained_path(folder, folder / "docs-consistency.md")
     if not rep.is_file():
         return "сверка (docs-consistency): не запускалась в этой итерации", None
     verdict = (read(rep).splitlines() or [""])[0].replace("Verdict:", "").strip() or "нет строки Verdict"
@@ -366,19 +375,20 @@ def consistency(root: Path, folder: Path) -> tuple:
 
 
 def main() -> None:
-    given = Path(sys.argv[1] if len(sys.argv) > 1 else ".").resolve()
-    top = git(given, "rev-parse", "--show-toplevel")
-    # a system in a subfolder of a bigger repository keeps its own documentation/ (doc-versioning → monorepo)
-    root = given if (given / "documentation").is_dir() or not top else Path(top)
+    given = Path(sys.argv[1] if len(sys.argv) > 1 else ".")
+    try:
+        root = checkout_root(given)
+        plans = plans_root(root)
+        open_, closed = iterations(plans)
+    except ValueError as exc:
+        sys.exit(f"where_am_i: {exc}")
     doc = root / "documentation"
-    plans = doc / "plans"
     print(f"Проект: {root}")
     branch = git(root, "symbolic-ref", "-q", "--short", "HEAD") or "(не git или detached HEAD)"
     dirty = git(root, "status", "--porcelain", "--", ".")
     print(f"Ветка: {branch} · незакоммичено: {len(dirty.splitlines()) if dirty else 'ничего'}")
     opens: list = []
 
-    open_, closed = iterations(plans)
     by_branch = [] if open_ else branch_iterations(root, branch, closed)
     if open_:
         print(f"Итерации: открыта {', '.join(open_)}" + (f"; закрыты {', '.join(closed)}" if closed else ""))
@@ -413,8 +423,9 @@ def main() -> None:
     it_version = cur or (by_branch[0][0] if by_branch else None)
     folder = plans / cur if cur else None
 
-    if folder and (folder / "resume.md").is_file():
-        upd = re.search(r"Обновлено:\s*([^·\n]+)", read(folder / "resume.md"))
+    resume = contained_path(folder, folder / "resume.md") if folder else None
+    if resume and resume.is_file():
+        upd = re.search(r"Обновлено:\s*([^·\n]+)", read(resume))
         print(f"Прерванный прогон: documentation/plans/{cur}/resume.md" + (f" (обновлено {upd.group(1).strip()})" if upd else "")
               + " — прочитать первым и сверить с git (pipeline → references/pause-and-resume.md)")
         opens.append(f"прерванный прогон — продолжить по documentation/plans/{cur}/resume.md")
@@ -534,7 +545,7 @@ def main() -> None:
         if units:
             print(f"  12. задач с Plan-Unit на ветке: {len(set(units))}")
         for name, label, n in (("test-run.md", "проверка через интерфейс", 13), ("security-audit.md", "аудит безопасности", 14)):
-            v = re.search(r"^Verdict:\s*(\S+)", read(folder / name), re.M)
+            v = re.search(r"^Verdict:\s*(\S+)", read(contained_path(folder, folder / name)), re.M)
             if v:
                 print(f"  {n}. {label}: {v.group(1)}")
                 if v.group(1) in ("DEFECTS", "FIX"):
@@ -546,4 +557,7 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except ValueError as exc:
+        sys.exit(f"where_am_i: {exc}")

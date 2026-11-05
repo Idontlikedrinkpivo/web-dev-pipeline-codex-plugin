@@ -38,6 +38,9 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "skills" / "pipeline" / "scripts"))
+from state_paths import checkout_root, contained_path, plans_root
+
 RUNNER = re.compile(r"\b(?:npm (?:run )?(?:test|lint|typecheck)|npx (?:vitest|jest|tsc|eslint|playwright test)|"
                     r"pnpm (?:run )?(?:test|lint|typecheck)|yarn (?:test|lint|typecheck)|pytest|"
                     r"uv run (?:pytest|ruff|mypy)|ruff check|mypy|tsc|vitest|run_check\.py)\b")
@@ -191,7 +194,7 @@ def decide(tool: str, inp: dict, cwd: str, *, branch: str = "", open_iteration: 
             return deny("this command writes a progress file from the shell; the page the user watches is redrawn "
                         "only after Edit/Write or by the progress scripts. Change rows with Edit, the bar and count "
                         "with progress_set.py (pipeline → references/progress-files.md → How).")
-        if not worktree_root and destructive(bare) and "/.claude/worktrees/" not in bare:
+        if (not worktree_root or not main_root) and destructive(bare) and "/.claude/worktrees/" not in bare:
             return deny("git stash (of everything) / reset --hard / clean -f / checkout -- . in the main working "
                         "tree wipe uncommitted work of other agents and of the user. Restore only the files you "
                         "changed, by name (`git checkout -- <file>`, `git stash push -- <paths>`), or ask the user "
@@ -202,17 +205,15 @@ def decide(tool: str, inp: dict, cwd: str, *, branch: str = "", open_iteration: 
         paths = re.findall(r"^\*\*\* (?:(?:Add|Update|Delete) File|Move to): (.+?)\s*$", patch, re.M)
     elif tool in ("Edit", "Write", "MultiEdit", "NotebookEdit"):
         paths = [str(inp.get("file_path") or inp.get("notebook_path") or "")]
-    if worktree_root and main_root:
+    if worktree_root:
         for path in paths:
             if not path:
                 continue
             path = os.path.join(cwd, path)   # a relative patch path is the worktree's; an absolute one stays
-            real, wt, main = (os.path.realpath(p) for p in (path, worktree_root, main_root))
-            inside = lambda root: real == root or real.startswith(root + os.sep)
-            plans = os.path.join(main, "documentation", "plans")   # read and written in the main tree only: the worktree's copy is the branch's last commit
-            if inside(main) and not inside(wt) and not inside(plans):
-                return deny(f"you work in the worktree {worktree_root}, but this edit targets {path} in the main "
-                            "tree. Use the same path inside the worktree (executor-catalog → "
+            real, wt = (os.path.realpath(p) for p in (path, worktree_root))
+            if real != wt and not real.startswith(wt + os.sep):
+                return deny(f"you work in the worktree {worktree_root}, but this edit targets {path} outside its "
+                            "checkout. Use the same path inside the worktree (executor-catalog → "
                             "references/worker-prompt.md → RULES).")
     return None
 
@@ -266,13 +267,31 @@ def git(cwd: str, *args: str) -> str:
 
 
 def open_iteration(project: str) -> str | None:
-    plans = os.path.join(project, "documentation", "plans")
     try:
-        vs = [v for v in os.listdir(plans) if re.fullmatch(r"\d+(\.\d+)*", v)
-              and not os.path.exists(os.path.join(plans, v, "summary.md"))]
-    except OSError:
-        return None
+        root = checkout_root(project)
+        plans = plans_root(root)
+        if not plans.exists():
+            return None
+        if not plans.is_dir():
+            raise ValueError(f"invalid checkout plans directory: {plans}")
+        vs = []
+        for folder in plans.iterdir():
+            if not re.fullmatch(r"\d+(\.\d+)*", folder.name):
+                continue
+            folder = contained_path(root, folder)
+            if folder.is_dir() and not contained_path(root, folder / "summary.md").exists():
+                vs.append(folder.name)
+    except OSError as exc:
+        raise ValueError(f"cannot inspect checkout iteration state: {exc}") from exc
     return max(vs, key=lambda v: [int(x) for x in v.split(".")]) if vs else None
+
+
+def iteration_state(project: str) -> tuple[str | None, str | None]:
+    """Absent plans are normal; invalid ownership must not disable protection."""
+    try:
+        return open_iteration(project), None
+    except ValueError as exc:
+        return None, deny(f"invalid checkout iteration state: {exc}. Repair its ownership before this mutation.")
 
 
 def main() -> None:
@@ -283,12 +302,23 @@ def main() -> None:
     tool, inp = data.get("tool_name", ""), data.get("tool_input") or {}
     # Codex runs a command in its own workdir; Claude Code names the project in CLAUDE_PROJECT_DIR
     cwd = (inp.get("workdir") if isinstance(inp, dict) else None) or data.get("cwd") or os.getcwd()
-    top = git(cwd, "rev-parse", "--show-toplevel")
+    try:
+        top = str(checkout_root(cwd))
+    except ValueError:
+        return
     is_worktree = bool(top) and git(cwd, "rev-parse", "--absolute-git-dir") != os.path.realpath(
         git(cwd, "rev-parse", "--path-format=absolute", "--git-common-dir") or "-")
-    main_root = os.path.dirname(git(cwd, "rev-parse", "--path-format=absolute", "--git-common-dir")) if is_worktree else None
-    project = os.environ.get("CLAUDE_PROJECT_DIR") or main_root or top or cwd   # the stamp lives in the main tree
-    if not os.path.isfile(os.path.join(project, "documentation", ".dev-pipeline.json")):
+    worktrees = git(cwd, "worktree", "list", "--porcelain").splitlines() if is_worktree else []
+    main_root = worktrees[0][len("worktree "):] if worktrees and worktrees[0].startswith("worktree ") else None
+    project = top
+    # Older worktrees may lack the project marker. Use that one activation file
+    # from main, never main's plans; branch and iteration always belong to cwd.
+    marker = os.path.join(project, "documentation", ".dev-pipeline.json")
+    log_project = project
+    if not os.path.isfile(marker) and main_root:
+        marker = os.path.join(main_root, "documentation", ".dev-pipeline.json")
+        log_project = main_root
+    if not os.path.isfile(marker):
         return
     branch = ""
     if tool == "Bash" and re.search(r"\b(?:merge|fetch|update-ref|push|branch)\b", str(inp.get("command", ""))):
@@ -296,12 +326,13 @@ def main() -> None:
         target = commit_dir(cmd, cwd)
         if os.path.realpath(git(target, "rev-parse", "--show-toplevel") or "-") == \
                 os.path.realpath(git(project, "rev-parse", "--show-toplevel") or "+"):
-            it = open_iteration(project)
-            tagged = bool(it) and bool(git(project, "rev-parse", "-q", "--verify", f"refs/tags/v{it}"))
-            why = merge_issue(heredocs(cmd)[0], git(target, "rev-parse", "--abbrev-ref", "HEAD"), it, tagged)
+            it, why = iteration_state(project)
+            if not why:
+                tagged = bool(it) and bool(git(project, "rev-parse", "-q", "--verify", f"refs/tags/v{it}"))
+                why = merge_issue(heredocs(cmd)[0], git(target, "rev-parse", "--abbrev-ref", "HEAD"), it, tagged)
             if why:
                 try:
-                    log_refusal(project, tool, inp, why)
+                    log_refusal(log_project, tool, inp, why)
                 except Exception:
                     pass
                 print(json.dumps({"hookSpecificOutput": {"hookEventName": "PreToolUse", "permissionDecision": "deny",
@@ -313,11 +344,12 @@ def main() -> None:
         if os.path.realpath(git(target, "rev-parse", "--show-toplevel") or "-") == \
                 os.path.realpath(git(project, "rev-parse", "--show-toplevel") or "+"):
             branch = git(target, "rev-parse", "--abbrev-ref", "HEAD")
-    why = decide(tool, inp, cwd, branch=branch, open_iteration=open_iteration(project) if branch else None,
-                 worktree_root=top if is_worktree else None, main_root=main_root)
+    it, why = iteration_state(project) if branch else (None, None)
+    why = why or decide(tool, inp, cwd, branch=branch, open_iteration=it,
+                        worktree_root=top, main_root=main_root)
     if why:
         try:
-            log_refusal(project, tool, inp, why)
+            log_refusal(log_project, tool, inp, why)
         except Exception:
             pass
         print(json.dumps({"hookSpecificOutput": {"hookEventName": "PreToolUse", "permissionDecision": "deny",

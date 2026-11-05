@@ -9,6 +9,9 @@ description: >-
 
 # Full-Plan Review
 
+A changed decision in another stage's document: under a parent, route through it —
+[Под родительским чатом](../pipeline/references/decision-changes.md#под-родительским-чатом); never launch its writer here.
+
 One run, one diff, one verdict, after every unit landed. The question this
 answers is different from a per-unit review's: **do the committed units add up
 to what the plan promised, with nothing left contradicting, duplicating, or

@@ -9,6 +9,9 @@ description: >-
 
 # CI Pipeline
 
+A changed decision in another stage's document: under a parent, route through it —
+[Под родительским чатом](../pipeline/references/decision-changes.md#под-родительским-чатом); never launch its writer here.
+
 CI is the independent re-check, not a second definition of "passing". Every
 step in the workflow this skill writes calls a command the project already
 has — `make lint`, `make typecheck`, `make test` (or `npm run lint`,

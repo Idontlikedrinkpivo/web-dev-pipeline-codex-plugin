@@ -9,6 +9,9 @@ description: >-
 
 # Security Audit
 
+A changed decision in another stage's document: under a parent, route through it —
+[Под родительским чатом](../pipeline/references/decision-changes.md#под-родительским-чатом); never launch its writer here.
+
 The per-run reviews read what one plan changed. Nothing there asks whether
 the application **as a whole** can be broken: an operation written three
 iterations ago that never checks the owner, a secret committed and removed

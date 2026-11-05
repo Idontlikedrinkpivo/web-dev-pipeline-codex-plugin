@@ -40,6 +40,10 @@ def doc_set(root: Path) -> dict:
         for p in sorted(doc.glob(pat)):
             if p.is_file() and not p.name.startswith("."):
                 files.setdefault(p.relative_to(root).as_posix(), blob(p))
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2] / 'doc-versioning' / 'scripts'))
+    from open_questions import question_files
+    for p in question_files(root):
+        files.setdefault(p.relative_to(root).as_posix(), blob(p))
     return files
 
 

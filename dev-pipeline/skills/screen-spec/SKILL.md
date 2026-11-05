@@ -9,6 +9,13 @@ description: >-
 
 # Screen Spec
 
+A changed decision in another stage's document: under a parent, route through it —
+[Под родительским чатом](../pipeline/references/decision-changes.md#под-родительским-чатом); never launch its writer here.
+
+At entry: run `open_questions.py <project> --for 'ТЗ на экраны'`; pass rows as `QUESTIONS TO SETTLE`.
+At close: settle or readdress each original row and report every outcome.
+Both steps: [Вопросы, адресованные этапу](../pipeline/references/decision-changes.md#вопросы-адресованные-этапу).
+
 The frames show what a screen looks like; the API says what an operation
 takes and returns; the SRS says who may do what. None of them says which
 element calls which operation in which condition, which response field it

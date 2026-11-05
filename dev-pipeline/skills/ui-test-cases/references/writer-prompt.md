@@ -7,6 +7,12 @@ open — such a case goes to GAPS. You cannot ask the user: a question only
 the user can answer, without which the set cannot be written, is STATUS
 BLOCKED with that one question in BLOCKER.
 
+QUESTIONS TO SETTLE
+  <rows from open_questions.py --for this stage, including source file; or none>
+  Settle in your document, return an explicit assumption for confirmation, or
+  BLOCKED if only the user can decide. Report every row and its destination;
+  unresolved questions are never silently treated as decisions.
+
 SKILLS ROOT     <absolute folder holding the plugin's skills
                 (executor-catalog → Dispatch contract)>
 SKILL           <SKILLS ROOT>/ui-test-cases/SKILL.md — follow Mode write

@@ -50,6 +50,42 @@ still writing is that stage's own work.
 The session does not edit a contract document by hand: the writer keeps
 the template's shape and the ids that other documents cite.
 
+## Под родительским чатом
+
+When an iteration uses a parent and one chat per stage, only the owner's stage chat edits
+its document. This overrides direct writer dispatch in every row of «Where it applies»:
+SRS/API gaps in screen specs, changed behaviour in mockups, work BLOCKED, requirement defects
+found by tests, upstream grill/review contradictions, and decisions between stages.
+The owner has the interview and accepted wording; one writer prevents overlapping edits;
+the parent sees both branches and warns affected owners; owner handover and reflect see the change.
+
+1. The discovering stage records `<было> → <стало> · решил <кто>` under «Изменённые решения»
+   in its own report. It edits only its own document, never starts another stage's writer,
+   and sends the parent:
+   `РЕШЕНИЕ · <было> → <стало> · решил <кто> · владелец: <этап> · жду`.
+   After the parent routes it, finish the turn to the user:
+   `Решение ушло в «<название чата владельца>»; продолжу, когда документ обновят`.
+   If there is no owner chat, name the parent handling it; never invent a successful delivery.
+2. The parent finds the owner in the iteration registry, ensures one active writer, marks it «идёт»,
+   and sends `РЕШЕНИЕ ИЗМЕНЕНО · <было> → <стало> · решил <кто> · от <этап>`.
+   If the owner has no chat (fresh clone or work done by another person), the parent uses the
+   owner's writer itself. A different stage chat never substitutes for the owner.
+3. The owner applies the ordinary steps below to its document: writer, check, commit and push
+   under existing publication permissions, without a version bump. The checked owner-close commit
+   carries `Stage-Closed: <key> <iteration-version>` per offer-at-close.md, so the new input is ready.
+   It replies:
+   `РЕШЕНИЕ ЗАПИСАНО · <документ> · коммит <sha> · задеты: <документы других закрытых этапов, повторяющие старое решение, или «нет»>`.
+   The parent verifies the commit, marks the owner «закрыт», and routes affected closed documents
+   to their own stage chats by the same protocol, one writer per document. Future stages read the
+   updated source when they start. Do not resume dependent work while an affected input is unsettled.
+4. The parent sends the waiting stage `продолжай: <документ> обновлён, коммит <sha>`.
+   In the shared checkout no pull is needed. Only after the owner's commit does the waiting stage
+   repair consequences in its own document; its report retains the decision and commit reference.
+
+Without a parent, the single session still invokes the owner's writer itself as before.
+The steps below run inside the owner, or in that single session; their batching never grants
+one child permission to edit documents belonging to other stage chats.
+
 ## The steps
 
 1. **Write it down first.** One line in the stage's report under
@@ -139,3 +175,20 @@ does this, whatever the finding's severity:
 | `repo-scaffold`, `deploy-topology`, `ci-pipeline` | a stack version, a port, a variable, a service name or a command that differs from the architecture |
 | `grill-me`, `doc-review`, `docs-consistency` | an upstream contradiction the user rules on: the upstream document follows this file |
 | between stages | «давай поменяем …» in the chat |
+
+## Вопросы, адресованные этапу
+
+At entry run `python3 <skills-root>/doc-versioning/scripts/open_questions.py <project> --for '<этап>'`
+with the exact recipient from doc-versioning → Открытые вопросы. Give every returned row, with its
+source path, to the writer in `QUESTIONS TO SETTLE`. The writer settles it in the document, returns an
+explicit assumption for confirmation, or returns BLOCKED when only the user may decide. Name every
+row and its outcome in the report. Never turn a proposed assumption into a settled answer.
+Development, release and operations without a delegated writer settle or ask these questions themselves.
+A `Блокирует старт` the stage cannot settle stops dependent work with a question to the user.
+
+At close change the class of each settled row in its original file to `Решено: <документ и раздел или коммит>`.
+This is a changed decision without a version bump, included in the stage-close commit; keep the row for
+history. Readdress unresolved rows to an explicit stage or name them in the report as unresolved; never
+silently drop them. Do not collect them in a shared project file. Under a parent, changes to another
+stage's question file are routed to that owner just like changes to its document; the owner records the
+settlement before this stage closes. Intake never authorizes a second concurrent writer.

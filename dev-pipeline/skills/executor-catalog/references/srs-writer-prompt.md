@@ -12,7 +12,13 @@ of `srs-writer`, not the Orchestrator half.
 You settle the SRS and print it yourself; you do not write production
 code, a schema, or an API. When every decision the template needs is
 settled, write OUTPUT PATH by the RULES of
-`<SKILLS ROOT>/executor-catalog/references/doc-typist-prompt.md` — the
+`<QUESTIONS TO SETTLE
+  <rows from open_questions.py --for this stage, including source file; or none>
+  Settle in your document, return an explicit assumption for confirmation, or
+  BLOCKED if only the user can decide. Report every row and its destination;
+  unresolved questions are never silently treated as decisions.
+
+SKILLS ROOT>/executor-catalog/references/doc-typist-prompt.md` — the
 template's shape, nothing the settlement does not hold. A gap the skill
 calls BLOCKED returns before you write. Read the file back and fix what is
 off, then the report. You run on the model the typist does, so nesting it
@@ -73,7 +79,7 @@ RULES
   the answer back to you.
 - On grill-reversal: the settlement lists each contradicted line and
   its replacement. Replace it in place. Each DEFERRED line
-  becomes one `open-questions.md` row beside the SRS, class `Отложено`,
+  becomes one `open-questions.md` row beside the SRS, class `Решить при: <этап>` if the user named a stage, otherwise `Отложено` (keep start blockers),
   source `(допрос, YYYY-MM-DD)` — a deferred question is kept, not lost
   with the ledger. Do not bump version. Do not add a changelog row.
 - Frontmatter is only `title`, `date`, `updated`, `version`. Do not

@@ -61,3 +61,19 @@ The other branch is not run in this session. When it is someone else's,
 the hand-over follows `references/team.md`, and the meeting point waits for
 their «готово и запушено». When it is later, the meeting point offers it
 as the next stage.
+
+## Readiness in either order
+
+Use [What to offer at a close](offer-at-close.md) at every close. In «обе параллельно»,
+mockups finishing before API pause the design branch: name the running backend chat,
+never offer its stage again, and finish here if nothing else is ready. After API closes,
+architecture and screen specs are ready together. In «сначала дизайн», start backend
+at its first unclosed applicable stage (schema → API → architecture), never API over
+an open schema. A document file is not closure.
+
+With a registry, `subsessions.py <project> <version> plan ...` gives screen specs
+`после API` while API is listed and unclosed. `when <row|id> api` sets the dependency;
+`when <row|id> clear` removes it only once the input is closed. `show` prints
+«ждёт входа: … — «начинай» после API»; `mark <API-row> закрыт` reports «теперь можно: …»
+after verifying the committed close. Without a registry the queue owner keeps this
+same dependency explicitly: no screen-spec start before API closes.

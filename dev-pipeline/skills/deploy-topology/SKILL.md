@@ -9,6 +9,13 @@ description: >-
 
 # Deploy Topology
 
+A changed decision in another stage's document: under a parent, route through it —
+[Под родительским чатом](../pipeline/references/decision-changes.md#под-родительским-чатом); never launch its writer here.
+
+At entry: run `open_questions.py <project> --for 'релиз'`; pass rows as `QUESTIONS TO SETTLE`.
+At close: settle or readdress each original row and report every outcome.
+Both steps: [Вопросы, адресованные этапу](../pipeline/references/decision-changes.md#вопросы-адресованные-этапу).
+
 Three environments, three compose files, one image per container. The shape that
 makes this safe is always the same: **what talks to what changes per
 environment; what the code does never does.** The application does not

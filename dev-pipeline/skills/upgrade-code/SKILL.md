@@ -9,6 +9,9 @@ description: >-
 
 # Upgrade a project's code to the installed plugin
 
+A changed decision in another stage's document: under a parent, route through it —
+[Под родительским чатом](../pipeline/references/decision-changes.md#под-родительским-чатом); never launch its writer here.
+
 The same list and script as `upgrade-docs`: `../upgrade-docs/changes.json`, the rows with `"kind": "code"`, and
 `../upgrade-docs/scripts/project_format.py`. These changes touch the project's code and settings, not its
 documents, so they are kept apart: the person who brings the documents up need not be the one who changes

@@ -10,6 +10,7 @@ the source is preserved and an existing local copy is never overwritten.
     python3 subsessions.py <project dir> <version> authorize [<stage>...]
     python3 subsessions.py <project dir> <version> set <row> <session id>
     python3 subsessions.py <project dir> <version> mark <row | session id> <state>
+    python3 subsessions.py <project dir> <version> when <row | session id> <stage | clear>
     python3 subsessions.py <project dir> <version> parent <session id>
     python3 subsessions.py <project dir> <version> show
     python3 subsessions.py <project dir> <version> whoami <session id>
@@ -29,6 +30,7 @@ authorize records the user's explicit selected subset of proposed stages, in can
         Only authorized unopened rows are printed as ready to open. No command creates a chat.
 set     an authorized row's session id, once opened (state → ждёт).
 mark    a row's state: ждёт · идёт · закрыт · передан (handed over, to be cleared and started again) · убран.
+when    set an explicit dependency (stage key); clear removes it only after its input closes.
 parent  the parent's own session id, so a parent after a compaction or a new one on «продолжим» finds the list.
 show    the table, then: the stage in work, the next one to start, the rows not opened yet — the input of «продолжим».
 whoami  the row of a nested session by its own id: its stage and its skill — for a session after a compaction or a clear.
@@ -133,14 +135,23 @@ def write(path: Path, version: str, parent: str, rows: list[dict]) -> None:
 
 def stamped(root: Path, version: str) -> set[str]:
     """Document stages closed in this iteration: every document of the stage carries the version's stamp."""
-    if w is None:
-        return set()
-    by_stage: dict[int, list] = {}
-    for d in w.registry(root):
-        if d.path.is_file():
-            by_stage.setdefault(d.stage, []).append(d.meta.get("version") == version)
-    number = {1: "brd", 2: "srs", 3: "db", 4: "api", 5: "arch", 8: "specs"}
-    return {number[n] for n, marks in by_stage.items() if n in number and marks and all(marks)}
+    from stage_readiness import closed
+    return {key for key in ('srs', 'db', 'api', 'arch', 'scaffold', 'design', 'specs', 'cases')
+            if closed(root, key, version)}
+
+
+def sync_dependencies(root: Path, version: str, rows: list[dict]) -> list[dict]:
+    """Set automatic API wait; release waits only on committed input closure."""
+    done = stamped(root, version)
+    released = []
+    for row in rows:
+        if row['stage'] == 'specs' and any(r['stage'] == 'api' for r in rows) and 'api' not in done:
+            row['when'] = 'после API'
+        dependency = next((key for key in STAGES if row['when'] == 'после ' + STAGES[key][0]), None)
+        if dependency in done:
+            row['when'] = 'по очереди'
+            released.append(row)
+    return released
 
 
 def order_key(stage: str) -> int:
@@ -156,7 +167,9 @@ def show(rows: list[dict]) -> None:
     nxt = next((r for r in rows if r.get("state") == "ждёт" and r["when"] == "по очереди"), None)
     unopened = [r for r in rows if r.get("state") in ("не открыта", "", None)
                 and r["when"] == "по очереди" and r.get('authorized')]
-    later = [r for r in rows if r.get("state") in ("не открыта", "", None) and r["when"] != "по очереди"]
+    waiting = [r for r in rows if r['when'].startswith('после ') and r.get('state') not in ('закрыт', 'убран')]
+    later = [r for r in rows if r.get("state") in ("не открыта", "", None)
+             and r['when'] != 'по очереди' and not r['when'].startswith('после ')]
     print()
     print("в работе: " + (", ".join(f"«{r['title']}» ({r['id']})" for r in busy) or "ничего"))
     print("дальше: " + (f"«{nxt['title']}» ({nxt['id']}) — отправить «начинай»" if nxt else "очередных нет"))
@@ -166,6 +179,8 @@ def show(rows: list[dict]) -> None:
     proposed = [r['stage'] for r in rows if not r.get('authorized') and not r.get('id')]
     if proposed:
         print('предложены, не разрешены — не открывать: ' + ' '.join(proposed))
+    for row in waiting:
+        print(f"ждёт входа: {row['title']} — «начинай» {row['when']}")
     if later:   # a part from a list made before 1.2.256: a stage now goes on in its own session after a clear
         print("старые строки частей — не открывать, этап продолжается в своей подсессии (mark … убран): " + "; ".join(
             f"{rows.index(r) + 1}. «{r['title']}»" for r in later))
@@ -256,6 +271,7 @@ def main() -> None:
                 if r["title"] not in have and key not in staged:
                     rows.append(dict(r, id="", state="не открыта"))
         rows.sort(key=lambda r: order_key(r["stage"]))   # stable: a part stays after its stage
+        sync_dependencies(root, version, rows)
         write(path, version, parent if parent and parent != "—" else paths.chat_key, rows)
         show(rows)
     elif cmd == 'authorize':
@@ -283,9 +299,32 @@ def main() -> None:
             sys.exit(f"sessions: строки «{rest[0]}» нет — subsessions.py … show")
         if rest[1] in ('ждёт', 'идёт', 'передан') and not hit[0].get('id'):
             sys.exit('sessions: cannot activate an unopened row')
+        if rest[1] == 'идёт' and hit[0]['when'].startswith('после '):
+            sync_dependencies(root, version, rows)
+            if hit[0]['when'].startswith('после '):
+                sys.exit('sessions: input not closed: ' + hit[0]['when'])
         hit[0]["state"] = rest[1]
+        released = sync_dependencies(root, version, rows)
         write(path, version, parent if parent and parent != "—" else paths.chat_key, rows)
         print(f"sessions: «{hit[0]['title']}» — {rest[1]}")
+        for row in released:
+            print(f"теперь можно: «{row['title']}»")
+    elif cmd == 'when' and len(rest) == 2:
+        hit = [r for i, r in enumerate(rows, 1) if rest[0] in (str(i), r.get('id'))]
+        if not hit or rest[1] not in (*STAGES, 'clear'):
+            sys.exit('sessions: when <row | session id> <stage | clear>')
+        if rest[1] == hit[0]['stage']:
+            sys.exit('sessions: stage cannot wait for itself')
+        if rest[1] == 'clear':
+            dependency = next((k for k in STAGES if hit[0]['when'] == 'после ' + STAGES[k][0]), None)
+            if dependency and dependency not in stamped(root, version):
+                sys.exit('sessions: input not closed: ' + hit[0]['when'])
+            hit[0]['when'] = 'по очереди'
+        else:
+            hit[0]['when'] = 'после ' + STAGES[rest[1]][0]
+        sync_dependencies(root, version, rows)
+        write(path, version, parent if parent and parent != '—' else paths.chat_key, rows)
+        show(rows)
     elif cmd == "parent" and len(rest) == 1:
         if rest[0] != paths.chat_key:
             sys.exit('sessions: parent must match current chat identity')
@@ -296,6 +335,7 @@ def main() -> None:
             sys.exit(f"sessions: списка нет ({path}) — составьте: subsessions.py … plan <этапы>; "
                      "для старого файла укажите --legacy <sessions.md> (нужна идентичность checkout/чата)")
         print(f"Родительская сессия: {parent or '—'}")
+        sync_dependencies(root, version, rows)  # read-only projection; mark/when persists changes
         show(rows)
     elif cmd == "whoami" and len(rest) == 1:
         hits = [r for r in rows if r.get("id") == rest[0]]

@@ -44,7 +44,7 @@ Inside `work`, the reviews in the Gates cell stay automatic.
 | Kind | Meaning |
 |---|---|
 | **gate** | the check listed for this stage (`grill-me`, `doc-review`). Ask before starting it; every question inside it — each grill question, each review finding — is the user's to answer. `plan-review` and the code reviews are not asked: they run on their own, because every product decision is already settled in the documents, so what the review finds is the pipeline's own work to fix. A recommendation, not a lock — skipping is below. |
-| **offer** | the one next stage in the table. Ask before starting it. A declined offer stops the sitting. |
+| **offer** | the ready stages at a document close (references/offer-at-close.md), otherwise the next stage in the table. Ask before starting them. A declined offer stops the sitting. |
 
 Two exceptions, both reviews of the pipeline's own work: stage 11, where `plan-review` runs on the plan without
 asking, its findings fixed round by round; and stage 12, where `work` invokes `code-review-unit` per unit and
@@ -74,6 +74,12 @@ scaffolded. They meet before the plan.
        └─ 7 → 8 → 9 ─────────────┴→ 10 → 11 → 12 → 13 → 14 → 15 → 16 → 17
 ```
 
+### Readiness at a document close
+
+For stages 2–9, [What to offer at a close](references/offer-at-close.md) overrides
+`Then offer`: offer all ready stages, name busy neighbours and missing inputs.
+The table keeps default order; a file alone never proves stage closure.
+
 | # | Stage | Skill | Gates (ask, in order) | Then offer (ask) |
 |---|---|---|---|---|
 | 1 | Business requirements | `brainstorm` | `grill-me` | `srs-writer` |
@@ -82,7 +88,7 @@ scaffolded. They meet before the plan.
 | 4 | API contract | `openapi-spec-generator` | `doc-review` | `clean-architecture-design` |
 | 5 | Architecture — foundation, domain model, scenarios by area | `clean-architecture-design` | `doc-review` on each document written | `repo-scaffold` |
 | 6 | Repository skeleton | `repo-scaffold` | none — also writes `documentation/project-map/project-map.md` | the meeting point — see "Two branches" |
-| 7 | Mockups | `ui-design` | none — frames are not a document | `screen-spec` once the API exists, else the backend branch's next stage; after a restyle of screens already built, `plan`; after a redraw on a new page, `screen-spec` for every screen |
+| 7 | Mockups | `ui-design` | none — frames are not a document | readiness per `references/offer-at-close.md`; with unclosed API never offer work already owned by a neighbouring chat; restyle/redraw scope still applies |
 | 8 | Screen specs (ТЗ на экран) | `screen-spec` | `doc-review` | `ui-test-cases` (write) |
 | 9 | UI test cases | `ui-test-cases` — mode write | no reviewer — two scripts at its close: `check_trace.py`, `check_coverage.py` | the meeting point — see "Two branches" |
 | 10 | Document set check | `docs-consistency` | none — it is the check | `plan` |
@@ -106,9 +112,9 @@ scaffolded. They meet before the plan.
   at `ui-design` when a human faces a screen. A stage or a branch someone
   else takes is handed over by `references/team.md`: any stage of 1–9 can
   be, since its documents travel on the branch.
-- **`screen-spec` needs the API.** When stage 7 ends and stage 4 has not
-  run, offer the backend branch's next stage and say that the screen specs
-  wait for the contract.
+- **`screen-spec` needs the API.** At stage 7 close, use readiness, not a guessed
+  backend successor. If API is unclosed, name what screen specs wait for; while
+  another chat runs the backend, offer none of its stages. See `references/offer-at-close.md`.
 - **The meeting point.** Stages 6 and 9 offer stage 10 when the other
   branch is done (its documents on the branch — `git pull --rebase` first
   when other people work on it), else the other branch's next unfinished
@@ -182,7 +188,7 @@ stage that ran last hands over to this section; it does not end the sitting itse
      document that differs from its last stamped state (`doc-versioning` → `references/version-birth.md`,
      the iteration's close) — nothing differs, nothing is committed.
 2. **The site.** Rebuild the documentation site (`docs-site`) and commit it when it changed.
-3. **The summary** — `references/summary.md`; on disk only, like the rest of `plans/`.
+3. **The summary** — `references/summary.md`; on disk only, like the rest of `plans/`. Include `open_questions.py <project> --pending` as a debt note, not a new refusal to close.
 4. **The tag** `v<version>` on the current commit — only when
    `python3 "<folder of this SKILL.md>/scripts/close_iteration.py" .` shows steps 1–3 ✅; run it again after step 7: exit 0
    is the iteration closed, a ✗ names the step left. The tag is the baseline the next iteration's pins and

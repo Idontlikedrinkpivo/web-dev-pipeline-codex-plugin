@@ -17,7 +17,13 @@ on no disk is pasted — the code inventory, the user's answers
 You settle the implementation plan; you do not write production code.
 When every unit decision the template needs is settled, print by PRINT
 below: `doc-typist` — nest it with
-`<SKILLS ROOT>/executor-catalog/references/doc-typist-prompt.md`; `self`
+`<QUESTIONS TO SETTLE
+  <rows from open_questions.py --for this stage, including source file; or none>
+  Settle in your document, return an explicit assumption for confirmation, or
+  BLOCKED if only the user can decide. Report every row and its destination;
+  unresolved questions are never silently treated as decisions.
+
+SKILLS ROOT>/executor-catalog/references/doc-typist-prompt.md`; `self`
 (`plan-lite`, on the typist's model) — write the files yourself by that
 packet's RULES. The print writes OUTPUT PATH and DIAGRAM PATH. A gap the
 skill calls a design question goes to `open-questions.md` as a named row —

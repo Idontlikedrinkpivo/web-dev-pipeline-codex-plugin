@@ -84,6 +84,6 @@ Extract actors, requirements, and scope from the source — the files in `READ F
 
 ## Grill reversals
 
-Do not run `grill-me`. On `MODE grill-reversal`, apply `REVERSALS` by `grill-me`'s rule (When a pipeline stage invoked this file → the reversals: in place, no bump, no changelog row, an upstream contradiction named — here in `CONCERNS`), and each `DEFERRED` line as an `open-questions.md` row beside the SRS, class `Отложено`. Do not set `grilled:`, `reviewed:`, `status`, or `sources`.
+Do not run `grill-me`. On `MODE grill-reversal`, apply `REVERSALS` by `grill-me`'s rule (When a pipeline stage invoked this file → the reversals: in place, no bump, no changelog row, an upstream contradiction named — here in `CONCERNS`), and each `DEFERRED` line as an `open-questions.md` row beside the SRS, class `Решить при: <этап>` for a named recipient, otherwise `Отложено` (keep start blockers). Do not set `grilled:`, `reviewed:`, `status`, or `sources`.
 
 The same mode carries a decision the user changed after the SRS was finished — in `work`, in a later stage, or in the chat (`pipeline` → `references/decision-changes.md`). The session commits that edit at once, still without a version or a changelog row.

@@ -9,6 +9,9 @@ description: >-
 
 # Docs Consistency
 
+A changed decision in another stage's document: under a parent, route through it —
+[Под родительским чатом](../pipeline/references/decision-changes.md#под-родительским-чатом); never launch its writer here.
+
 Each contract passes its own `doc-review` when it is written. That review
 reads one document against itself and, for the architecture and the UI
 spec, checks that a cited table or `operationId` exists upstream. Nothing
@@ -273,3 +276,15 @@ skipped: none
   it or the user opened it directly.
 - `scripts/checked.py` — the `checked:` block and `--verify`.
 - `scripts/pins.py` — Step 1's pins, classed stale / behind / refresh with the rows after each pin.
+
+## Addressed question debt
+
+Run `python3 <skills-root>/doc-versioning/scripts/open_questions.py <project> --pending`
+and read the original rows (including plans, excluding the generated site). Pass them to the checker.
+An unresolved row addressed to an already closed stage 3–9 (its document stamped at this iteration's
+version; for unversioned frames/cases use its close commit) is P1 owned by that stage:
+«вопрос адресован закрытому этапу». Quote the row and the stamped document/close commit.
+An unresolved `Блокирует старт` is P1 owned by the stage of its source file.
+List questions for plan, development, release, operations and `Отложено` in a separate report section,
+not as findings; likewise list debt for a stage not yet closed. `Решено: <где>` is history, not debt.
+This recipient rule takes precedence over generic dismissal of recorded assumptions.

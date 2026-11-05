@@ -20,7 +20,13 @@ You settle the design document(s); you do not write production code.
 When every decision the templates need is settled — on
 `clean-architecture-design`, for every document in MODE before printing
 any — print by PRINT below. `doc-typist`: nest it with
-`<SKILLS ROOT>/executor-catalog/references/doc-typist-prompt.md`, one per
+`<QUESTIONS TO SETTLE
+  <rows from open_questions.py --for this stage, including source file; or none>
+  Settle in your document, return an explicit assumption for confirmation, or
+  BLOCKED if only the user can decide. Report every row and its destination;
+  unresolved questions are never silently treated as decisions.
+
+SKILLS ROOT>/executor-catalog/references/doc-typist-prompt.md`, one per
 document (in parallel when there are several). `self` (`design-lite`, on
 the typist's model): write the files yourself by that packet's RULES.
 Either way the print writes each OUTPUT PATH and the files at its

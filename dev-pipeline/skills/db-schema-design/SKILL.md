@@ -9,6 +9,10 @@ description: >-
 
 # Database Schema Design
 
+At entry: run `open_questions.py <project> --for 'схема БД'`; pass rows as `QUESTIONS TO SETTLE`.
+At close: settle or readdress each original row and report every outcome.
+Both steps: [Вопросы, адресованные этапу](../pipeline/references/decision-changes.md#вопросы-адресованные-этапу).
+
 ## Orchestrator (session)
 
 The session writes no DBML, no migration file, and no ER `.d2`. The
@@ -77,7 +81,7 @@ defect or a check's lines (step 4).
 5. Close the stage by asking, per `pipeline` → "Asking before a
    transition". First ask about `doc-review`. Run: run it; it returns
    without asking the next stage. Skip: name it in the report. Stop:
-   stop. After a run or a skip, ask the one next stage the table names. The writer does not run
+   stop. After a run or a skip, offer the ready stages from pipeline → What to offer at a close. The writer does not run
    those. `doc-review` edits the body and does not bump. See
    `doc-versioning`.
 
@@ -211,7 +215,6 @@ CREATE TABLE order_items (...);
 CREATE TABLE Order (...);
 CREATE TABLE tbl_usr_prof (...);
 ```
-
 ### Primary Keys
 
 | Column | On which tables |
@@ -242,7 +245,6 @@ referenced row's `public_id`; a path parameter is `<resource>_id`
 (`/bookings/{booking_id}`). `openapi-spec-generator` maps by this rule and
 `docs-consistency` checks it; name every reference column so the rule
 gives the API name.
-
 ### Columns and types
 
 - `NOT NULL` by default; nullable only when the SRS says the value may
@@ -260,7 +262,6 @@ gives the API name.
   `timestamp` without time zone.
 - Ids and counters that can grow: `bigint` (identity for keys) — not
   `int` / `serial` / `bigserial`.
-
 ### Relationships and ON DELETE
 
 Every reference is a real `FOREIGN KEY` with an explicit `ON DELETE`
@@ -339,7 +340,6 @@ for the same check will drift.
 ---
 
 ## 5. Status columns and other patterns
-
 ### Enum-like status columns
 
 ```sql
@@ -359,7 +359,6 @@ human name of the code when a read shows one. Architecture and OpenAPI copy this
 not keep a second list. Do not add a «нет» row for entities without a
 status. Who may set which code is a later entity rule, not a CHECK,
 unless the SRS states a predicate SQL can enforce.
-
 ### Situational patterns
 
 Read `references/schema-patterns.md` when the SRS asks for soft delete,
@@ -494,3 +493,6 @@ schema document and each migration file written, DIAGRAM WRITTEN the ER `.d2` (w
 it did not render). A slice table left out, or a migration not written,
 goes to CONCERNS. Do not run `doc-review` or `pipeline` — the orchestrator
 closes the stage.
+
+At close, next stages come from [What to offer at a close](../pipeline/references/offer-at-close.md),
+several when several are ready; the default chain successor alone is not the offer.

@@ -71,26 +71,20 @@ project's root and answer from its output. It prints, in this order:
    runs the review again before `work`), the units with `Plan-Unit:` on
    the branch, the UI run's and the audit's verdicts (`DEFECTS` / `FIX` —
    a fix plan, `plan` MODE fix).
-7. **Open points in order** — the list the answer is built from.
+7. **Готовность этапов** (3–10), while SRS is closed and consistency has not passed:
+   ready stages with inputs, missing inputs, neighbouring chats, local unfinished stages and explicit skips.
+   Done means the document is on the branch and the stage has a close commit.
+8. **Open points in order** — questions for a recipient precede that stage's point.
 
 ## The answer
 
-The earliest unfinished point wins: a stopped run (resume note, then an
-unfinished progress file), else a stage left open after its writer
-(«этап не закрыт»), else a stale document's stage, else the next
-stage of a branch that is not done (for the design branch the frames
-register, `ui/screen-specs/` and `ui/test-cases/`, read from `origin` when
-stages were handed to others — `references/team.md`; both branches as
-options when both are open — equal ones, with no «(рекомендую)» between
-them unless the user said whose session this is: which branch is theirs is
-not in the files, and a guess from a git name or a habit sends the
-designer to the API; one line says so. Their shape: one option per
-branch's next stage, tagged «[Дизайн]» / «[Бэкенд]», then the earliest
-unrun gate, then «Остановиться»; several letters run both branches in this
-session), else stage 10, with the unrun gates as
-options. An unrun gate may have been skipped on purpose: list the unrun
-gates in one line and offer the earliest as an option, never as the only
-way forward.
+The earliest local unfinished point wins: a resume note, local unfinished progress,
+then a local unclosed/stale document. A stage active in a neighbouring chat is named,
+never offered as a second local continuation. For branch successors use «Готовность этапов»:
+one option for each ready stage; several may be selected together. Missing inputs are named,
+including «идёт в соседнем чате» or «написан, этап не закрыт». With nothing ready here,
+say where the input is being made, finish, and offer only waiting or stopping.
+The default chain table never overrides this block. See [What to offer at a close](offer-at-close.md).
 
 Ask it as one transition, per `pipeline` → "Asking before a transition".
 Do not list every remaining stage.
@@ -127,3 +121,10 @@ BR-3), и обновит схему; без этого API построится 
 
 Ответьте сообщением: буква или свой текст.
 ```
+
+## Question recipients
+
+Before open points, «Открытые вопросы по адресатам:» contains the same rows as
+`open_questions.py --pending`. Blockers get «ответить до следующего этапа»;
+each still-ahead recipient gets «вопросы для этапа «<этап>»: N — решить на нём»
+before that stage's own point. Read the cited original files; resolved history is hidden.

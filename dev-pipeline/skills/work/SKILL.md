@@ -9,6 +9,13 @@ description: >-
 
 # Execute an Implementation Plan
 
+A changed decision in another stage's document: under a parent, route through it —
+[Под родительским чатом](../pipeline/references/decision-changes.md#под-родительским-чатом); never launch its writer here.
+
+At entry: run `open_questions.py <project> --for 'разработка'`; pass rows as `QUESTIONS TO SETTLE`.
+At close: settle or readdress each original row and report every outcome.
+Both steps: [Вопросы, адресованные этапу](../pipeline/references/decision-changes.md#вопросы-адресованные-этапу).
+
 The plan already decided the work, the order, and who does it. This skill's
 job is to honor that routing and keep the tree green — not to re-plan, and not
 to implement the work itself.

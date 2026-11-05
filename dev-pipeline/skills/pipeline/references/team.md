@@ -36,7 +36,7 @@ while generated-only conflicts use its recovery path. `main` gets the iteration 
 | `ui-design` (7) | the SRS |
 | `screen-spec` (8) | the frames register and the API |
 | `ui-test-cases` write (9) | the screen specs |
-| `docs-consistency` (10) | every document of stages 2–9 the iteration has — the meeting point |
+| `docs-consistency` (10) | scaffold and test cases, with their applicable upstream documents closed — the meeting point |
 
 A typical split: the designer takes the mockups; an analyst takes the
 schema, the API and the architecture while the designer draws, then pulls
@@ -108,3 +108,5 @@ iteration-branch commit + push, never automatic main/merge/tag/release. A local
 patch or missing report on the recipient's machine is incomplete transfer.
 The forwarding text asks the recipient to record any plugin failure immediately
 in the chat. Without tools or permission continue in the same chat.
+
+Inputs mean committed artifacts of closed stages, not draft files. Omit schema/API/design inputs only for explicit product skips; use [readiness](offer-at-close.md).

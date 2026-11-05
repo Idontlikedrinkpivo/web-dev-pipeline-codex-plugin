@@ -9,6 +9,13 @@ description: >-
 
 # UI Test Cases
 
+A changed decision in another stage's document: under a parent, route through it —
+[Под родительским чатом](../pipeline/references/decision-changes.md#под-родительским-чатом); never launch its writer here.
+
+At entry (write mode only): run `open_questions.py <project> --for 'тест-кейсы'`; pass rows as `QUESTIONS TO SETTLE`.
+At close: settle or readdress each original row and report every outcome.
+Both steps: [Вопросы, адресованные этапу](../pipeline/references/decision-changes.md#вопросы-адресованные-этапу).
+
 The SRS says what the system must do; the mockups and the screen specs say
 how a person does it on screen; nothing so far says how anyone will check, through the
 interface, that the built product does both. A unit test proves a method,

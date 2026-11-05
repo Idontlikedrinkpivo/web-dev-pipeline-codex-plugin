@@ -5,8 +5,7 @@ Read only when the stage order, a gate, or a stage itself is being changed
 
 ## One place for the order
 
-Stages name their **successor** in `pipeline`'s chain table and nowhere
-else. Reordering or retiring a *stage* is a one-table edit. Gates are not:
+The chain table owns default order; `offer-at-close.md` owns readiness at document closes. Stage skills reference those two sources, never hardcode a successor. Reordering or retiring a *stage* is a one-table edit. Gates are not:
 `grill-me` and `doc-review` are still invoked from the writer skills that
 own the artifact, so inserting or retiring a gate is the table **plus**
 those calls. Do not claim a single-file gate edit.

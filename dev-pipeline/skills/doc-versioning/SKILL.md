@@ -186,13 +186,24 @@ Appending a row does not stamp the document beside it.
 
 | Вопрос | Класс |
 |---|---|
-| … | Блокирует старт / Можно решить при архитектуре / Отложено |
+| Как хранить историю? | Решить при: архитектура |
 ```
 
 Create the file when the first question appears, never empty, in the
 document's folder — not one shared `documentation/open-questions.md`:
 `requirements/srs/`, `db/`, `api/`, `architecture/` (foundation, domain
 model and scenarios), `ui/`, and `plans/<version>/`.
+
+The class is a recipient, so a deferred question reaches the stage that can settle it:
+- `Блокирует старт` — answer before the next stage.
+- `Решить при: <этап>` — one of: схема БД, API, архитектура, макеты, ТЗ на экраны, тест-кейсы, план, разработка, релиз, эксплуатация.
+- `Отложено` — no stage; the customer or a later release decides.
+- `Решено: <где>` — retain the row; cite the document and section or commit containing the answer.
+Read legacy `Можно решить при архитектуре` as `Решить при: архитектура`; never write it anew.
+Keep separate files: independent document authors otherwise conflict on merge; questions are committed
+and checked with their own document. `scripts/open_questions.py <project> --for '<этап>'` gathers them,
+including iteration folders; `--pending` lists debt. No generated site is read.
+Intake and settlement: pipeline → references/decision-changes.md → Вопросы, адресованные этапу.
 
 ## What a version is
 

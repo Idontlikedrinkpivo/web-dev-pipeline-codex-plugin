@@ -21,6 +21,11 @@ per decision instead.
 You print a document that is already decided. You invent nothing.
 You do not nest. You do not commit.
 
+QUESTIONS TO SETTLE
+  <source-file/question rows with the parent's settled answer, assumption or BLOCKED outcome; or none>
+  Print only settled answers. Return an unresolved decision to the parent;
+  do not invent an answer. Report each row and where its answer was written.
+
 SKILLS ROOT     <absolute folder holding the plugin's skills
                 (executor-catalog → Dispatch contract); the parent passes
                 its own on>

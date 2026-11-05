@@ -9,6 +9,10 @@ description: >-
 
 # OpenAPI 3.0 Specification Generator
 
+At entry: run `open_questions.py <project> --for 'API'`; pass rows as `QUESTIONS TO SETTLE`.
+At close: settle or readdress each original row and report every outcome.
+Both steps: [Вопросы, адресованные этапу](../pipeline/references/decision-changes.md#вопросы-адресованные-этапу).
+
 ## Orchestrator (session)
 
 The session writes no OpenAPI spec. The dispatched writer settles it; a
@@ -73,7 +77,7 @@ dispatches the typist only for a print defect or a check's lines (step 4).
 5. Close the stage by asking, per `pipeline` → "Asking before a
    transition". First ask about `doc-review`. Run: run it; it returns
    without asking the next stage. Skip: name it in the report. Stop:
-   stop. After a run or a skip, ask the one next stage the table names. The writer does not run
+   stop. After a run or a skip, offer the ready stages from pipeline → What to offer at a close. The writer does not run
    those. `doc-review` edits the body and does not bump
    `info.version`. See `doc-versioning`.
 
@@ -463,3 +467,6 @@ test cases, mock servers, or client SDKs unless the user asks.
 - `references/common-patterns.md` — pagination, problem+json, webhooks, file upload, filtering; when the SRS
   names one of them, not by default
 - `references/descriptions.md` — when writing any description (`info`, operation, schema, property)
+
+At close, next stages come from [What to offer at a close](../pipeline/references/offer-at-close.md),
+several when several are ready; the default chain successor alone is not the offer.

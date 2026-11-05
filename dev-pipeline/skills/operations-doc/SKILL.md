@@ -9,6 +9,10 @@ description: >-
 
 # Operations document
 
+At entry: run `open_questions.py <project> --for 'эксплуатация'`; pass rows as `QUESTIONS TO SETTLE`.
+At close: settle or readdress each original row and report every outcome.
+Both steps: [Вопросы, адресованные этапу](../pipeline/references/decision-changes.md#вопросы-адресованные-этапу).
+
 The deploy document says how to start the system. Nobody has said how to
 live with it afterwards: where to see who cancelled a booking, whether the
 night job ran, why a letter never left, what to do when the queue grows.

@@ -9,6 +9,13 @@ description: >-
 
 # UI Design
 
+A changed decision in another stage's document: under a parent, route through it —
+[Под родительским чатом](../pipeline/references/decision-changes.md#под-родительским-чатом); never launch its writer here.
+
+At entry: run `open_questions.py <project> --for 'макеты'`; pass rows as `QUESTIONS TO SETTLE`.
+At close: settle or readdress each original row and report every outcome.
+Both steps: [Вопросы, адресованные этапу](../pipeline/references/decision-changes.md#вопросы-адресованные-этапу).
+
 Turns settled use cases into **frames**: which screens the product has,
 what each one lets each role do, and how every flow, state and error looks.
 The design starts right after the SRS and does not wait for the API — a
@@ -433,9 +440,14 @@ question; the stage does not wait for it.
 After a restyle, name the direction and the screens restyled; after a
 redraw, the new page and the screens drawn on it.
 
-Then read `pipeline` and ask about the stage its table names after this one
-(normally `screen-spec`, which needs these frames and the OpenAPI contract;
-`pipeline` says what runs first when the contract is missing; after a
-restyle or a redraw, the stage `references/restyle-redraw.md` names), per "Asking before a transition". A no stops the sitting. While frames are still
+Then read `pipeline` → What to offer at a close and offer every ready stage.
+Screen specs need closed frames and API; a busy backend is named, not offered again.
+After restyle/redraw, apply `references/restyle-redraw.md` scope within that readiness rule. A no stops the sitting. While frames are still
 missing (a failed dispatch, a blocking header row), the last message is the
 blocker, not the next stage.
+
+At close, next stages come from [What to offer at a close](../pipeline/references/offer-at-close.md),
+several when several are ready; the default chain successor alone is not the offer.
+
+With unclosed API, only the first unclosed backend stage is eligible; while another chat runs it,
+offer none: say what screen specs wait for and where that work runs, then finish the turn.

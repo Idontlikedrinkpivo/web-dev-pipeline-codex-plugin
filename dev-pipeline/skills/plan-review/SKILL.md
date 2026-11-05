@@ -9,6 +9,9 @@ description: >-
 
 # Plan Review
 
+A changed decision in another stage's document: under a parent, route through it —
+[Под родительским чатом](../pipeline/references/decision-changes.md#под-родительским-чатом); never launch its writer here.
+
 A plan is the cheapest place in the pipeline to be wrong and the most expensive
 place to stay wrong. Every defect here is multiplied by execution: a
 mis-graded unit gives a rename design latitude or hands a state machine the

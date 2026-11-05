@@ -132,7 +132,7 @@ not only when they pick A–D. There is no shared
    the finding's title, its section, and why it matters, with the source
    in brackets: `{title} — {section}: {why_it_matters} (ревью
    {reviewed-path}, YYYY-MM-DD, {severity})`. `Класс` is `Блокирует старт`
-   for a P0, `Отложено` otherwise.
+   when it prevents the start; otherwise `Решить при: <этап>` if the user named the stage that can settle it, or `Отложено` without a recipient. Use the exact stages in doc-versioning; never write the legacy architecture class anew.
 
 Do not append `suggested_fix` or the evidence array. `{why_it_matters}`
 says what goes wrong if the question stays open. It does not say how to
@@ -142,3 +142,6 @@ the same title and section for that path is already in the table, skip the
 duplicate.
 4. Tell the user the parking-lot path and that the reviewed document
    was not changed.
+
+Under a parent chat, an upstream change goes through the parent, not a foreign writer here:
+[pipeline — Под родительским чатом](../../pipeline/references/decision-changes.md#под-родительским-чатом).

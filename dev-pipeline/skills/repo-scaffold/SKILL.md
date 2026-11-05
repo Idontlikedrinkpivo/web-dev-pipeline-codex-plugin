@@ -9,6 +9,9 @@ description: >-
 
 # Repository Scaffold
 
+A changed decision in another stage's document: under a parent, route through it —
+[Под родительским чатом](../pipeline/references/decision-changes.md#под-родительским-чатом); never launch its writer here.
+
 Turn the architecture foundation's **tree + stack** into files on disk
 and write `documentation/project-map/project-map.md` — one page that points at the
 docs and how to run. Stop when an empty app starts, answers its service
@@ -417,6 +420,9 @@ migration runner config or script, `documentation/project-map/project-map.md`)
 and the commit. A map-only run names the map path and the commit and
 stops — it does not ask the next stage again if a plan already exists.
 
-Read `pipeline` and ask about the stage its table names after this one,
+Read `pipeline` → What to offer at a close and offer all ready stages,
 per "Asking before a transition". Do not list the rest of the pipeline,
 and do not start the next stage on a no.
+
+At close, next stages come from [What to offer at a close](../pipeline/references/offer-at-close.md),
+several when several are ready; the default chain successor alone is not the offer.

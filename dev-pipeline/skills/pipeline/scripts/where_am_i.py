@@ -24,6 +24,9 @@ HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 from state_paths import checkout_root, contained_path, plans_root
 
+sys.path.insert(0, str(HERE.parents[1] / "doc-versioning" / "scripts"))
+import open_questions as oq
+
 sys.path.insert(0, str(HERE.parent.parent / "docs-consistency" / "scripts"))
 try:
     import checked as dc_checked  # the document set and its hashes, shared with docs-consistency
@@ -374,6 +377,45 @@ def consistency(root: Path, folder: Path) -> tuple:
     return line, None if verdict.startswith("PASS") else f"сверка: {verdict}"
 
 
+QUESTION_STAGES = dict(zip(oq.STAGES, (3, 4, 5, 7, 8, 9, 11, 12, 15, 16)))
+
+
+def question_points(root: Path, version: str | None, opens: list[str]) -> list[str]:
+    questions = oq.scan(root)
+    pending = oq.pending_lines(questions)
+    if pending:
+        print("Открытые вопросы по адресатам:")
+        for line in pending:
+            print("  " + line)
+    result = list(opens)
+    for name, rows in oq.groups(questions).items():
+        if name == oq.BLOCKER:
+            result.insert(0, f"Блокирует старт: {len(rows)} — ответить до следующего этапа")
+            continue
+        if name not in QUESTION_STAGES:
+            continue
+        stage = QUESTION_STAGES[name]
+        import stage_readiness as readiness
+        key = next((key for key, value in readiness.STAGES.items() if value[0] == stage), None)
+        if key and (key in readiness.skips(root) or readiness.closed(root, key, version)):
+            continue
+        if version and stage >= 11:
+            folder = root / 'documentation/plans' / version
+            if stage == 11 and (folder / 'plan.md').is_file() and (folder / 'plan-review.md').is_file() and not plan_state(folder)[1]:
+                continue
+            if stage == 12 and any(row[1] == 'work' and not row[5] for row in progress(folder)) and re.search(
+                    r'^Финальное ревью:.*\bPASS\b', read(folder / 'progress.md'), re.M):
+                continue
+            late = {15: 'deploy', 16: 'ops'}.get(stage)
+            if late and re.search(rf'^Stage-Closed: {late} {re.escape(version)}\s*$', git(root, 'log', '--format=%B'), re.M):
+                continue
+        point = f'вопросы для этапа «{name}»: {len(rows)} — решить на нём'
+        at = next((i for i, line in enumerate(result) if f'этап {stage} ' in line
+                   or name in line or (name == 'API' and 'OpenAPI' in line)), len(result))
+        result.insert(at, point)
+    return result
+
+
 def main() -> None:
     given = Path(sys.argv[1] if len(sys.argv) > 1 else ".")
     try:
@@ -551,7 +593,22 @@ def main() -> None:
                 if v.group(1) in ("DEFECTS", "FIX"):
                     opens.append(f"{label}: {v.group(1)} — план исправлений (plan, MODE fix)")
 
-    print("Открытые пункты (по порядку):" if opens else "Открытых пунктов по файлам нет — следующий этап по таблице pipeline.")
+    import stage_readiness as readiness
+    if readiness.closed(root, 'srs', it_version) and not readiness.closed(root, 'check', it_version):
+        states = readiness.evaluate(root, it_version)
+        print("Готовность этапов (сделан = документ на ветке и этап закрыт; отсутствующие у продукта этапы пропускаются):")
+        for line in readiness.lines(states):
+            print("  " + line)
+        # Progress from another chat is context, never a second local continuation.
+        busy = [r for r in states if r['state'] == 'busy']
+        opens = [line for line in opens if not any(
+            r['skill'] in line or f"этап {r['number']} " in line or r['label'] in line for r in busy)]
+        for r in states:
+            if r['state'] in ('ready', 'here'):
+                opens.append(f"этап {r['number']} {r['label']}: " +
+                             ('можно начать' if r['state'] == 'ready' else 'дописать и закрыть этап'))
+    opens = question_points(root, it_version, opens)
+    print("Открытые пункты (по порядку):" if opens else "Открытых пунктов по файлам нет — следующий этап по готовности; занятые этапы не предлагать.")
     for o in dict.fromkeys(opens):
         print(f"  - {o}")
 

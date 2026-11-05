@@ -138,3 +138,11 @@ handles native compaction. A threshold alone never requires /compact or a user
 
 - The workflow runs the same checks as the project's own scripts; after it, the pipeline ends — the close
   (`pipeline` → End of the pipeline) runs next.
+
+## Question routing
+
+- At stage entry gather its addressed questions (`open_questions.py --for`); at close mark each original
+  row `Решено: <где>` or readdress/report it. Preserve blockers and QUESTIONS TO SETTLE after compaction.
+
+- A stage chat sends decisions about another stage's document to the parent; it never edits that
+  document or starts its writer locally (decision-changes.md → Под родительским чатом).

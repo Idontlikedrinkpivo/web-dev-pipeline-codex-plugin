@@ -286,7 +286,7 @@ Taken from whatever the source marks as out of scope. If the source has a Scope 
 
 Anything load-bearing that isn't itself a requirement: an external system's guaranteed behavior, a library assumed available, a decision deferred to another team.
 
-The SRS has no open-questions section. Gaps this SRS could not settle, and a finding the user deferred, are rows in `open-questions.md` in this file's folder. Class each row `Блокирует старт` or `Можно решить при архитектуре` or `Отложено`. Never leave a row unclassified.
+The SRS has no open-questions section. Gaps this SRS could not settle, and a finding the user deferred, are rows in `open-questions.md` in this file's folder. Class each row `Блокирует старт`, `Решить при: <этап>` when that stage can settle it, or `Отложено` without a named recipient. Use doc-versioning’s exact stage words; never write the legacy architecture class anew. Settled rows retain `Решено: <где>`. Never leave a row unclassified.
 
 ## Writing Discipline
 

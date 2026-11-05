@@ -1009,5 +1009,21 @@
       }
     },
     "fix": "python3 <pipeline>/scripts/open_iteration.py <версия открытой итерации> — заменит строку в .gitignore на строки файлов этой машины и закоммитит файлы plans/; затем python3 <pipeline>/scripts/push_branch.py. Без открытой итерации — то же вручную: строку documentation/plans/ в .gitignore заменить строками из open_iteration.py (LOCAL) и закоммитить .gitignore с documentation/plans."
+  },
+  {
+    "id": "question-class-recipient",
+    "version": "1.3.0",
+    "title": "Класс вопроса стал адресатом",
+    "what": "Отложенный вопрос виден этапу, который должен его решить; решённые строки сохраняют ссылку на ответ.",
+    "applies": {
+      "exists": "documentation/**/open-questions.md"
+    },
+    "behind": {
+      "grep": {
+        "path": "documentation/**/open-questions.md",
+        "pattern": "Можно решить при архитектуре"
+      }
+    },
+    "fix": "Только в open-questions.md заменить класс «Можно решить при архитектуре» на «Решить при: архитектура», сохранив вопрос и историю; без поднятия версии документа. Проверить doc_check.py; коммит: docs: класс вопроса стал адресатом (плагин 1.3.0). Не менять цитаты в других документах."
   }
 ]

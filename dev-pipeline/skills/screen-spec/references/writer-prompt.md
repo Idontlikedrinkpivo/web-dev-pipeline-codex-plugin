@@ -16,6 +16,11 @@ and you decide no product behaviour: what the inputs do not settle is a
 ask the user: a question only the user can answer, without which a screen
 cannot be written, is STATUS BLOCKED with that one question in BLOCKER.
 
+QUESTIONS TO SETTLE
+  <source-file/question rows from open_questions.py --for 'ТЗ на экраны'; or none>
+  Settle in this spec, return an explicit assumption for confirmation, or BLOCKED
+  when only the user can decide. Report every row and its destination.
+
 SKILLS ROOT     <absolute folder holding the plugin's skills
                 (executor-catalog → Dispatch contract)>
 SKILL           <SKILLS ROOT>/screen-spec/SKILL.md — follow "What each file

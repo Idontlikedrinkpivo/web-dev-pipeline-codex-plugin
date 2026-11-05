@@ -52,7 +52,7 @@ when presenting the list. Project membership is preserved.
    than guessing state from chat history. Agree the version when needed.
 2. Build the remaining stages. Fixes a check sends back (UI tests, the audit) run
    inside that check's own chat, by agents — no chat of their own. Use pipeline/scripts/subsessions.py <project> <version> plan
-   and show to maintain documentation/plans/<version>/sessions.md. Read the
+   and show to maintain `<absolute-git-dir>/pipeline-work/<version>/<chat-key>/sessions.md`. Read the
    script's usage before calling it. `plan` records proposed stages only; `show`
    never expands consent. `authorize <stage>...` explicitly replaces the selected
    subset (empty revokes it); `set` requires authorization. Old opened rows remain
@@ -140,6 +140,7 @@ For each stage packet include:
 Источники: <documents and reports>. Состояние: <progress file and resume.md>.
 Зависимости: <ready now, or wait for an explicit start message>.
 Веди этот этап и вопросы пользователю здесь. Не открывай следующие чаты.
+Чужой документ здесь не правь и его писателя не запускай: родителю отправь «РЕШЕНИЕ · <было> → <стало> · решил <кто> · владелец: <этап> · жду», а как владелец после записи ответь «РЕШЕНИЕ ЗАПИСАНО · <документ> · коммит <sha> · задеты: <документы других закрытых этапов, повторяющие старое решение, или «нет»>».
 Результат: статус DONE/BLOCKED/STOPPED, изменённые файлы, проверки,
 решения пользователя, следующий этап и точка продолжения.
 Перед завершением запиши все решения в файлы и выполни проверки этапа.
@@ -185,3 +186,24 @@ so a previously recorded successor is reused rather than duplicated.
 Do not archive chats automatically on completion. Use set_thread_archived only
 when the user asks for archival, for the selected chats. Keep the parent small:
 short status/report packets, files as the source of truth, no copied transcripts.
+
+## Stage-close report and dependency queue
+
+Read [What to offer at a close](offer-at-close.md). A stage sends
+`ЭТАП <этап> ЗАКРЫТ · дальше: <этапы, которые можно начать>` or
+`ЭТАП <этап> ЗАКРЫТ · ждёт: <этап> после <этап>`.
+Verify the close commit, recompute readiness, start all selected ready stages; a waiting
+line starts nothing. Keep `после API` on screen specs while API is unclosed; on API close,
+`subsessions.py ... mark <API-row> закрыт` prints released rows. No duplicate busy stages.
+
+## What arrives from a stage chat
+
+| Message | Parent action |
+|---|---|
+| `РЕШЕНИЕ · <было> → <стало> · решил <кто> · владелец: <этап> · жду` | Find the owner's chat, serialize writers, mark «идёт», forward `РЕШЕНИЕ ИЗМЕНЕНО · <было> → <стало> · решил <кто> · от <этап>`. With no owner chat, apply here through its writer. |
+| `РЕШЕНИЕ ЗАПИСАНО · <документ> · коммит <sha> · задеты: <документы других закрытых этапов, повторяющие старое решение, или «нет»>` | Verify the commit, mark owner «закрыт», route affected closed documents to their owners, then tell the waiting chat `продолжай: <документ> обновлён, коммит <sha>`. |
+
+Stage responsibility: never edit another stage's document here or start its writer.
+Record and send the decision, wait for owner closure, then fix this stage's consequences.
+The shared checkout needs no pull. Full protocol and the no-owner fallback:
+[Под родительским чатом](decision-changes.md#под-родительским-чатом).

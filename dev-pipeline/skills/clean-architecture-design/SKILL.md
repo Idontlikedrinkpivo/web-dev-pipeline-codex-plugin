@@ -9,6 +9,9 @@ description: >-
 
 # Clean Architecture Design from Requirements
 
+At entry: run `open_questions.py <project> --for 'архитектура'`; pass rows as `QUESTIONS TO SETTLE`.
+At close: settle or readdress each original row and report every outcome.
+Both steps: [Вопросы, адресованные этапу](../pipeline/references/decision-changes.md#вопросы-адресованные-этапу).
 ## Главные правила
 
 [Guardrails](#guardrails) · [Before you finish](#before-you-finish).
@@ -39,7 +42,6 @@ new area gets a new folder `scenarios/<area>/`, a new group a new file.
 
 Every document is written to be scanned: a table cell is one fact, a mechanism is a subsection with a list, each
 fact lives once, no decision dates in the body — `references/writing.md`.
-
 ## Orchestrator (session)
 
 The session writes no architecture document. Same reason `work` writes no
@@ -131,10 +133,9 @@ The session dispatches the typist only for a check's lines (`executor-catalog`
    were untouched and why, and the level. Then ask, per `pipeline` →
    "Asking before a transition": first about `doc-review` on each
    document written or changed in this sitting (one gate question that
-   names them; a run reviews each), then the one next stage the
-   `pipeline` table names. The writers do not run those. `doc-review`
+   names them; a run reviews each), then the ready stages from
+   `pipeline` → What to offer at a close. The writers do not run those. `doc-review`
    edits the body and does not bump. See `doc-versioning`.
-
 ## Writer (dispatched)
 
 You settle the documents MODE names, in order: foundation → domain →
@@ -180,7 +181,6 @@ fact has one home (the table below), not a line count.
 documents names a widget, a layout, a colour, an icon, or exact UI
 wording — not in a row, a note, or prose. A use case is cited by its
 action, its data and its outcome.
-
 ### One home per fact
 
 | Fact | Home |
@@ -207,7 +207,6 @@ of BR-3. A type two areas use (a result, an id, a read model) is defined
 once, in the area or document that owns it, and cited with the same
 name and shape everywhere else. A fact the earlier document lacks is
 added there, in its home (Writer → `ALSO CHANGED`), never written here.
-
 ## Why this shape
 
 AI generates code that works today but cannot evolve: rules scatter
@@ -221,9 +220,7 @@ boundary — a linter or a structural test enforces it. Design for the
 smallest context window: meaningful paths, small files, named types,
 small documents — one scenarios document and the domain model per use
 case, not the whole architecture.
-
 ## Shared steps (every mode)
-
 ### Step 1. Digest the requirements
 
 **The schema and OpenAPI already exist** when the product stores data or
@@ -272,7 +269,6 @@ calls it. Do not invent requirements. When a rule is ambiguous, pick the
 reading that keeps the domain simplest, tag it as an assumption, and
 list the question. Open questions are closed before publish; a published
 document does not explain `OQ-N` / grill links.
-
 ### Step 1b. When the documents already exist — increment, do not restart
 
 A feature added to a designed system runs the same modes, but each
@@ -282,7 +278,6 @@ version and the typed rows. Read `references/increment.md` before
 editing. Every version is still the whole document (no "как в 1.1.0", no
 "без изменений"): downstream stages pin these files as `path@<version>`,
 so a diff-only version leaves them reading half a design.
-
 ### Step 2. Decide how much architecture is justified
 
 Read `references/architecture-level.md`: the levels (Framework-first,
@@ -290,7 +285,6 @@ Modest, Full), the triggers for each, and how the level is recorded.
 An explicit choice or the existing «Уровень» row answers this step. Keep
 the choice and its constraints; if a requirement cannot be met within it,
 name that requirement and the incompatible boundary in one question before changing level.
-
 ### Step 2b (orchestrator, in chat). Propose the stack — then write only what the user picked
 
 The tree, wiring and linter are stack-shaped, so the stack is never a
@@ -299,7 +293,6 @@ pick from ANSWERS goes into §1 Стек with majors and the «Стек» row; t
 DBMS row copies `schema.md` «Решения по базе»; the tree and the lint table
 match it. A missing part (backend or client) →
 `STATUS BLOCKED`: the orchestrator proposes cards (`references/stack-proposal.md`).
-
 ## Mode `foundation`
 
 Template and per-section notes: `references/output-template-foundation.md`
@@ -386,7 +379,6 @@ On greenfield the foundation comes first, so it names ports, port
 methods and named errors from the SRS, the schema and the OpenAPI
 declared errors; the domain and scenarios writers then use exactly those
 names, and report a gap when one is missing.
-
 ## Mode `domain`
 
 Template: `references/output-template-domain.md`. How to design an
@@ -415,7 +407,6 @@ errors already mapped to HTTP).
   it. No HTTP status here; every name has its row in foundation §4.
 - Calendar math lives on a value object; `Clock` only supplies `Now` and
   zone. Entity headings say «сущность», never «агрегат».
-
 ## Mode `scenarios:<area>`
 
 Template: `references/output-template-scenarios.md`. Why use cases and
@@ -449,7 +440,6 @@ and the domain model; this document cites both and restates neither.
   link, `[<use-case-kebab>](diagrams/<use-case-kebab>.svg)`. Plain
   read-and-return or load-ask-save scenarios get none. Shape:
   `references/architecture-diagram.md` → Sequence view.
-
 ## Guardrails
 
 - **A heading or term outside the template.** Each document uses only
@@ -474,12 +464,10 @@ and the domain model; this document cites both and restates neither.
 - **A name written in the wrong home.** A missing port method, error or
   file line goes into the document that owns it (Writer → `ALSO
   CHANGED`), not into the scenario that needed it.
-
 ## Before you finish
 
 Run every Guardrail above as a check, then the items of your mode in
 `references/final-check.md` — the one checklist for this skill.
-
 ## References
 
 Read each file at the step named; skip the rest.
@@ -500,3 +488,6 @@ Read each file at the step named; skip the rest.
 - `references/architecture-diagram.md` — paths, D2 views and where each is embedded, the PlantUML sequence view for key scenarios, render commands, document ↔ diagram sync (whenever a `.d2` or `.puml` is written or changed).
 - `references/architecture-diagram.example.md` — foundation sections with their views embedded and the skip sentences (when unsure where a view goes).
 - `pipeline` (skill) — the **orchestrator** reads it at the close. The writers do not.
+
+At close, next stages come from [What to offer at a close](../pipeline/references/offer-at-close.md),
+several when several are ready; the default chain successor alone is not the offer.

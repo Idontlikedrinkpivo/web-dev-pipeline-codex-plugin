@@ -179,6 +179,11 @@ def main() -> None:
         if ok and first is not None and i > first and name.startswith("4"):   # a reflect part may come early
             note = " — сделано раньше шага, который ещё не закрыт (порядок нарушен)"
         print(f"{mark} {name}{note}")
+        if name == '3 итог':
+            sys.path.insert(0, str(HERE.parents[1] / 'doc-versioning' / 'scripts'))
+            from open_questions import pending_lines, scan
+            for pending in pending_lines(scan(root)):
+                print('  заметка к итогу: ' + pending)
     if first is None:
         print(f"close: итерация {version} закрыта")
         sys.exit(0)

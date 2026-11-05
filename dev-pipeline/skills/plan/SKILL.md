@@ -9,6 +9,13 @@ description: >-
 
 # Implementation Plan with Executor Routing
 
+A changed decision in another stage's document: under a parent, route through it —
+[Под родительским чатом](../pipeline/references/decision-changes.md#под-родительским-чатом); never launch its writer here.
+
+At entry: run `open_questions.py <project> --for 'план'`; pass rows as `QUESTIONS TO SETTLE`.
+At close: settle or readdress each original row and report every outcome.
+Both steps: [Вопросы, адресованные этапу](../pipeline/references/decision-changes.md#вопросы-адресованные-этапу).
+
 Design documents say **what** and **how it is shaped**. This plan says **in
 what order it gets built, in what commits, and by whom**. Its one distinctive
 job: every unit carries a complexity grade and a named executor, so a rename

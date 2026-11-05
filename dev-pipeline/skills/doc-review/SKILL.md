@@ -9,6 +9,9 @@ description: >-
 
 # Document Review
 
+A changed decision in another stage's document: under a parent, route through it —
+[Под родительским чатом](../pipeline/references/decision-changes.md#под-родительским-чатом); never launch its writer here.
+
 Takes a finished document and reviews it. Does not write the first draft.
 Write findings and the review report in Russian. Do not translate cited
 tokens, persona ids, or the report shape's headings and fixed lines

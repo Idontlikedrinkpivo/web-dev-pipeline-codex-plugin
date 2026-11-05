@@ -21,7 +21,7 @@ OpenAPI, the three architecture documents, the screen specs — and the open-que
   openapi       an operationId used twice; a `$ref` to a file that does not exist or to a component no file
                 defines; an operation without a 500 (or 5XX / default) response.
   questions     an open-questions.md without `# Открытые вопросы` or the «Вопрос | Класс» table, or with a Класс
-                other than Блокирует старт / Можно решить при архитектуре / Отложено; an empty one.
+                outside the recipient classes from open_questions.py; an empty one.
 
 Exit 0 — clean; 1 — a line per problem. Run at a stage's close before the stamp commit (pipeline → Commit each
 document); push_branch.py and docs-consistency run it too. Standard library only.
@@ -41,7 +41,8 @@ import where_am_i as w  # noqa: E402
 
 COLUMNS = ["Версия", "Дата", "Изменение", "Тип", "Кого затрагивает"]
 TYPES = {"ломает", "добавляет", "уточняет"}
-CLASSES = {"Блокирует старт", "Можно решить при архитектуре", "Отложено"}
+sys.path.insert(0, str(HERE))
+import open_questions as oq  # noqa: E402
 SRS_ID = re.compile(r"(?<![\w-])((?:FR|NFR|BR|UC|A)-\d+(?:\.\d+)?)(?![\w.-]*\d)")
 
 
@@ -226,35 +227,26 @@ def check_openapi(root: Path, out: list) -> None:
 
 
 def check_questions(root: Path, out: list) -> None:
-    for f in sorted((root / "documentation").rglob("open-questions.md")):
-        if "plans" in f.parts or "_web-docs" in f.parts:
-            continue
+    for f in oq.question_files(root):
         t = w.read(f)
         rel = f.relative_to(root)
         if not t.strip():
             out.append(f"{rel}: пустой — файл создаётся с первым вопросом")
             continue
-        if not re.search(r"^# Открытые вопросы(?: и допущения)?(?:\s+—.*)?\s*$", t, re.M):   # architecture: «и допущения»
+        business = 'business-requirements' in f.parts and '<!-- ce-question:' in t
+        if not business and not re.search(r"^# Открытые вопросы(?: и допущения)?(?:\s+—.*)?\s*$", t, re.M):
             out.append(f"{rel}: заголовок не «# Открытые вопросы»")
-        lines = t.splitlines()
-        at = next((i for i, l in enumerate(lines) if l.startswith("|") and "Вопрос" in l), None)
-        if at is None:
-            if not any(l.startswith("|") for l in lines):
-                out.append(f"{rel}: нет таблицы «| Вопрос | Класс |»")
-            continue                  # only other tables (the architecture's assumptions ДП-n) — allowed
-        cols = [c.strip() for c in lines[at].strip().strip("|").split("|")]
-        if "Класс" not in cols:
+        tables = [oq.cells(line) for line in t.splitlines() if line.strip().startswith('|')]
+        headers = [row for row in tables if 'Вопрос' in row]
+        if not business and not tables:
+            out.append(f"{rel}: нет таблицы «| Вопрос | Класс |»")
+        if any('Класс' not in row for row in headers):
             out.append(f"{rel}: в таблице вопросов нет столбца «Класс»")
-            continue
-        k = cols.index("Класс")
-        for line in lines[at + 2:]:
-            if not line.startswith("|"):
-                break
-            cells = [c.strip() for c in line.strip().strip("|").split("|")]
-            if len(cells) > k:
-                if cells[k] and cells[k] not in CLASSES and not any(cells[k].startswith(c) for c in CLASSES):
-                    out.append(f"{rel}: Класс «{cells[k][:40]}» — Блокирует старт, Можно решить при архитектуре "
-                               "или Отложено")
+        for row in oq.read_file(root, f):
+            if not row.text or not oq.valid_class(row.classification):
+                out.append(f"{rel}:{row.line}: Класс «{row.classification}» — допустимы Блокирует старт, "
+                           "Решить при: <этап>, Отложено, Решено: <где>; этапы: "
+                           + ', '.join(oq.STAGES) + f"; старое значение: {oq.LEGACY}")
 
 
 def main() -> None:

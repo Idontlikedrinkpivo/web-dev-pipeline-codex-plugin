@@ -9,6 +9,9 @@ description: >-
 
 # Grill me
 
+A changed decision in another stage's document: under a parent, route through it —
+[Под родительским чатом](../pipeline/references/decision-changes.md#под-родительским-чатом); never launch its writer here.
+
 Interview the user relentlessly until you reach a shared understanding. Map this as a **design tree**: every decision branches into the decisions that hang off it. Ask every question in Russian. Do not translate cited tokens when you quote them.
 
 Every question — each round and the close — is shown as "How a question is shown" says.
@@ -57,7 +60,7 @@ Answers held only in context are lost with a compaction or a cut-off session, so
 - **After each round:** `L add <the same selector> "<line>"`, one line per decision: `Раунд N · qK · <decision> · reverses <id or —>`, or `Раунд N · qK · отложено · <the question in one line>`.
 - **At the close,** apply reversals from `L show …`, not from memory, then `L close …` once they landed — a ledger left behind is read by the next grill of the same document as its own.
 
-**Do not touch `open-questions.md` before the close.** At any path, that file holds open questions and nothing else, and a round in progress has none yet. Do not create it, append to it, or edit anything in it during the rounds, whatever is already there. A grill round, `Гриль закрыт?`, and `ответьте в чате` never belong there. **At the close**, each deferred decision in the ledger becomes one row in `open-questions.md` beside the document (`doc-versioning` → Открытые вопросы), class `Отложено`, with the source `(допрос, YYYY-MM-DD)` — written by whoever applies the reversals, in the same pass, so a deferred question is kept rather than lost with the ledger.
+**Do not touch `open-questions.md` before the close.** At any path, that file holds open questions and nothing else, and a round in progress has none yet. Do not create it, append to it, or edit anything in it during the rounds, whatever is already there. A grill round, `Гриль закрыт?`, and `ответьте в чате` never belong there. **At the close**, each deferred decision in the ledger becomes one row in `open-questions.md` beside the document (`doc-versioning` → Открытые вопросы), class `Решить при: <этап>` when the user named the stage that can decide (e.g. «уточним при архитектуре»), otherwise `Отложено`; an unresolved start blocker remains `Блокирует старт`, with the source `(допрос, YYYY-MM-DD)` — written by whoever applies the reversals, in the same pass, so a deferred question is kept rather than lost with the ledger.
 
 ## Facts
 

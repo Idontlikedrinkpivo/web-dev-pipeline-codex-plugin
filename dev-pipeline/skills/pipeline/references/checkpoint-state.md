@@ -9,7 +9,8 @@ reflect, commit, push, reset, clean or silently transfer ownership.
 ```python
 capture(checkout, version, chat_key, state, owned_paths, *,
         event='CHECKPOINT', successor_id=None, ownership_confirmed=False,
-        writers_stopped=False, checks_stopped=False, runtime=None) -> dict
+        writers_stopped=False, checks_stopped=False, runtime=None,
+        local_only=False) -> dict
 
 restore(checkout, version, chat_key, checkpoint_id, *, source=None) -> dict
 ```
@@ -28,10 +29,18 @@ python3.12 checkpoint.py restore --checkout ROOT --version 1.3.0 \
   --chat-key PHYSICAL_CHAT --checkpoint-id ID --source EXPORTED_CHECKPOINT
 ```
 
-Capture also accepts `--runtime FILE`, `--event`, `--successor-id`,
+Capture also accepts `--runtime FILE`, `--event`, `--successor-id`, `--local-only`,
 `--ownership-confirmed`, `--writers-stopped`, and `--checks-stopped`. Successful
 stdout is JSON. Expected failures return nonzero with `{error: CODE, message}`.
 Argument syntax errors use argparse's stderr and exit 2.
+
+`local_only=True` (`capture --local-only`) is internal Git recovery, not logical
+handover or publication. It publishes only an immutable checkpoint at
+`paths.local/checkpoints/ID`, with `completeness: {local: true, portable: false,
+scope: 'local'}`. It captures the full local Git-visible dirty inventory without
+changing the source index, and never creates or updates portable checkpoints,
+`run-state.json`, report aliases or portable event history. The default remains
+the local plus explicitly owned portable capture described below.
 
 ## Portable input and manifest
 
@@ -142,3 +151,33 @@ U2 provides schema/API and R tests. Later consumers wire all unit/wave/Low-fix/
 final-check/review/fix boundaries. Agent compliance is separately specified in
 `tests/behavior_cases/checkpoint.md`; file presence or green R tests is not B
 acceptance.
+
+## Reflect windows — schema 1
+
+Checkpoint events are durable recovery history, not automatic reflect part
+boundaries. A continuing CHECKPOINT or COMPACT alone never completes a reflect
+part. A real stop, handoff or transfer of ownership supplies the boundary.
+
+`reflect/scripts/sessions.py window ROOT --version V --until OFFSET_AWARE_ISO
+--boundary stop|handoff|ownership` reads the next exact half-open UTC interval
+`[start,end)` without publishing a report. Without a real boundary it returns
+`partial`; missing journals return `unavailable`, never a complete empty run.
+The stable opening is `plans/V/iteration.json:started_at`, otherwise an observed
+iteration commit (provenance included); folder modification time is never used.
+
+Publish the returned JSON in a fenced `reflect-window` block in
+`CODEX_HOME/dev-pipeline-feedback/PROJECT.md`. It contains `schema_version: 1`,
+`project`, `version`, `window: {start,end}`, `start_source`, `source_hash`,
+`event_cursor: {count,last}`, `boundary`, `completion`, and diagnostics. Source
+hashes describe the observed source window; event cursors retain source/index
+provenance across checkpoint, resume and compaction records. A checkpoint ID
+does not claim complete journal coverage. Physical source identities stay in
+local feedback, never in portable checkpoint state.
+
+Only contiguous complete records of the same project/version advance the
+cursor, in publication order. The next start equals the previous complete end.
+Partial, corrupt, gapped, overlapping or out-of-order sections do not advance
+it. Minute-only legacy prose needs migration: exact seconds are unknown.
+`close_iteration.py` uses this same parser and requires coverage strictly past
+the final commit instant (the end itself is exclusive), using Codex feedback
+only. It does not use a ten-minute allowance or Claude feedback.

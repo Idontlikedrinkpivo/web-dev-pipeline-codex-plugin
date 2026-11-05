@@ -9,12 +9,13 @@ One line per step, ✅ done or ✗ what is missing, in order:
   0 audit     security-audit.md says PASS, or the summary's «Безопасность» row has a verdict or «пропущен — <причина>»
               (the user's skip): the audit ran or was declined, not forgotten (ai-initiatives 2.2.0 went to the release
               without it; the owner's question found a P1)
-  1 stamp     no contract document changed on the iteration branch since its last stamp (where_am_i.unstamped)
+  1 stamp     doc_state.py dirty returns zero (the latest valid stamp, including a no-row close)
   2 site      documentation/ (the site included) has nothing uncommitted
   3 summary   documentation/plans/<version>/summary.md exists
-  4 tag       v<version> exists — and points at a commit that has steps 1–3 in it
-  5 reflect   ~/.claude (or ~/.codex)/dev-pipeline-feedback/<project>.md has a section of <version> whose «Окно»
-              ends at or after the iteration's last commit (the tag's, else HEAD's) — a part of it does not count
+  3a UI       current full acceptance fingerprint or an explicit no-UI applicability reason
+  4 tag       v<version> exists — and points at a commit that has steps 1–3a in it (never small mode)
+  5 reflect   CODEX_HOME/dev-pipeline-feedback/<project>.md has contiguous complete exact windows of this version
+              covering the final commit instant (the exclusive end must follow it)
   6 servers   no progress or documentation-site server of this project still running
 
 The first ✗ is the next thing to do; a later step that is ✅ while an earlier one is ✗ is reported as out of order.
@@ -28,10 +29,64 @@ import re
 from datetime import datetime, timezone
 import subprocess
 import sys
+import json
+import importlib.util
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import where_am_i as w  # noqa: E402
+
+HERE = Path(__file__).resolve().parent
+sys.path.insert(0, str(HERE.parents[1] / "reflect" / "scripts"))
+import sessions  # noqa: E402
+from open_iteration import iteration_metadata  # noqa: E402
+
+
+def stamp_gate(root: Path) -> tuple[bool, str]:
+    script = HERE.parents[1] / "doc-versioning" / "scripts" / "doc_state.py"
+    try:
+        result = subprocess.run([sys.executable, str(script), str(root), "dirty"], capture_output=True, text=True)
+        return result.returncode == 0, "" if result.returncode == 0 else (
+            f"doc_state dirty exit {result.returncode}: " + (result.stdout + result.stderr).strip())
+    except OSError as exc:
+        return False, f"doc_state dirty unavailable: {exc}"
+
+
+def small_gate(root: Path, metadata: dict) -> tuple[bool, str]:
+    _, head = git(root, "rev-parse", "HEAD")
+    result = metadata.get("result")
+    if not isinstance(result, dict):
+        return False, "small result missing"
+    if result.get("head") != head or not isinstance(result.get("scope"), list) or not result["scope"] or not all(isinstance(p, str) and p.strip() for p in result["scope"]):
+        return False, "small result needs scope + current HEAD"
+    if any(Path(p).is_absolute() or '..' in Path(p).parts or not (root / p).resolve().is_relative_to(root.resolve()) for p in result['scope']):
+        return False, "small result scope must stay in checkout"
+    if git(root, "status", "--porcelain", "--", *result["scope"])[1]:
+        return False, "small result scope has uncommitted changes after review"
+    if not isinstance(result.get("affected_tests"), list) or not result["affected_tests"] or not all(str(x).strip() for x in result["affected_tests"]):
+        return False, "small affected tests/evidence missing"
+    for key in ("unit_review", "full_review"):
+        review = result.get(key)
+        if not isinstance(review, dict) or review.get("head") != head or review.get("status") != "PASS":
+            return False, f"small {key} missing/stale"
+    ui = result.get("ui", {})
+    if ui.get("applicable") is False and not str(ui.get("reason") or "").strip():
+        return False, "small no-UI needs a reason"
+    if ui.get("applicable") not in (True, False):
+        return False, "small UI applicability missing"
+    return True, ""
+
+
+def acceptance_gate(root: Path, folder: Path) -> tuple[bool, str]:
+    script = HERE.parents[1] / "ui-test-cases" / "scripts" / "acceptance_scope.py"
+    spec = importlib.util.spec_from_file_location("pipeline_acceptance_scope", script)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    path = folder / "ui-acceptance.json"
+    try:
+        return module.check(root, json.loads(path.read_text(encoding="utf-8")))
+    except (OSError, ValueError, TypeError, KeyError) as exc:
+        return False, f"UI acceptance unavailable: {exc}"
 
 
 def git(root: Path, *args: str) -> tuple[int, str]:
@@ -61,6 +116,17 @@ def main() -> None:
         sys.exit(1)
     folder = root / "documentation" / "plans" / version
     steps: list[tuple[str, bool, str]] = []
+    small = False
+    marker = folder / "iteration.json"
+    if marker.exists():
+        try:
+            metadata = iteration_metadata(marker, version)
+            small = metadata["mode"] == "small"
+            if small:
+                ok, reason = small_gate(root, metadata)
+                steps.append(("small результат", ok, reason))
+        except ValueError as exc:
+            steps.append(("iteration metadata", False, str(exc)))
 
     audit = folder / "security-audit.md"
     first = audit.read_text(encoding="utf-8", errors="replace").splitlines()[:1] if audit.exists() else []
@@ -75,15 +141,16 @@ def main() -> None:
                   "находки), а если пользователь от него отказался, запишите в итоге строку «| Безопасность | … | "
                   "пропущен — <причина> |»"))
 
-    open_docs = [d.label for d in w.registry(root)   # business requirements carry no version: never stamped
-                 if d.path.is_file() and "business-requirements" not in d.rel and w.unstamped(root, d, version)]
-    steps.append(("1 штамп", not open_docs, "без штампа: " + ", ".join(open_docs) if open_docs else ""))
+    stamped, stamp_reason = stamp_gate(root)
+    steps.append(("1 штамп", stamped, stamp_reason))
     _, dirty = git(root, "status", "--porcelain", "--", "documentation", ":!documentation/plans")
     steps.append(("2 сайт", not dirty, f"не закоммичено в documentation/: {len(dirty.splitlines())} файл(ов) — "
                   "пересоберите сайт и закоммитьте" if dirty else ""))
     summary = folder / "summary.md"
     steps.append(("3 итог", summary.exists(), f"нет {summary.relative_to(root)} (pipeline → references/summary.md)"
                   if not summary.exists() else ""))
+    accepted, acceptance_reason = acceptance_gate(root, folder)
+    steps.append(("3a UI acceptance", accepted, acceptance_reason))
     code, tag_sha = git(root, "rev-list", "-n", "1", f"v{version}")
     tagged = code == 0 and bool(tag_sha)
     late = ""
@@ -91,27 +158,10 @@ def main() -> None:
         _, after = git(root, "log", "--format=%s", f"v{version}..HEAD", "--", "documentation", ":!documentation/plans")
         if after:
             late = f"после метки ещё коммиты в документах ({len(after.splitlines())}) — метка не несёт их"
-    steps.append(("4 метка", tagged and not late, late or (f"нет метки v{version}" if not tagged else "")))
-    feedback = [d / "dev-pipeline-feedback" / f"{root.name}.md" for d in
-                {Path.home() / ".claude", Path(os.environ.get("CODEX_HOME", Path.home() / ".codex"))}]
-    # a section of this version whose window («Окно: <start> — <end>», UTC) reaches the iteration's last commit:
-    # a part written mid-iteration («часть 1, до перезапуска») does not cover the rest — it once passed this step,
-    # and the close went on without reflect (ai-initiatives 2.2.0, 2026-10-31)
-    head = re.compile(rf"^## .*(?<![\d.]){re.escape(version)}(?![\d.]).*$", re.M)
+    steps.append(("4 метка", tagged and not late and not small,
+                  "small mode prepares close; release requires normal workflow" if small else late or (f"нет метки v{version}" if not tagged else "")))
     _, last = git(root, "log", "-1", "--format=%ct", f"v{version}" if tagged else "HEAD")
-    last_utc = datetime.fromtimestamp(int(last), timezone.utc).strftime("%Y-%m-%d %H:%M") if last else ""
-    ends = []
-    for f in feedback:
-        text = f.read_text(encoding="utf-8", errors="replace") if f.exists() else ""
-        for m in head.finditer(text):
-            nxt = re.search(r"^## ", text[m.end():], re.M)
-            body = text[m.end(): m.end() + nxt.start()] if nxt else text[m.end():]
-            ends += re.findall(r"Окно: [\d\- :T]+ — (\d{4}-\d\d-\d\d[ T]\d\d:\d\d)", body)
-    newest = max((e.replace("T", " ") for e in ends), default="")
-    reflected = bool(newest) and newest >= last_utc[:15]   # ten-minute slack; a run after the tag ends later anyway
-    why = ("в разборе сессий нет раздела этой версии — запустите reflect" if not ends else
-           f"разбор этой версии кончается {newest} UTC, а итерация шла до {last_utc} — запустите reflect с этого места"
-           if not reflected else "")
+    reflected, why = sessions.reflect_coverage(root, version, datetime.fromtimestamp(int(last), timezone.utc)) if last else (False, "HEAD unavailable")
     steps.append(("5 reflect", reflected, why))
     running = [m for m in (folder / ".progress-server", root / "documentation" / "_web-docs" / ".site-server")
                if m.exists() and alive(m)]

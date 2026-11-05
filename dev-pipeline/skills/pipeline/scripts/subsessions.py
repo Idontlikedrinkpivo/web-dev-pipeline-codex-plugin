@@ -17,8 +17,8 @@ the source is preserved and an existing local copy is never overwritten.
 plan    the stages kept for this iteration (keys below, any order) become rows in chain order, each with its title —
         «<version> · <its place in the chain, two digits> <word>», «1.0.0 · 02 SRS», so a sidebar sorted by name or
         by creation reads as the chain:
-        one row per stage, and no parts: a stage over the context limit goes on in its own session, which the parent
-        clears and starts again. A stage already in the list under an older title («прогон») is not added again.
+        one row per stage, and no parts: context thresholds save a checkpoint and continue in the same chat;
+        a fresh continuation chat requires explicit human permission and stopped writers. A stage already in the list under an older title («прогон») is not added again.
         The fixes a check sends back (UI tests, the audit) run inside that check's own session, by agents. Rows already in
         the file keep their ids and states, so a later plan — a continued iteration, a stage added — only adds rows.
         A document stage whose documents all carry this version's stamp is closed and skipped, with a note: on a

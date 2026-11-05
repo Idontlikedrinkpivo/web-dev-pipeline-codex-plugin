@@ -28,7 +28,20 @@ def value(run: dict, metric: str) -> float | None:
     v = run.get(metric)
     if v is None:
         v = (run.get("groups") or {}).get(metric)
-    return float(v) if isinstance(v, (int, float)) else None
+    return float(v) if isinstance(v, (int, float)) and not isinstance(v, bool) else None
+
+
+def comparison_status(runs: list[dict]) -> tuple[bool, str]:
+    if any(r.get("schema_version") != 2 for r in runs):
+        return False, "legacy reports: provenance/acceptance unknown"
+    if any(r.get("complete") is not True for r in runs):
+        return False, "incomplete telemetry"
+    for key in ("window", "baseline", "unit_kind"):
+        if any(r.get(key) != runs[0].get(key) for r in runs[1:]):
+            return False, f"unequal {key}"
+    if not runs[0].get("baseline") or not all((runs[0].get("window") or {}).get(k) for k in ("start", "end")):
+        return False, "window/baseline provenance unknown"
+    return True, "comparable"
 
 
 def parse(args: list) -> tuple[list, list]:
@@ -57,7 +70,7 @@ def ratio(base: list, variant: list) -> float | None:
     if not base or not variant:
         return None
     b, v = statistics.median(base), statistics.median(variant)
-    return v / b if b > 0 and v > 0 else None
+    return v / b if b > 0 and v >= 0 else None
 
 
 def main() -> None:
@@ -71,12 +84,16 @@ def main() -> None:
     for m in metrics:
         per_task = []
         for t in tasks:
+            comparable, reason = comparison_status(t["base"] + t["variant"])
+            if not comparable:
+                print(f"| {m} | {t['name']} | incomplete comparison | {reason} | — |")
+                continue
             b = [x for x in (value(r, m) for r in t["base"]) if x is not None]
             v = [x for x in (value(r, m) for r in t["variant"]) if x is not None]
             r = ratio(b, v)
             per_task.append((b, v))
             print(f"| {m} | {t['name']} | {statistics.median(b) if b else '—':.4g} ({len(b)}) | "
-                  f"{statistics.median(v) if v else '—':.4g} ({len(v)}) | {r:.2f} |" if r else
+                  f"{statistics.median(v) if v else '—':.4g} ({len(v)}) | {r:.2f} |" if r is not None else
                   f"| {m} | {t['name']} | нет данных | нет данных | — |")
         ok = [(b, v) for b, v in per_task if ratio(b, v)]
         if not ok:

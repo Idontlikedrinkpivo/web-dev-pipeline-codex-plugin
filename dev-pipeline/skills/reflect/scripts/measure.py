@@ -63,6 +63,8 @@ def group_of(agent: str) -> str:
     if agent == SESSION:
         return SESSION
     name = agent.split(":", 1)[-1]
+    if "guardian" in name.lower() or name.lower() in ("approval-reviewer", "approvals_reviewer"):
+        return "Guardian (billing unknown)"
     return next((g for g, names in GROUPS if name in names), "Прочие агенты")
 
 
@@ -76,6 +78,11 @@ class Agent:
         self.first_ctx = 0
         self.t0 = self.t1 = ""
         self.models: dict = defaultdict(float)
+        self.unknown_usage = 0
+        self.discovery_diagnostics = []
+        self.provenance = []
+        self.task_id = self.grade = self.attempt = self.review_acceptance = None
+        self.task_attempts = []
 
 
 def add_call(a: Agent, usage: dict, model: str, ts: str) -> float:
@@ -136,6 +143,8 @@ def active_minutes(beats: list) -> int:
 
 
 def fmt(n: float) -> str:
+    if n is None:
+        return "unknown"
     return f"{n / 1e6:.1f} млн" if n >= 1e6 else f"{n / 1e3:.0f} тыс."
 
 
@@ -196,10 +205,26 @@ def main() -> None:
         sys.exit(__doc__)
     cwd = args[0]
     since = args[args.index("--since") + 1] if "--since" in args else None
+    until = args[args.index("--until") + 1] if "--until" in args else None
+    import sessions
+    # Legacy date/minute flags remain accepted, normalized to explicit UTC.
+    def boundary(value):
+        if not value:
+            return None
+        if len(value) == 10:
+            value += "T00:00:00Z"
+        elif len(value) == 16:
+            value += ":00Z"
+        return sessions.iso(sessions.utc(value))
+    since, until = boundary(since), boundary(until)
+    if until:
+        args[args.index("--until") + 1] = until
+    if until and since and sessions.utc(until) <= sessions.utc(since):
+        sys.exit("window end must follow start")
     also = [args[i + 1] for i, a in enumerate(args) if a == "--also" and i + 1 < len(args)]
     try:  # the Codex build ships codex_logs.py beside this file: Codex rollouts instead of Claude Code's logs
         import codex_logs
-        session, agents, active, beats = codex_logs.collect(cwd, since, also, Agent, add_counts, SESSION)
+        session, agents, active, beats = codex_logs.collect(cwd, since, also, Agent, add_counts, SESSION, until)
     except ImportError:
         session, agents, active, beats = collect_claude(cwd, since, also)
     report(args, cwd, since, session, agents, active, beats)
@@ -238,19 +263,20 @@ def collect_claude(cwd: str, since: str | None, also: list) -> tuple:
 def report(args: list, cwd: str, since: str | None, session, agents: list, active: int, beats: list) -> None:
     every = [session] + agents
     total = sum(a.units for a in every)
-    if not total:
-        sys.exit("no model calls in that window")
+    complete = not session.discovery_diagnostics and not any(a.unknown_usage for a in every)
     stamps = [t for a in every for t in (a.t0, a.t1) if t]
     print(f"## Расход · {Path(cwd).name}" + (f" · с {since}" if since else ""))
     print()
-    print(f"Окно: {min(stamps)[:16].replace('T', ' ')} — {max(stamps)[:16].replace('T', ' ')} · "
+    print(f"Окно: {min(stamps) if stamps else 'unknown'} — {max(stamps) if stamps else 'unknown'} · "
           f"сессий: {active} · агентов запущено: {len(agents)} · вызовов модели: {sum(a.calls for a in every)} · "
-          f"всего: **{fmt(total)}** единиц · работа сессии: ~{active_minutes(beats) // 60} ч {active_minutes(beats) % 60} мин")
+          f"всего: **{fmt(total if complete else None)}** единиц · работа сессии: ~{active_minutes(beats) // 60} ч {active_minutes(beats) % 60} мин")
+    print(f"Telemetry: {'complete' if complete else 'incomplete/unknown'}; known subtotal: {fmt(total)}; guardian billing: unknown")
     print()
     print("Единицы — токены, приведённые к цене входного токена: вывод ×5, запись в кэш ×1,25 (часовой ×2), чтение "
           "кэша ×0,1. Это пропорции для сравнения ролей и прогонов, а не деньги: цена модели не учтена.")
 
     by_group: dict = defaultdict(lambda: [0.0, 0, 0])
+    unknown_groups = {group_of(a.kind) for a in every if a.unknown_usage}
     for a in every:
         g = by_group[group_of(a.kind)]
         g[0] += a.units
@@ -260,7 +286,7 @@ def report(args: list, cwd: str, since: str | None, session, agents: list, activ
     print("| Группа | Доля | Единиц | Агентов | Вызовов |")
     print("|---|---|---|---|---|")
     for name, (u, n, c) in sorted(by_group.items(), key=lambda kv: -kv[1][0]):
-        print(f"| {name} | {u / total:.0%} | {fmt(u)} | {n or '—'} | {c} |")
+        print(f"| {name} | {u / total if total else 0:.0%} | {fmt(None if name in unknown_groups else u)} | {n or '—'} | {c} |")
 
     by_kind: dict = defaultdict(list)
     for a in agents:
@@ -283,7 +309,7 @@ def report(args: list, cwd: str, since: str | None, session, agents: list, activ
     print("|---|---|---|")
     for m, u in sorted(models.items(), key=lambda kv: -kv[1]):
         if u >= 0.5 and not m.startswith("<"):  # «<synthetic>» is Claude Code's own placeholder, not a model
-            print(f"| {m} | {u / total:.0%} | {fmt(u)} |")
+            print(f"| {m} | {u / total if total else 0:.0%} | {fmt(u)} |")
 
     toks = defaultdict(int)
     for a in every:
@@ -292,7 +318,7 @@ def report(args: list, cwd: str, since: str | None, session, agents: list, activ
     parts = {"чтение кэша": W_READ * toks["read"], "запись в кэш": W_WRITE * toks["write"] + W_WRITE_1H * toks["write1h"],
              "вывод": W_OUT * toks["out"], "вход без кэша": W_IN * toks["in"]}
     print("\n#### Из чего сложились единицы\n")
-    print(" · ".join(f"{k}: {v / total:.0%}" for k, v in sorted(parts.items(), key=lambda kv: -kv[1])))
+    print(" · ".join(f"{k}: {v / total if total else 0:.0%}" for k, v in sorted(parts.items(), key=lambda kv: -kv[1])))
 
     execs = [a for a in agents if group_of(a.kind) == "Исполнители"]
     flags = []
@@ -310,7 +336,7 @@ def report(args: list, cwd: str, since: str | None, session, agents: list, activ
     built = by_group.get("Исполнители", [0.0])[0]
     if built and review > built * 0.6:
         flags.append(f"ревью кода стоит {review / built:.0%} от работы исполнителей")
-    if session.units / total > 0.4:
+    if total and session.units / total > 0.4:
         flags.append(f"сама сессия — {session.units / total:.0%} расхода: оркестратор держит большой контекст "
                      f"(пик {fmt(session.peak)})")
     accepted = first = back = 0
@@ -334,13 +360,31 @@ def report(args: list, cwd: str, since: str | None, session, agents: list, activ
     print("\n".join(f"- {f}" for f in flags) if flags else "- ничего необычного по порогам скрипта")
     if "--json" in args and args.index("--json") + 1 < len(args):
         built = by_group.get("Исполнители", [0.0])[0] + by_group.get("Ревью кода", [0.0])[0]
+        unknown_groups = {group_of(a.kind) for a in every if a.unknown_usage}
+        observed_acceptance = [a.review_acceptance for a in agents if a.review_acceptance is not None]
         Path(args[args.index("--json") + 1]).write_text(json.dumps({
-            "total": total, "groups": {k: v[0] for k, v in by_group.items()},
-            "session": session.units, "session_peak": session.peak, "calls": sum(a.calls for a in every),
+            "schema_version": 2, "unit_kind": "conditional-token-units", "currency": None,
+            "billing": {"guardian": None, "reason": "billing not observable in rollout telemetry"},
+            "window": {"start": since, "end": args[args.index("--until") + 1] if "--until" in args else None},
+            "baseline": args[args.index("--baseline") + 1] if "--baseline" in args else None,
+            "complete": complete, "diagnostics": session.discovery_diagnostics,
+            "total": total if complete else None, "known_total": total,
+            "groups": {k: v[0] if k not in unknown_groups and not session.discovery_diagnostics else None for k, v in by_group.items()},
+            "known_groups": {k: v[0] for k, v in by_group.items()},
+            "attempts": [{"role": a.kind, "group": group_of(a.kind), "task_id": a.task_id, "grade": a.grade,
+                          "attempt": a.attempt, "review_acceptance": a.review_acceptance,
+                          "unknown_reason": "task/grade/attempt/acceptance only from structured dispatch/report evidence" if any(x is None for x in (a.task_id, a.grade, a.attempt, a.review_acceptance)) else None,
+                          "units": a.units if not a.unknown_usage else None,
+                          "task_attempts": a.task_attempts, "provenance": a.provenance} for a in agents],
+            "session": session.units if not session.unknown_usage and not session.discovery_diagnostics else None,
+            "session_peak": session.peak if not session.unknown_usage and not session.discovery_diagnostics else None,
+            "calls": sum(a.calls for a in every) if complete else None,
             "executors": len(execs), "executors_over_250k": sum(1 for a in execs if a.peak > BIG),
-            "accepted": accepted, "first_review": first, "sent_back": back,
-            "first_review_share": first / accepted if accepted else None,
-            "per_accepted_unit": built / accepted if accepted else None,
+            "accepted": accepted if accepted and progress else (sum(x == "accepted" for x in observed_acceptance) if observed_acceptance else None),
+            "first_review": first if accepted and progress else None, "sent_back": back if accepted and progress else None,
+            "acceptance_provenance": "progress" if accepted and progress else "git-trailers (review acceptance unknown)" if rng else "structured reports" if observed_acceptance else "unknown",
+            "first_review_share": first / accepted if accepted and progress else None,
+            "per_accepted_unit": built / accepted if accepted and progress and complete else None,
         }, ensure_ascii=False, indent=1))
 
 

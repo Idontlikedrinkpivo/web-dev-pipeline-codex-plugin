@@ -28,6 +28,7 @@ import json
 import re
 import subprocess
 import sys
+from datetime import datetime, timezone
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
@@ -170,6 +171,9 @@ def code_changes(root: Path) -> str | None:
 
 def main() -> None:
     args = sys.argv[1:]
+    if "--small" in args:
+        small_open(args)
+        return
     flags = {a for a in args if a.startswith("--")}
     base_arg = args[args.index("--base") + 1] if "--base" in args else None
     pos = [a for i, a in enumerate(args) if not a.startswith("--") and (i == 0 or args[i - 1] != "--base")]
@@ -194,6 +198,9 @@ def main() -> None:
         root = checkout_root(root)
         folder = portable_plans(root, version)
         summary = contained_path(root, folder / "summary.md")
+        marker = contained_path(root, folder / "iteration.json")
+        if marker.exists():
+            iteration_metadata(marker, version)
         plans = folder.parent
         existing = [portable_plans(root, p.name) for p in plans.iterdir()
                     if re.fullmatch(r"\d+\.\d+\.\d+", p.name)] if plans.is_dir() else []
@@ -286,6 +293,12 @@ def main() -> None:
     except ValueError as exc:
         fail(str(exc))
     folder.mkdir(parents=True, exist_ok=True)
+    marker = contained_path(root, folder / "iteration.json")
+    if not marker.exists():
+        history = out(root, "log", "--format=%ct", "main..HEAD").splitlines() if has_ref(root, "main") else []
+        opening = datetime.fromtimestamp(min(int(t) for t in history), timezone.utc) if history else datetime.now(timezone.utc)
+        marker.write_text(json.dumps({"schema_version": 1, "mode": "normal", "version": version,
+                                     "started_at": opening.isoformat().replace("+00:00", "Z")}, indent=2) + "\n", encoding="utf-8")
     commit_gitignore(root, gitignore(root), notes)
 
     print(f"Iteration {version}: branch {branch}, folder documentation/plans/{version}/"
@@ -298,6 +311,83 @@ def main() -> None:
         print(line)
     if not has_origin:
         print("No remote (origin): everything stays local; the push command at the end needs one.")
+
+
+def iteration_metadata(path: Path, version: str) -> dict:
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+        if data.get("schema_version") != 1 or data.get("version") != version or data.get("mode") not in ("normal", "small"):
+            raise ValueError("schema/mode/version mismatch")
+        stamp = datetime.fromisoformat(data["started_at"].replace("Z", "+00:00"))
+        if stamp.tzinfo is None:
+            raise ValueError("opening timestamp has no timezone")
+        if data["mode"] == "small" and (not re.fullmatch(r"chat-[1-9]\d*", data.get("chat_id", "")) or
+                                          not re.fullmatch(r"[0-9a-f]{40,64}", data.get("base_head", ""))):
+            raise ValueError("invalid logical chat/base")
+        return data
+    except (OSError, ValueError, KeyError, TypeError, AttributeError) as exc:
+        raise ValueError(f"invalid iteration metadata: {path}: {exc}") from exc
+
+
+def small_open(args: list[str]) -> None:
+    """Local-only small iteration; validation precedes branch/filesystem writes."""
+    positionals = [a for a in args if a != "--small"]
+    explicit = positionals.pop(0) if positionals and re.fullmatch(r"\d+\.\d+\.\d+", positionals[0]) else None
+    if len(positionals) > 1 or any(a.startswith("--") for a in positionals):
+        fail("usage: open_iteration.py [VERSION] [ROOT] --small")
+    root = checkout_root(Path(positionals[0] if positionals else "."))
+    current = out(root, "symbolic-ref", "-q", "--short", "HEAD")
+    active = re.fullmatch(r"iteration/(\d+\.\d+\.\d+)", current)
+    version = explicit or (active[1] if active else None)
+    if active and explicit and active[1] != explicit:
+        fail("conflicting active iteration/version; no mutation", 2)
+    plans = contained_path(root, root / "documentation" / "plans")
+    opened = [p.name for p in plans.glob("*") if re.fullmatch(r"\d+\.\d+\.\d+", p.name)
+              and p.is_dir() and not (p / "summary.md").exists()]
+    if any(v != version for v in opened):
+        fail("ambiguous open iteration; reuse its branch/version", 2)
+    if version is None:
+        tags = out(root, "tag", "--merged", "HEAD").splitlines()
+        releases = [t[1:] for t in tags if re.fullmatch(r"v\d+\.\d+\.\d+", t)]
+        if not releases:
+            fail("release base unavailable; supply an explicit version", 2)
+        base = max(releases, key=vkey)
+        if any(git(root, "merge-base", "--is-ancestor", f"v{other}", f"v{base}").returncode != 0 for other in releases):
+            fail("ambiguous release lineage; supply an explicit version", 2)
+        major, minor, patch = vkey(base)
+        version = f"{major}.{minor}.{patch + 1}"
+    folder = portable_plans(root, version)
+    marker = contained_path(root, folder / "iteration.json")
+    if (folder / "summary.md").exists():
+        fail("iteration already closed", 2)
+    if marker.exists():
+        data = iteration_metadata(marker, version)
+        if current != f"iteration/{version}":
+            fail("existing metadata requires its iteration branch", 2)
+        print(f"Iteration {version}: reuse {current}; mode={data['mode']}; Plan-Unit: {version}/{data.get('chat_id', 'chat-1')}")
+        return
+    if (folder / "plan.md").exists():
+        if not active:
+            fail("planned iteration requires its active branch", 2)
+        print(f"Iteration {version}: reuse normal planned iteration; Plan-Unit: {version}/chat-1")
+        return
+    head = out(root, "rev-parse", "HEAD")
+    if not re.fullmatch(r"[a-f0-9]{40,64}", head):
+        fail("small iteration requires a committed base", 2)
+    branch = f"iteration/{version}"
+    if current != branch:
+        if has_ref(root, branch):
+            fail("existing branch has no validated metadata; inspect/reuse it explicitly", 2)
+        git(root, "switch", "-q", "-c", branch, check=True)
+    # Check containment again after switching branches.
+    folder = portable_plans(root, version)
+    folder.mkdir(parents=True, exist_ok=True)
+    marker = contained_path(root, folder / "iteration.json")
+    data = {"schema_version": 1, "mode": "small", "version": version,
+            "started_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+            "base_head": head, "chat_id": "chat-1", "result": None}
+    marker.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
+    print(f"Iteration {version}: {branch}; mode=small; Plan-Unit: {version}/chat-1")
 
 
 if __name__ == "__main__":

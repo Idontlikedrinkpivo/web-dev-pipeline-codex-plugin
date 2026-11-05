@@ -28,6 +28,8 @@ import bz2
 import gzip
 import html
 import lzma
+import hashlib
+from datetime import datetime, timezone, timedelta
 from pathlib import Path
 
 HOME = Path(os.environ.get("CODEX_HOME", Path.home() / ".codex"))
@@ -311,7 +313,7 @@ def sid(path: Path) -> str:
     return m.group(1) if m else path.name[:8]
 
 
-def cmd_list(cwd: str, since: str | None, also: list[str]) -> None:
+def cmd_list(cwd: str, since: str | None, also: list[str], until: str | None = None) -> None:
     sources = project_rollouts(cwd, also, include_agents=False)
     metadata = {p: m for p, m in sources}
     by_id = {m.get("id"): m for _, m in sources if m.get("id")}
@@ -335,7 +337,7 @@ def cmd_list(cwd: str, since: str | None, also: list[str]) -> None:
     rows = []
     for p, _ in sources:
         a, b = span(p)
-        if since and b and b[:len(since)] < since:  # a date, or a date and time (2026-10-09T12:10)
+        if (since or until) and not any(in_window(d.get("timestamp", ""), since, until) for d in records(p)):
             continue
         rows.append((p, a, b, typed(p)))
     if not rows:
@@ -484,12 +486,11 @@ def delegation(payload: dict) -> str:
     return ""
 
 
-def cmd_digest(src: str, out: str, since: str | None = None) -> None:
+def cmd_digest(src: str, out: str, since: str | None = None, until: str | None = None) -> None:
     rows: list[str] = []
-    since = since.replace("T", " ") if since else None
     for d in normalized_records(Path(src)):
         ts = (d.get("timestamp") or "")[:16].replace("T", " ")
-        if since and ts and ts < since:  # read by an earlier reflect section
+        if not in_window(d.get("timestamp", ""), since, until):
             continue
         t, p = d.get("type"), d.get("payload") or {}
         if t == "message":
@@ -533,55 +534,118 @@ def cmd_digest(src: str, out: str, since: str | None = None) -> None:
 
 
 def failed(out) -> str:
-    """The error text of a failed call's output, or "" when it succeeded."""
-    s = out if isinstance(out, str) else json.dumps(out, ensure_ascii=False)
-    try:
-        d = json.loads(s)
-        code = (d.get("metadata") or {}).get("exit_code")
-        if code not in (None, 0):
-            return str(d.get("output", ""))[:600] or f"exit code {code}"
-        return ""
-    except (ValueError, AttributeError):
-        pass
-    # an exec call's text: "Exit code: N\nWall time: … seconds\nOutput:\n…" (codex-rs core/src/tools,
-    # format_exec_output_for_model); a timeout starts "command timed out after N milliseconds"
-    m = re.match(r"\s*(?:Exit code|Process exited with code):?\s*(\d+)", s)
-    if m and m.group(1) != "0":
-        return s[:600]
-    return s[:600] if re.match(r"\s*(error|failed|unknown|no such|command timed out|apply_patch verification failed)",
-                               s, re.I) else ""
+    """Compatibility helper; unknown status is available through command_results."""
+    return "\n".join(r["evidence"] for r in command_results(out) if r["status"] == "failed")[:600]
 
 
-def cmd_errors(cwd: str, out: str, since: str | None, also: list[str]) -> None:
+def command_results(value: object) -> list[dict]:
+    """Inspect tool-result envelopes only. Never evaluate quoted source code.
+
+    A missing or running status is unknown, including an empty unstructured
+    output. Empty output with an explicit exit 0 is a successful command.
+    """
+    found, seen = [], set()
+
+    def add(status, evidence, identity=None):
+        key = str(identity) if identity else hashlib.sha256(
+            json.dumps([status, evidence], sort_keys=True, default=str).encode()).hexdigest()
+        if key not in seen:
+            seen.add(key)
+            found.append({"status": status, "evidence": str(evidence)[:600], "identity": key})
+
+    def walk(node, depth=0):
+        if depth > 64:
+            add("unknown", "nesting limit exceeded")
+            return
+        if isinstance(node, str):
+            try:
+                decoded = json.loads(node)
+            except (ValueError, RecursionError):
+                decoded = None
+            if isinstance(decoded, (dict, list)):
+                walk(decoded, depth + 1)
+                return
+            match = re.search(r"^\s*(?:Exit code|Process exited with code):?\s*(-?\d+)\b", node, re.M)
+            if match and (match.start() == 0 or re.match(r"\s*(?:Wall time|Chunk ID|Process exited)", node)):
+                add("success" if int(match[1]) == 0 else "failed", node)
+            elif re.match(r"\s*(error|failed|no such|command timed out|apply_patch verification failed)\b", node, re.I):
+                add("failed", node)
+            else:
+                add("unknown", "unrecognized/truncated tool text: " + node[:200])
+            return
+        if isinstance(node, list):
+            for child in node:
+                walk(child, depth + 1)
+            return
+        if not isinstance(node, dict):
+            return
+        identity = node.get("call_id") or node.get("tool_call_id") or node.get("chunk_id")
+        if node.get("status") == "rejected":
+            add("failed", node.get("reason") or "rejected tool call", identity)
+            return
+        metadata = node.get("metadata") if isinstance(node.get("metadata"), dict) else {}
+        code = node.get("exit_code", metadata.get("exit_code"))
+        if isinstance(code, int) and not isinstance(code, bool):
+            add("success" if code == 0 else "failed", node.get("output") or node.get("stderr") or f"exit code {code}", identity)
+            return
+        if node.get("isError") is True:
+            add("failed", node.get("content") or node, identity)
+            return
+        before = len(found)
+        for key in ("value", "content", "text", "output", "result", "results", "structuredContent"):
+            if key in node:
+                walk(node[key], depth + 1)
+        if len(found) == before:
+            add("unknown", node.get("stderr") or "command result has no final exit status", identity)
+
+    walk(value)
+    return found or [{"status": "unknown", "evidence": "unavailable or unrecognized tool result", "identity": "unknown"}]
+
+
+def cmd_errors(cwd: str, out: str, since: str | None, also: list[str], until: str | None = None) -> None:
     """The failed calls of this project's sessions and of the agents they spawned, grouped (no model reads them)."""
     groups: dict = {}
-    total = 0
-    for path, m in project_rollouts(cwd, also):
+    total = unknown = 0
+    diagnostics = []
+    seen_results = set()
+    sources = project_rollouts(cwd, also, diagnostics=diagnostics)
+    for path, m in sources:
         who = "агент" if role_of(m) is not None else "сессия"
         calls: dict = {}
-        for d in records(path):
+        pending = set()
+        for d in normalized_records(path, diagnostics):
             ts = (d.get("timestamp") or "")[:16]
-            if since and ts and ts < since:
+            if not in_window(d.get("timestamp", ""), since, until):
                 continue
             p = d.get("payload") or {}
             if d.get("type") != "response_item":
                 continue
             if p.get("type") in ("function_call", "custom_tool_call"):  # custom: apply_patch and the like
                 calls[p.get("call_id")] = (p.get("name") or "", str(p.get("arguments") or p.get("input") or "")[:300])
+                pending.add(p.get("call_id"))
             elif p.get("type") in ("function_call_output", "custom_tool_call_output"):
-                err = failed(p.get("output"))
-                if not err:
-                    continue
-                total += 1
+                pending.discard(p.get("call_id"))
                 name, args = calls.get(p.get("call_id"), ("?", ""))
-                first = next((l for l in err.splitlines() if l.strip() and not re.match(
-                    r"(Exit code|Wall time|Output:|Total output lines)", l)), err[:100])[:140]
-                key = (name, re.sub(r"\d+", "N", re.sub(r"/[^\s'\"]+", "<путь>", first)))
-                g = groups.setdefault(key, {"n": 0, "who": set(), "ex": (args, err, ts)})
-                g["n"] += 1
-                g["who"].add(who)
+                for result in command_results(p.get("output")):
+                    identity = (m.get("id") or str(path), p.get("call_id") or ts, result["identity"])
+                    if identity in seen_results:
+                        continue
+                    seen_results.add(identity)
+                    unknown += result["status"] == "unknown"
+                    if result["status"] != "failed":
+                        continue
+                    total += 1
+                    err = result["evidence"]
+                    first = next((l for l in err.splitlines() if l.strip() and not re.match(
+                        r"(Exit code|Wall time|Output:|Total output lines)", l)), err[:100])[:140]
+                    key = (name, re.sub(r"\d+", "N", re.sub(r"/[^\s'\"]+", "<путь>", first)))
+                    g = groups.setdefault(key, {"n": 0, "who": set(), "ex": (args, err, ts)})
+                    g["n"] += 1
+                    g["who"].add(who)
+        unknown += len(pending)
     lines = [f"# Ошибки вызовов · {Path(cwd).name}" + (f" · с {since}" if since else ""), "",
              f"Вызовов с ошибкой: {total} · групп: {len(groups)} (журналы Codex; упавшие тесты и линтеры — дело кода)", ""]
+    lines += [f"Status: {'incomplete/UNKNOWN' if unknown or diagnostics or not sources else 'complete'} · unknown: {unknown}", ""]
     for (name, _), g in sorted(groups.items(), key=lambda kv: -kv[1]["n"])[:80]:
         args, err, ts = g["ex"]
         lines += [f"## ×{g['n']} · ошибка команды · {name}", f"- кто: {', '.join(sorted(g['who']))}",
@@ -590,20 +654,168 @@ def cmd_errors(cwd: str, out: str, since: str | None, also: list[str]) -> None:
     print(f"{out}: {total} failed calls in {len(groups)} groups")
 
 
+def utc(value: str) -> datetime:
+    """Exact offset-aware instants only; minute prose is migration evidence."""
+    if not isinstance(value, str) or not re.search(r"T\d\d:\d\d:\d\d", value):
+        raise ValueError("timestamp requires seconds and timezone")
+    stamp = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    if stamp.tzinfo is None:
+        raise ValueError("timestamp requires timezone")
+    return stamp.astimezone(timezone.utc)
+
+
+def iso(value: datetime) -> str:
+    return value.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
+
+
+def in_window(timestamp: str, since: str | None, until: str | None) -> bool:
+    if not since and not until:
+        return True
+    def bound(value):
+        value = value.replace(" ", "T")
+        if len(value) == 10:
+            value += "T00:00:00Z"
+        elif len(value) == 16:
+            value += ":00Z"
+        return utc(value)
+    try:
+        stamp = utc(timestamp)
+        return (not since or stamp >= bound(since)) and (not until or stamp < bound(until))
+    except ValueError:
+        return False
+
+
+def project_id(root: Path) -> str:
+    # Stable checkout name; explicitly supplied aliases are discovery-only.
+    return root.resolve().name
+
+
+def iteration_start(root: Path, version: str) -> tuple[datetime, str]:
+    marker = root / "documentation" / "plans" / version / "iteration.json"
+    if marker.exists():
+        data = json.loads(marker.read_text(encoding="utf-8"))
+        if data.get("schema_version") != 1 or data.get("version") != version:
+            raise ValueError("invalid iteration metadata")
+        return utc(data["started_at"]), "iteration.json:started_at"
+    result = subprocess.run(["git", "-C", str(root), "log", "--format=%ct%x09%B%x00", "HEAD"],
+                            capture_output=True, text=True)
+    times = []
+    for commit in result.stdout.split("\0"):
+        timestamp, sep, body = commit.strip().partition("\t")
+        if sep and re.search(rf"^Plan-Unit:\s*{re.escape(version)}/", body, re.M):
+            times.append(int(timestamp))
+    if not times:
+        base = subprocess.run(["git", "-C", str(root), "merge-base", "HEAD", "main"], capture_output=True, text=True)
+        if base.returncode == 0:
+            log = subprocess.run(["git", "-C", str(root), "log", "--format=%ct", base.stdout.strip() + "..HEAD"],
+                                 capture_output=True, text=True)
+            times = [int(x) for x in log.stdout.split() if x.isdigit()]
+    if not times:
+        raise ValueError("iteration start unavailable: record an authoritative opening timestamp")
+    return datetime.fromtimestamp(min(times), timezone.utc), "iteration-commit"
+
+
+def read_windows(text: str, project: str, version: str, start: datetime) -> tuple[datetime, list[dict], list[str]]:
+    """Advance only contiguous complete records, in publication order."""
+    cursor, accepted, issues = start, [], []
+    blocks = re.findall(r"```reflect-window\s*\n([\s\S]*?)\n```", text)
+    for block in blocks:
+        try:
+            record = json.loads(block)
+            if record.get("project") != project or record.get("version") != version:
+                continue
+            if record.get("schema_version") != 1:
+                raise ValueError("unsupported window schema")
+            a, b = utc(record["window"]["start"]), utc(record["window"]["end"])
+            if b <= a or a != cursor:
+                raise ValueError("gapped, overlapping or out-of-order window")
+            if record.get("completion") != "complete":
+                issues.append("partial/unavailable window does not advance cursor")
+                continue
+            if record.get("boundary") not in ("stop", "handoff", "ownership"):
+                raise ValueError("checkpoint is not a reflect boundary")
+            if not re.fullmatch(r"[a-f0-9]{64}", record.get("source_hash", "")) or not isinstance(record.get("event_cursor"), dict):
+                raise ValueError("missing source hash/event cursor")
+            cursor = b
+            accepted.append(record)
+        except (ValueError, TypeError, KeyError, AttributeError) as exc:
+            issues.append(str(exc))
+    if not blocks and re.search(r"Окно:", text):
+        issues.append("legacy minute windows: migration required (unknown exact boundaries)")
+    return cursor, accepted, issues
+
+
+def feedback_path(root: Path) -> Path:
+    return HOME / "dev-pipeline-feedback" / f"{project_id(root)}.md"
+
+
+def window_record(root: Path, version: str, until: str | None = None, boundary: str | None = None) -> dict:
+    start, provenance = iteration_start(root, version)
+    feedback = feedback_path(root)
+    cursor, previous, issues = read_windows(feedback.read_text(encoding="utf-8") if feedback.exists() else "",
+                                            project_id(root), version, start)
+    diagnostics, events = [], []
+    for path, metadata in project_rollouts(str(root), diagnostics=diagnostics):
+        for index, record in enumerate(normalized_records(path, diagnostics)):
+            try:
+                timestamp = utc(record.get("timestamp", ""))
+            except ValueError:
+                continue
+            if timestamp >= cursor:
+                events.append((timestamp, metadata.get("id") or path.name, index, record))
+    end = utc(until) if until else max((e[0] for e in events), default=cursor) + timedelta(microseconds=1)
+    if end <= cursor:
+        raise ValueError("window end must follow start")
+    chosen = sorted((e for e in events if cursor <= e[0] < end), key=lambda e: (e[0], e[1], e[2]))
+    encoded = json.dumps(chosen, sort_keys=True, default=lambda x: iso(x) if isinstance(x, datetime) else str(x)).encode()
+    return {"schema_version": 1, "project": project_id(root), "version": version,
+            "window": {"start": iso(cursor), "end": iso(end)}, "start_source": provenance if not previous else "previous-complete-end",
+            "source_hash": hashlib.sha256(encoded).hexdigest(),
+            "event_cursor": {"count": len(chosen), "last": {"source": chosen[-1][1], "index": chosen[-1][2]} if chosen else None},
+            "boundary": boundary, "completion": "complete" if chosen and not diagnostics and boundary in ("stop", "handoff", "ownership") else "partial" if chosen else "unavailable",
+            "diagnostics": diagnostics, "history_issues": issues}
+
+
+def reflect_coverage(root: Path, version: str, required: datetime) -> tuple[bool, str]:
+    try:
+        start, _ = iteration_start(root, version)
+        path = feedback_path(root)
+        cursor, accepted, issues = read_windows(path.read_text(encoding="utf-8") if path.exists() else "",
+                                                project_id(root), version, start)
+        ok = bool(accepted) and cursor > required
+        return ok, "" if ok else f"reflect coverage ends {iso(cursor)}; required after {iso(required)}; " + "; ".join(issues or ["no complete Codex window"])
+    except (OSError, ValueError, KeyError) as exc:
+        return False, f"reflect unavailable: {exc}"
+
+
 if __name__ == "__main__":
-    if len(sys.argv) >= 3 and sys.argv[1] == "list":
+    if len(sys.argv) >= 3 and sys.argv[1] == "window":
+        import argparse
+        parser = argparse.ArgumentParser(description="Read exact next reflect window; does not publish it")
+        parser.add_argument("command", choices=["window"])
+        parser.add_argument("project")
+        parser.add_argument("--version", required=True)
+        parser.add_argument("--until")
+        parser.add_argument("--boundary", choices=["stop", "handoff", "ownership", "checkpoint"])
+        args = parser.parse_args()
+        try:
+            print(json.dumps(window_record(Path(args.project).resolve(), args.version, args.until, args.boundary), indent=2))
+        except (ValueError, KeyError, OSError) as exc:
+            parser.exit(2, f"window: {exc}\n")
+    elif len(sys.argv) >= 3 and sys.argv[1] == "list":
         since = sys.argv[sys.argv.index("--since") + 1] if "--since" in sys.argv else None
         also = [sys.argv[i + 1] for i, x in enumerate(sys.argv) if x == "--also"]
-        cmd_list(sys.argv[2], since, also)
+        cmd_list(sys.argv[2], since, also, sys.argv[sys.argv.index("--until") + 1] if "--until" in sys.argv else None)
     elif len(sys.argv) >= 4 and sys.argv[1] == "digest":
-        cmd_digest(sys.argv[2], sys.argv[3], sys.argv[sys.argv.index("--since") + 1] if "--since" in sys.argv else None)
+        cmd_digest(sys.argv[2], sys.argv[3], sys.argv[sys.argv.index("--since") + 1] if "--since" in sys.argv else None,
+                   sys.argv[sys.argv.index("--until") + 1] if "--until" in sys.argv else None)
     elif len(sys.argv) >= 5 and sys.argv[1] == "mine":
         cmd_mine(sys.argv[2], sys.argv[3], sys.argv[4],
                  [sys.argv[i + 1] for i, x in enumerate(sys.argv) if x == "--also"])
     elif len(sys.argv) >= 4 and sys.argv[1] == "errors":
         since = sys.argv[sys.argv.index("--since") + 1] if "--since" in sys.argv else None
         also = [sys.argv[i + 1] for i, x in enumerate(sys.argv) if x == "--also"]
-        cmd_errors(sys.argv[2], sys.argv[3], since, also)
+        cmd_errors(sys.argv[2], sys.argv[3], since, also, sys.argv[sys.argv.index("--until") + 1] if "--until" in sys.argv else None)
     else:
         print(__doc__)
         sys.exit(2)

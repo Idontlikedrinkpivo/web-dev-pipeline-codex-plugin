@@ -1,10 +1,9 @@
 # Продолжение реализации 1.3.0
 
-Ветка: iteration/1.3.0. BASE: e5148e7. План и review сохранены отдельным коммитом; план не менять.
-Текущая фаза: U1 завершена, commit 44045ad, два COMMIT после одного круга исправлений, 21+9 тестов OK; активных исполнителей нет. CHECKPOINT по контексту, продолжение в том же чате без остановки.
-Следующий шаг: создать изолированные worktrees от текущего HEAD и начать независимые U10/U17/U19, затем U22/U24/U25 из волны 1 (максимум 3 исполнителя одновременно). Наложить /tmp/dev-pipeline-1.3.0-run/user-preexisting.patch только как незакоммиченный пользовательский baseline, не включать его в коммиты. Каждая задача проверяется/коммитится отдельно, Low batch всей волны перед U2.
-Сделано: 1 из 28. Low batch: пусто. Финальные проверки/whole-run review ещё не начинались.
-Состояние: progress.md и work-run.md рядом. Детали: /tmp/dev-pipeline-1.3.0-run/.
-Живой сервис: страница прогресса на 127.0.0.1:8790; создана этим прогоном. При завершении остановить через pipeline/scripts/progress_server.py <folder> --stop (проверить usage), не чужие процессы.
-Все старые правки AGENTS/README/agent TOML сохранять и не включать в unit commit. Не синхронизировать Claude/установленные копии, не переименовывать файлы. Не создавать новые чаты без запроса пользователя; продолжать здесь с именованными агентами.
-После compaction прочитать pipeline/work/runtime и run-state; выполнить plan_state.py, сверить git trailers, затем читать только следующий U-блок. Не повторять уже закоммиченные юниты.
+Ветка iteration/1.3.0, HEAD f9542f3, BASE e5148e7. Plan SHA256 3c081107c66bae16a9c2bb9ac11bc1d8eabfc9a78ac8b924311bbd193a9dee93 immutable/reviewPASS; plan_state 0errors/11advisories (measured input, bounded packets),7done.
+
+Готовы U1/U10/U17/U19/U22/U24/U25; коммиты/решения в work-run.md. Wave1 полностью reviewed: все Low индивидуально, повторный batch не нужен. U10F1fixed,19tests+re-reviewCOMMIT. Неблокирующие P2 и B/L NOT_RUN в work-run.
+
+Сейчас U2/u2_checkpoint/impl-hard PHASE tests-only на основной iteration ветке. OWN tests/test_checkpoint.py и tests/behavior_cases/checkpoint.md. Дождаться tests-ready, root run_check RED, сохранить hashes, followup тому же agent PHASEimplementation (четыре файла U2). Потом rootGREEN и два независимых review-hard (main и risk без workerreport), fixes→commit. Последующие волны plan§4 последовательно; не повторять готовые задачи. Финальные gates+whole-runreview обязательны,pending.
+
+Worktrees /tmp/dev-pipeline-1.3.0-u10,-u17,-u19,-u22,-u24,-u25 больше не активны; сохраняют пользовательский baseline patch. Пользовательские AGENTS/README/agentTOML и старые pycache не откатывать/не индексировать. Details/diffs /tmp/dev-pipeline-1.3.0-run/. No syncClaude/installed,rename/move,merge/main/tag/publish/push. Progress127.0.0.1:8790 ownedrun, остановить при закрытии. Новыечаты не разрешены; samechat/nativecompaction. Послеcompaction читать pipeline/work/runtime/run-state, git/plan_state, затем нужныйunitblock.

@@ -1,0 +1,13 @@
+Verdict: PASS
+checked: 3c081107c66bae16a9c2bb9ac11bc1d8eabfc9a78ac8b924311bbd193a9dee93
+
+## Ревью плана — documentation/plans/1.3.0/plan.md — PASS
+
+| # | Важность | Юниты | Аспект | Находка | Исправление | Вид правки |
+|---|---|---|---|---|---|---|
+
+**Coverage ledger** — all covered. R01 → U8 B-case конечного scope после checkpoint/compaction; R02 → U16 R/B и U8 B синхронизации отмены; R03 → U12 R с четырьмя temp-Git исходами и отказом/nonzero doc_state. U27 записывает expected/actual/evidence всех трёх. Прежнее покрытие A01–A34 и двух исходных human-handoff сценариев сохранено.
+**Grade table** — расхождений нет. Распределение сохранено: 0:3, Low:9, Mid:13, High:3.
+**Dismissed** — Bounded diff затрагивает только sources/§1, U8/U12/U16/U27 и ledger §5. Новые R01–R03 разрешаются в reflect-supplement.md; ссылки Scope shrinks / Only what blocks circles, Step 1, A decision that changes during the run и doc_state last_stamp/dirty подтверждены исходниками. U12 перечисляет close_iteration.py и новый tests/test_close_iteration_stamp.py; заменяет только его вызов unstamped, сам helper, остальных callers и doc_state сохраняет явно. Противоречивое исключение stamp удалено. U16 отменяет mandatory-scope invariant лишь при явной отмене пользователя; property/scenarios согласованы, progress_mutation consumer явно остаётся совместимым. Нужные R/B artifact paths перечислены; дополнительных зависимостей нет: U8 уже зависит от U16, U27 — от всех изменённых юнитов; параллельность не расширена. LINT 28/0/0 принят от координатора без повторного запуска. Предыдущий PASS остальных юнитов сохраняется. Реализация, Git mutations, reflect и тесты не запускались. Commit atomicity — новых зависимостей от будущей реализации нет. U8 уже зависит от U16; R03 использует существующий doc_state.py dirty, а патч close_iteration.py и его регрессии входят в U12. Отдельное дробление не требуется.; Grade calibration — U8 остаётся Low по rule 5: дополнение закрепляет существующие правила конкретными сценариями. U12 остаётся Mid по rule 6: небольшой определённый вызов существующего CLI не добавляет дорогого сигнала compound gate. U16 и U27 сохраняют прежнюю поверхность judgment; новых risk/spec floor нарушений нет.; Test-first writability — R01 определяет состав следующего dispatch; R02 различает отмену, PASS и exhaustion, задаёт синхронизацию до dispatch. Для R03 заданы четыре temp-Git исхода и блокировка при nonzero/ошибке запуска независимо от распознанных строк. Успех stamp не означает успех остальных gates.; R/B и прежние локальные свидетельства разделены: статический указатель не доказывает поведение, установленный патч не считается исправлением исходника. Тесты и новый reflect не запускались.
+**Not blocking** — нет.
+**Open** — нет.

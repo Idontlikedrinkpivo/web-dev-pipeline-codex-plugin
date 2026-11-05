@@ -369,9 +369,18 @@ from the project's own Dockerfiles and compose files as they are
 4. **Run it once** and report the folder, the tar size, the image tags and the platform;
    if Docker or buildx is not available here, say so instead of claiming the
    build. Add the «Сборка образов» section to the README.
-5. **Scan the images** with `trivy` over the tar (`security-audit` →
+5. **Scan each exact built image separately** with `trivy` (`security-audit` →
    `references/scanners.md` → Docker images, with its proxy, cache and
-   fallback rules), HIGH and CRITICAL only. A CRITICAL with a fixed
+   fallback rules), HIGH and CRITICAL only. The release tar may contain several
+   images: do not scan it once as proof for them all or pass multiple image refs
+   to one Trivy command. Record the complete expected image list, one distinct
+   report and command status per image, and image ID/digest when available in
+   `trivy-manifest.json` per that reference. Run its `trivy_reports.py` validator;
+   missing/invalid evidence blocks a clean scan verdict. `Results: []` is valid
+   only for a successful scan with matching artifact identity and full expected
+   coverage. Preserve scanner error/severity exit codes. Keep fixture validation
+   separate from live Docker/Trivy evidence; report `NOT_RUN` when unavailable.
+   A CRITICAL with a fixed
    version in the base image stops the hand-over with one question —
    `references/images.md` → A vulnerable base, the same inside
    `upgrade-code`; the rest go into the closing report and under «Образы»

@@ -103,13 +103,56 @@ whether outside input reaches it.
 
 ## Docker images — `trivy` (in `deploy-topology`, not here)
 
-The built images exist only in `deploy-topology` Step 8, so the image scan
-runs there, over the release tar:
+The built images exist only in `deploy-topology` Step 8. Scan **each exact
+release image separately**, from the locally built images before hand-over.
+The multi-image release tar is transport, not a single-image scan target.
+Never pass several positional image names to one Trivy invocation.
+
+For each image, use a distinct report path in a fresh audit output directory:
 
 ```bash
-docker run --rm -v "$PWD/release/<version>:/r:ro" -v pipeline-trivy-cache:/root/.cache/trivy aquasec/trivy:latest \
-  image --input /r/<project>-<version>.tar --severity HIGH,CRITICAL --format json > "$OUT/trivy-images.json"
+docker run --rm -v /var/run/docker.sock:/var/run/docker.sock \
+  -v pipeline-trivy-cache:/root/.cache/trivy aquasec/trivy:latest \
+  image --image-src docker --severity HIGH,CRITICAL --format json "$IMAGE" > "$REPORT"
+scan_status=$?
 ```
+
+Capture `scan_status` immediately, including on failure (a shell with `set -e`
+must explicitly handle the command). Record the exact command, status, image
+ref and `docker image inspect` ID when available. Do not reuse old reports.
+Trivy's default exit code leaves severity decisions to the existing policy;
+if a configured severity exit is used, preserve it, never replace it with zero.
+A nonzero scan status is not successful completeness evidence.
+
+Write `trivy-manifest.json` with the full expected image list from the build
+and one record per command. Paths are relative to this manifest:
+
+```json
+{
+  "expected": ["project-api:1.4.0", "project-web:1.4.0"],
+  "records": [
+    {"image": "project-api:1.4.0", "report": "trivy-api.json", "exit_code": 0},
+    {"image": "project-web:1.4.0", "report": "trivy-web.json", "exit_code": 0}
+  ]
+}
+```
+
+When an image ID is available, add `digest` to that record; it must match the
+report's `ArtifactID` (use the same identity kind, not a registry digest in
+place of a local image ID). The report must have `SchemaVersion: 2`,
+`ArtifactType: "container_image"`, an exact matching `ArtifactName`, and an
+array `Results`. Result entries require `Target`; any vulnerability entries
+require `VulnerabilityID` and a Trivy severity. Additional Trivy fields are allowed.
+
+Run `python3 "<security-audit skill folder>/scripts/trivy_reports.py" "$OUT/trivy-manifest.json"`.
+Exit 0 confirms completeness only; apply the unchanged severity policy to the
+findings. Exit 2 means incomplete/invalid evidence; a recorded scanner error
+retains its nonzero exit. Missing, empty, corrupt, truncated, duplicate,
+unexpected or wrong-image reports never mean zero findings. `Results: []`
+is valid only with a successful scan and matching artifact identity for every
+expected image. Keep the manifest, reports, command statuses and versions with
+the release evidence. Fixture validation and a live two-image Docker/Trivy run
+are separate checks; unavailable prerequisites mean `NOT_RUN`, not live success.
 
 ## When a scanner cannot run
 

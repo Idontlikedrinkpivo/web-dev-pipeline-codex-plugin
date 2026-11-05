@@ -14,48 +14,22 @@ comparing roles and runs, not a price. Standard library only.
 """
 from __future__ import annotations
 
-import os
-import subprocess
-from pathlib import Path
-
 import sessions  # the Codex build's sessions.py: rollouts(), meta(), records()
 
 
 def roots_of(cwd: str, also: list) -> list:
-    roots = {os.path.realpath(x) for x in [cwd] + also}
-    try:  # agents working in a worktree of the repository record that worktree as their folder
-        out = subprocess.run(["git", "-C", cwd, "worktree", "list", "--porcelain"], capture_output=True, text=True,
-                             timeout=10).stdout
-        roots |= {os.path.realpath(l[9:]) for l in out.splitlines() if l.startswith("worktree ")}
-    except (OSError, subprocess.TimeoutExpired):
-        pass
-    return sorted(roots)
+    return sessions.roots_of(cwd, also)
 
 
 def role_of(m: dict) -> str | None:
     """The spawned agent's role, or None for a main session."""
-    src = m.get("source")
-    spawn = {}
-    if isinstance(src, dict):
-        sub = src.get("subagent") or src.get("sub_agent") or {}
-        if isinstance(sub, dict):
-            spawn = sub.get("thread_spawn") or {}
-    parent = m.get("parent_thread_id") or spawn.get("parent_thread_id")
-    role = m.get("agent_role") or m.get("agent_type") or spawn.get("agent_role") or spawn.get("agent_type")
-    if not parent and not role:
-        return None
-    return role or m.get("agent_nickname") or spawn.get("agent_nickname") or "агент"
+    return sessions.role_of(m)
 
 
 def collect(cwd: str, since: str | None, also: list, Agent, add_counts, SESSION: str) -> tuple:
-    roots = roots_of(cwd, also)
     session = Agent(SESSION, SESSION)
     agents, beats, active = [], [], 0
-    for path in sorted(sessions.rollouts(), key=lambda p: p.stat().st_mtime):
-        m = sessions.meta(path)
-        where = os.path.realpath(str(m.get("cwd", ""))) if m else ""
-        if not m or not any(where == r or where.startswith(r + os.sep) for r in roots):
-            continue
+    for path, m in sessions.project_rollouts(cwd, also):
         role = role_of(m)
         a = session if role is None else Agent(role, str(m.get("agent_nickname") or "")[:60])
         before, model, last_total = a.calls, "", None

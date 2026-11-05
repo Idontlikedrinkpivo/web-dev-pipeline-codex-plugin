@@ -111,6 +111,25 @@ the *slicing*, not the grading. Two responses, in order of preference:
 
 Nesting is never a way to reach a stronger model. That is what the tier is for.
 
+## Economy and capacity are separate from grade
+
+Do not turn the split rule into one unit per tiny edit. Batch related Low work
+when the goal and local pattern are settled and the batch lands green. Separate
+small fixes with independent objectives remain valid; related separate commits
+name their green delivery or validation boundary in `Отдельный коммит`.
+`plan_lint.py` micro-slicing advice is deliberately narrow: pairs of 0/Low units
+with one or two listed paths each, the same nonempty goal, and shared files or
+the same named pattern. It cannot determine semantic relatedness or prove that
+an explicit reason is sound; the reviewer decides.
+
+Input capacity concerns mandatory reading plus implementation, testing and
+rework, including shared dependencies. It does not change the cascade or risk
+floor. Follow `writer.md` → Step 2 for the measured byte warning and smaller-window
+headroom check. More bytes alone justify bounding input or a green boundary,
+never a higher grade. No byte heuristic predicts exact tokens or spend.
+Justified serial overlap is valid; only unsafe concurrent overlap is a hard
+parallelism error. Broad ownership by itself does not make a plan unusable.
+
 ## Calibration
 
 Schematic on purpose — match the shape, not the domain.

@@ -5,6 +5,20 @@ Orchestrator. The inputs and modes are `plan/SKILL.md` → Modes and Inputs. Cit
 `plan/references/writer.md` → Step <n>, never as «plan step <n>»: the orchestrator's numbered steps are a
 different sequence.
 
+<!-- TOC -->
+- [Start](#start)
+- [Step 1. Digest the inputs into a routing table](#step-1-digest-the-inputs-into-a-routing-table)
+- [Step 2. Slice into atomic units](#step-2-slice-into-atomic-units)
+- [Step 3. Order and mark parallelism](#step-3-order-and-mark-parallelism)
+- [Step 4. Fill each unit](#step-4-fill-each-unit)
+- [Step 5. Grade complexity — after the unit is written, never before](#step-5-grade-complexity--after-the-unit-is-written-never-before)
+- [Step 6. Assign executors from the assignable list](#step-6-assign-executors-from-the-assignable-list)
+- [Step 7. Print the plan — `doc-typist`, or yourself on PRINT self](#step-7-print-the-plan--doc-typist-or-yourself-on-print-self)
+- [Output document template](#output-document-template)
+- [Quality gate](#quality-gate)
+- [Report](#report)
+<!-- /TOC -->
+
 ## Start
 
 You settle the plan, then print it by the packet's PRINT
@@ -77,6 +91,28 @@ layer batch ("all entities", "all adapters", "wire everything" — it cannot
 land as one reviewable green commit), a unit so vague the executor has to
 re-derive the design.
 
+**Check economy and input capacity before adding more units.** Related small
+changes with one settled objective and a local pattern belong in one green
+unit, including economical Low batches. Two independently useful small fixes
+may stay separate. If related units need separate green commits, explain the
+delivery, validation or dependency boundary in `**Отдельный коммит** — <reason>`.
+Do not split just to reduce each unit's file count or raise its executor tier.
+
+For each candidate, inventory the mandatory documents, patterns, owned code,
+tests and shared dependencies once. Measure existing file bytes and the packet,
+then allow for implementation, testing and rework. `plan_lint.py` warns above
+64 KiB of measured named files plus unit text: its conservative byte read budget
+is 128 KiB with half reserved. These are review triggers, not token counts,
+spend predictions or a guarantee that a model window fits. Full named files
+count once even when several fields cite them; future/missing paths are unknown.
+The advisory measurement includes backticked paths and `code:<path>` references;
+the manual inventory also covers other citations and dependencies.
+Check the actual smaller executor/reviewer window and required skill input with
+headroom; if unavailable, record that uncertainty and keep the byte warning
+visible. First bound reading to relevant sections or one coherent pattern;
+split only at a boundary where each commit can land green. A mechanical sweep
+can stay one grade-0 unit when its bounded input fits.
+
 **A path this version retired** (increment) — an id this iteration
 deprecated or removed whose code is still in the repo — gets one unit
 that removes the old path and proves the replacement covers it, or names
@@ -101,6 +137,12 @@ its `Файлы`; later screens depend on it and only use them.
 Among units that are equally ready, order first the one that completes the
 earliest use case's path end-to-end. A run stopped mid-way then leaves a
 working slice rather than one layer of everything.
+
+File ownership may overlap across justified serial units: record the dependency
+and why each green commit owns that path. Broad ownership alone is not a hard
+failure. An overlapping independent `yes` pair is unsafe, including a directory
+or glob covering another unit's file; shared dependencies/resources still need
+manual review even when the paths are disjoint.
 
 ### Step 4. Fill each unit
 
@@ -292,6 +334,9 @@ with the D2 graph at DIAGRAM PATH, §3 Юниты (Step 4 blocks), §4 Волн�
     the last unit bumps the manifest's `version` to it — Steps 1–2.
 13. Every unit with «Меняет символы» lists each use of those symbols in
     `Файлы` or «Не затрагивается» — Step 4.
+14. There is at least one U block. Related micro-units and measured input-footprint
+    warnings have been assessed under Step 2: merge, bound input, or explain
+    separate green commits. Advice alone does not fail the mechanical gate.
 
 Fix failures in place. A failure that needs a design decision goes to
 `open-questions.md` and to the user — not into a unit.

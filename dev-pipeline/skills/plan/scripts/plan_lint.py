@@ -5,6 +5,7 @@
     python3 plan_lint.py documentation/plans/<version>/plan.md [--repo <dir>]
 
 Errors (exit 1), one line each with the unit and what to fix:
+  - no U blocks at all;
   - a U-id used twice; a unit without one of the fields Документы, Файлы, Образец, Зависит от, Параллельно,
     Сложность, Почему, Исполнитель, Вложенный, or with an empty or missing «Тестовые сценарии» or «Проверка»
     paragraph (`work` refuses such a unit at its readiness gate, so the plan must not pass here);
@@ -18,6 +19,8 @@ Errors (exit 1), one line each with the unit and what to fix:
   - no unit «Обновление поверх v<prev>» while the branch adds a migration since the last tag v<prev>
     (plan → references/writer.md → Step 2, «Upgrade over the last release»).
 Warnings (exit 0 when only these):
+  - related tiny 0/Low units with the same goal and pattern/files: consider merging, or explain green commits;
+  - measured named-file/input bytes exceed the conservative read allowance (not a token/cost estimate);
   - an acceptance criterion of a use case the plan cites that no unit names in Документы or Тестовые сценарии.
 
 The repository is read at its current state (--repo, default the plan's repository): run it before work starts.
@@ -29,6 +32,7 @@ import re
 import subprocess
 import sys
 from pathlib import Path
+from typing import TypedDict
 
 UNIT = re.compile(r"^###\s+U(\d+)\.\s*(.*)$", re.M)
 ROW = re.compile(r"^\|\s*\*\*([^*|]+)\*\*\s*\|(.*)\|\s*$", re.M)
@@ -39,14 +43,27 @@ REQUIRED = ["Документы", "Файлы", "Образец", "Зависи�
 BODY_REQUIRED = ["Тестовые сценарии", "Проверка"]
 PARA = re.compile(r"^\*\*([^*\n]+)\*\*[ \t]*[—–:-]?[ \t]*", re.M)
 GRADES = {"0", "Low", "Mid", "High"}
-PATH = re.compile(r"`([\w./@+-]+/[\w./@*+-]+|[\w-]+\.[\w.]+)`")
+PATH = re.compile(r"`([\w./@+-]+/[\w./@*+-]*|[\w-]+\.[\w.]+)`")
 MODEL = re.compile(r"\b(?:opus|sonnet|haiku|fable|gpt-\d[\w.-]*)\b", re.I)
 REQ_ID = re.compile(r"\b(FR|BR|NFR|UC)-(\d+)(?:\.\d+)?\b")
 OPID = re.compile(r"\bapi\s+`([A-Za-z_]\w*)`")
+# Byte-based review trigger, not a model's context size. Reserve half for skills,
+# implementation, tests and rework; the reviewer still checks the actual smaller window.
+READ_BUDGET_BYTES = 128 * 1024
+READ_RESERVE_BYTES = READ_BUDGET_BYTES // 2
 
 
-def units(text: str) -> list[dict]:
-    out = []
+class PlanUnit(TypedDict):
+    id: int
+    title: str
+    block: str
+    f: dict[str, str]
+    p: dict[str, str]
+    line: int
+
+
+def units(text: str) -> list[PlanUnit]:
+    out: list[PlanUnit] = []
     marks = list(UNIT.finditer(text))
     for i, m in enumerate(marks):
         end = marks[i + 1].start() if i + 1 < len(marks) else len(text)
@@ -68,11 +85,11 @@ def paragraphs(block: str) -> dict[str, str]:
     return out
 
 
-def deps_of(u: dict) -> set[int]:
+def deps_of(u: PlanUnit) -> set[int]:
     return {int(x) for x in re.findall(r"\bU(\d+)\b", u["f"].get("Зависит от", ""))}
 
 
-def closure(by_id: dict, n: int) -> set[int]:
+def closure(by_id: dict[int, PlanUnit], n: int) -> set[int]:
     """Every unit n depends on, directly or through others."""
     seen, stack = set(), list(deps_of(by_id[n])) if n in by_id else []
     while stack:
@@ -84,12 +101,65 @@ def closure(by_id: dict, n: int) -> set[int]:
     return seen
 
 
-def files_of(u: dict) -> set[str]:
+def files_of(u: PlanUnit) -> set[str]:
     return {p.rstrip("/") for p in PATH.findall(u["f"].get("Файлы", ""))}
 
 
 def covers(listed: set[str], path: str) -> bool:
     return any(path == p or path.startswith(p + "/") or (("*" in p) and Path(path).match(p)) for p in listed)
+
+
+def overlaps(a: set[str], b: set[str]) -> set[str]:
+    """Include directory/file and glob/file ownership, even for files not created yet."""
+    return {p for p in a if covers(b, p)} | {p for p in b if covers(a, p)}
+
+
+def micro_related(a: PlanUnit, b: PlanUnit) -> bool:
+    """A narrow advisory heuristic; distinct objectives and explicit green splits are left alone."""
+    if any(u["p"].get("Отдельный коммит", "").strip() for u in (a, b)):
+        return False
+    if any(u["f"].get("Сложность", "").split()[:1] not in (["0"], ["Low"]) for u in (a, b)):
+        return False
+    if any(not 0 < len(files_of(u)) <= 2 for u in (a, b)):
+        return False
+    goal = " ".join(a["p"].get("Цель", "").split()).casefold()
+    if not goal or goal != " ".join(b["p"].get("Цель", "").split()).casefold():
+        return False
+    patterns_a = set(PATH.findall(a["f"].get("Образец", "")))
+    patterns_b = set(PATH.findall(b["f"].get("Образец", "")))
+    return bool(overlaps(files_of(a), files_of(b)) or (patterns_a and patterns_a == patterns_b))
+
+
+def input_footprint(repo: Path, u: PlanUnit) -> tuple[int, int, int]:
+    """Unique existing local files by stat, packet text bytes, and unavailable named paths.
+
+    Full named documents are a conservative proxy when only a section is cited.
+    Missing future files are unknown, never guessed as generated code or tokens.
+    """
+    paths = set(PATH.findall("\n".join(u["f"].get(k, "") for k in ("Документы", "Файлы", "Образец"))))
+    paths.update(re.findall(r"\bcode:([\w./@+-]+)", u["f"].get("Документы", "")))
+    measured: dict[Path, int] = {}
+    unavailable = 0
+    for name in sorted(paths):
+        # Do not traverse absolute/out-of-repo references or symlink destinations.
+        path = repo / name
+        if not path.resolve().is_relative_to(repo):
+            unavailable += 1
+            continue
+        candidates = list(repo.glob(name)) if "*" in name else [path]
+        found = False
+        for candidate in candidates:
+            files = candidate.rglob("*") if candidate.is_dir() else (candidate,)
+            for file in files:
+                resolved = file.resolve()
+                if ".git" in file.relative_to(repo).parts or not resolved.is_relative_to(repo):
+                    continue
+                if file.is_file():
+                    measured[resolved] = file.stat().st_size
+                    found = True
+        if not found:
+            unavailable += 1
+    return sum(measured.values()), len(u["block"].encode("utf-8")), unavailable
 
 
 def known_path(repo: Path, p: str, planned: set[str]) -> bool:
@@ -156,6 +226,9 @@ def main() -> None:
     warnings: list[str] = []
     err = lambda u, msg: errors.append(f"U{u['id']} (строка {u['line']}): {msg}")
 
+    if not us:
+        errors.append("нет U blocks: добавьте хотя бы одну задачу ### U<n>.")
+
     prev = upgrade_needed(repo)
     if prev and us and not any(re.search(r"поверх\s+v?\d", u.get("title", ""), re.I) for u in us):
         errors.append(f"нет задачи «Обновление поверх {prev}»: в итерации новые миграции, а релиз {prev} уже есть — "
@@ -206,15 +279,31 @@ def main() -> None:
 
     for i, a in enumerate(us):
         for b in us[i + 1:]:
+            if micro_related(a, b):
+                warnings.append(f"U{a['id']} и U{b['id']}: micro-slicing — малая 0/Low работа с одной целью и "
+                                "образцом/файлами; рассмотрите объединение или объясните отдельные green commits "
+                                "в «Отдельный коммит»")
             if not (a["f"].get("Параллельно", "").lower().startswith("yes")
                     and b["f"].get("Параллельно", "").lower().startswith("yes")):
                 continue
             if a["id"] in closure(by_id, b["id"]) or b["id"] in closure(by_id, a["id"]):
                 continue
-            common = files_of(a) & files_of(b)
+            common = overlaps(files_of(a), files_of(b))
             if common:
                 errors.append(f"U{a['id']} и U{b['id']}: обе «Параллельно: yes», не зависят друг от друга и правят "
                               f"один файл — {', '.join(sorted(common))}")
+
+    for u in us:
+        try:
+            file_bytes, packet_bytes, unavailable = input_footprint(repo, u)
+        except (OSError, RuntimeError, ValueError) as exc:
+            warnings.append(f"U{u['id']}: input-footprint не измерен: {exc}; проверьте вход вручную")
+            continue
+        if file_bytes + packet_bytes > READ_BUDGET_BYTES - READ_RESERVE_BYTES:
+            warnings.append(f"U{u['id']}: input-footprint — файлы {file_bytes} bytes + текст задачи "
+                            f"{packet_bytes} bytes; read budget {READ_BUDGET_BYTES} bytes, резерв "
+                            f"{READ_RESERVE_BYTES} bytes; недоступных путей {unavailable}. Проверьте обязательное "
+                            "чтение и запас меньшего окна исполнителя; сузьте вход или разделите по green commits")
 
     req, ops = requirement_ids(docs), operation_ids(docs)
     for u in us:

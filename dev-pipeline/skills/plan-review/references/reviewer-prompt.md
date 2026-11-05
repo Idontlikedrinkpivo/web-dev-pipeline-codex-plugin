@@ -79,7 +79,8 @@ LENSES
 
 DO NOT REPORT
 - A better slicing you would have chosen. Report a unit that cannot land green
-  alone; do not redesign the plan.
+  alone, or evidence of avoidable micro-slicing/input overload under Economy
+  and capacity; do not redesign the plan merely for stylistic preference.
 - A design decision you disagree with — that is OPEN, not a finding.
 - A grade the cascade genuinely permits, where the unit's `Почему` names the signal
   it followed and no floor or gate contradicts it.
@@ -126,7 +127,10 @@ LARGE FILES     A diff or a plan over ~25,000 tokens is read in parts: the diff'
     shared type, migration, registry, config, generated client, lockfile, or
     runtime resource (test database, port, dev server).
     File disjointness alone is not sufficient; an unmarked shared contract is
-    a finding.
+    a finding. A dependency serializes a pair; justified serial ownership may
+    overlap, including broad directories. Do not hard-fail ownership merely
+    because paths overlap across serial units. Check directory/glob coverage
+    for concurrent pairs too, not just identical strings.
   Files completeness — for each unit with «Меняет символы», and each unit
     that visibly removes or changes a field, a constant, an environment
     variable, a response shape or a public symbol without listing it there:
@@ -189,6 +193,19 @@ LARGE FILES     A diff or a plan over ~25,000 tokens is read in parts: the diff'
     a sibling that ships later, a test that cannot pass until a second unit
     arrives, a route registered against a handler another unit adds, a
     migration whose adapter is elsewhere. Each is a split, not a preference.
+  Economy and capacity — assess ⚠ micro-slicing/input-footprint leads, not as
+    automatic findings. Related tiny edits with one settled goal/local pattern
+    may form one economical Low batch; independent small fixes and related
+    separate green commits with a sound «Отдельный коммит» reason are valid.
+    Account for implementation, testing, rework and shared dependency reading,
+    not just the number of owned files. Follow writer.md Step 2's measured byte
+    budget and reserve, then check mandatory input against the smaller actual
+    executor/reviewer window with headroom. Unavailable sizes/window telemetry
+    are unknown; never invent exact tokens, spend or savings. Bound relevant
+    reading before proposing a split; every split must still land green.
+    A demonstrated overload or waste with concrete avoidable rework may be P1;
+    an unproven heuristic stays advice/P2. Do not blanket-escalate executors:
+    the grading cascade and its risk/spec floors still decide each unit.
   Grade calibration — run the GRADING STANDARD's cascade on each unit's own
     filled fields («Файлы» count and ring spread, whether «Подход» still
     contains an open decision, whether «Тестовые сценарии» has error and

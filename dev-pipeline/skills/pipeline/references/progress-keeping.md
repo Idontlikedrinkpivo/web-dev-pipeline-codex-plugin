@@ -53,6 +53,18 @@ count, and validates status words and count lines. The agent writes rows and sta
 scripts write bars, counts and times. Start the timestamp as «обновлено …»; the four scripts replace it with the time.
 For derived files, edit the rows and run `progress_link.py`; the page computes the bar and count.
 
+The PreToolUse guard refuses Edit/MultiEdit and apply_patch updates that insert a bar of
+20 or more `█`/`░` cells into a progress file; use `progress_set.py`. Existing bar lines
+in patch context and initial Write/Add File creation pass.
+
+Before the turn ends, the Stop hook checks only this turn's progress edits or calls to
+`progress_set.py` / `progress_e2e.py`. If the final response lacks the printed HTML link,
+it blocks once with a reminder to run `progress_link.py` and paste its line. A link to
+the progress `.md` blocks even without an edit and even alongside an HTML link.
+`test-run.html` and `security-audit.html` count as progress pages too. The retry with
+`stop_hook_active` passes in every case, so the hook cannot loop. Missing transcript
+evidence never invents an edit in the current turn; an explicit `.md` link still blocks.
+
 ## Subagents and watchers
 
 - **A subagent's rows are watched, not trusted.** A subagent deep in its

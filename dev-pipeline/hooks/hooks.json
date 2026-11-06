@@ -23,11 +23,21 @@
     ],
     "PreToolUse": [
       {
-        "matcher": "Bash|apply_patch",
+        "matcher": "Bash|apply_patch|Edit|MultiEdit",
         "hooks": [
           {
             "type": "command",
             "command": "sh \"$PLUGIN_ROOT/hooks/guard.sh\""
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh \"$PLUGIN_ROOT/hooks/progress-stop.sh\""
           }
         ]
       }

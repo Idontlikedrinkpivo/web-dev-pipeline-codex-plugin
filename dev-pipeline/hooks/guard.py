@@ -21,6 +21,7 @@ Refused:
   — they wipe other agents' and the user's uncommitted work (run-hygiene → Executors in the shared tree);
 - Edit / Write of a file outside the worktree the agent runs in — its edit lands in the main tree
   (executor-catalog → worker-prompt RULES).
+- Edit / apply_patch update inserting a progress bar of 20+ cells — use progress_set.py.
 
 Acts only in a project with documentation/.dev-pipeline.json. Never fails the tool call on its own error. Each
 refusal is also logged outside the project (~/.claude/dev-pipeline-feedback/.guard/<project>.jsonl), and reflect
@@ -177,9 +178,44 @@ def destructive(bare: str) -> bool:
                           r"|checkout\s+(?:--\s+)?\.(?:\s|$)|restore\s+(?!.*--staged)(?:--\S+\s+)*\.(?:\s|$))", b))
 
 
+def edit_chunks(tool: str, inp: dict | str):
+    """(path, new text, is update); patch context/deletions are not newly inserted text."""
+    tool = re.split(r"__|\.", tool)[-1]
+    if not isinstance(inp, (dict, str)):
+        return
+    if tool == "apply_patch":
+        patch = inp if isinstance(inp, str) else str(inp.get("command") or inp.get("input") or "")
+        path, added, update = "", [], False
+        for line in patch.splitlines():
+            header = re.match(r"^\*\*\* (Add|Update|Delete) File: (.+)$", line)
+            if header:
+                if path:
+                    yield path, "\n".join(added), update
+                path, added, update = header[2], [], header[1] == "Update"
+            elif line.startswith("+"):
+                added.append(line[1:])
+        if path:
+            yield path, "\n".join(added), update
+    elif isinstance(inp, dict) and tool in ("Edit", "Write", "MultiEdit"):
+        path = str(inp.get("file_path") or inp.get("path") or "")
+        changes = inp.get("edits", []) if tool == "MultiEdit" else [inp]
+        for change in changes:
+            if isinstance(change, dict):
+                yield path, str(change.get("content") if tool == "Write" else change.get("new_string", "")), tool != "Write"
+
+
+def is_progress(path: str, cwd: str) -> bool:
+    return bool(path and PROGRESS_FILE.search(os.path.normpath(os.path.join(cwd, path))))
+
+
 def decide(tool: str, inp: dict, cwd: str, *, branch: str = "", open_iteration: str | None = None,
            worktree_root: str | None = None, main_root: str | None = None) -> str | None:
     """A refusal text, or None to let the call through."""
+    for path, new, update in edit_chunks(tool, inp):
+        if update and is_progress(path, cwd) and re.search(r"[█░]{20,}", new):
+            return deny("manual progress bar in an edit: use progress_set.py <file> <done> <total> "
+                        "[--section <heading>]; change only rows with Edit "
+                        "(pipeline → references/progress-keeping.md → How).")
     if tool == "Bash":
         cmd = str(inp.get("command", ""))
         bare, bodies = heredocs(cmd)
@@ -219,6 +255,7 @@ def decide(tool: str, inp: dict, cwd: str, *, branch: str = "", open_iteration: 
 
 
 RULES = [("commit-chained", "chained to a test"), ("commit-on-main", "would land on"), ("merge-before-close", "is not closed (no tag"),
+         ("progress-bar-edit", "manual progress bar"),
          ("plan-unit-trailer", "Plan-Unit"), ("sed-i", "sed -i"), ("progress-from-shell", "progress file from the shell"),
          ("wipe-shared-tree", "git stash (of everything)"), ("edit-outside-worktree", "you work in the worktree")]
 

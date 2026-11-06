@@ -384,11 +384,12 @@ def tool_action(name: str) -> str:
     return CHAT_TOOLS.get(re.split(r"__|\.", name)[-1], "")
 
 
-def literal_calls(code: str):
+def literal_calls(code: str, tool_names: set[str] | None = None):
     """Read literal tools.foo({...}) calls in code-mode exec; never evaluate rollout JavaScript.
 
     Tokenizing strings first avoids treating example code inside a shell command as a call.
     Dynamic arguments are deliberately skipped rather than guessed.
+    With tool_names, the Stop hook can also read literal shell/patch calls (including string arguments).
     """
     tokens = re.findall(r'''//[^\n]*|/\*[\s\S]*?\*/|"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|`(?:\\.|[^`\\])*`|[A-Za-z_$][\w$]*|-?\d+(?:\.\d+)?|[^\s]''', code)
     tokens = [t for t in tokens if not t.startswith(("//", "/*"))]
@@ -436,11 +437,11 @@ def literal_calls(code: str):
         if tokens[i:i + 2] != ["tools", "."] or tokens[i + 3] != "(":
             continue
         name = tokens[i + 2]
-        if not tool_action(name):
+        if not (name in tool_names if tool_names is not None else tool_action(name)):
             continue
         try:
             args, end = value(i + 4)
-            if isinstance(args, dict) and tokens[end] == ")":
+            if isinstance(args, (dict, str) if tool_names is not None else dict) and tokens[end] == ")":
                 yield name, args
         except (ValueError, SyntaxError, IndexError):
             continue

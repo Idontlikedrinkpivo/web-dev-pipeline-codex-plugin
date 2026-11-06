@@ -39,9 +39,7 @@ rules a restricted Kubernetes namespace enforces (Pod Security Standards,
 ```
 
 No `user:` key: the image's numeric `USER` holds (`images.md`), and an
-override here would hide a Dockerfile that runs as root. Two app images
-write somewhere besides `/tmp`, each with one more tmpfs: nginx with a
-shell renders its templates into `/etc/nginx/conf.d` at start, and a
+override here would hide a Dockerfile that runs as root. An app that needs extra writable space documents its volume and budget: a
 Next.js SSR frontend writes `/app/.next/cache`. Third-party store services
 (the database, the S3 emulator, their init containers) stay as their images
 ship — their vendors' images are not built for a read-only root.
@@ -384,6 +382,9 @@ Present in all three files, after `backend`. The image is the SPA image of
     environment:                        # image with a shell; the shell-less image has these fixed at build
       BACKEND_SERVICE: backend:<app-port>
       BACKEND_PROTOCOL: http
+      LOG_LEVEL: notice
+      TRUSTED_PROXY_CIDR: 127.0.0.1/32
+      # MAX_BODY_SIZE / CLIENT_TIMEOUT / BACKEND_TIMEOUT default from Dockerfile NFRs
       SECURE_MODE: plain                # prod: plain behind the operator's TLS terminator, or secure + certs below
     # prod with SECURE_MODE=secure only:
     # volumes:
@@ -391,7 +392,6 @@ Present in all three files, after `backend`. The image is the SPA image of
     read_only: true                     # test and prod
     tmpfs:
       - /tmp
-      - /etc/nginx/conf.d               # templates rendered at start; the shell-less image needs only /tmp
     cap_drop:
       - ALL
     security_opt:
@@ -426,10 +426,11 @@ up-test:   build + start docker-compose.test.yml, --wait, then remove exited one
 up-dev:    same, docker-compose.dev.yml
 up-prod:   same, docker-compose.prod.yml (removes only migrate; no <object-store>-init in prod)
 
-env-test:  copy .env.example -> .env.test.local if absent, patch known test-safe keys
-env-dev:   copy .env.example -> .env.dev.local if absent, patch known dev-shape keys, remind to fill real credentials
-env-prod:  copy .env.example -> .env.prod.local if absent, patch known prod-shape keys, create .env.prod.migrate.local
-           with an empty DATABASE_URL, remind to fill real secrets and both accounts
+env:       python3 scripts/env_files.py . build — generate every environment from the single .env.example
+           Keep existing secrets; edit non-secret values only in the template and regenerate.
+env-prod:  only for a local prod-shape run: copy generated documentation/deploy/prod.env.example to
+           .env.prod.local and fill secrets; migrate gets its separate secret DATABASE_URL.
+           Refresh generated non-secret values after a template change; never hand-patch them.
 ```
 
 One-shot containers (`migrate`, `<object-store>-init`) stay declared in the
@@ -464,7 +465,7 @@ CI instead of shipping:
   `/health/*` and `/metrics` stay off the entry point). With a shell,
   `frontend`'s healthcheck reaches `:8081/_healthz` and its environment
   sets `BACKEND_SERVICE`, `BACKEND_PROTOCOL` and `SECURE_MODE`; without
-  one, it has neither and its Dockerfile renders the templates at build.
+  one, all rendered configuration is a read-only runtime mount (images.md); no environment values baked in.
 - `scripts/build-images.sh` passes `--platform "$PLATFORM"`, saves to
   `release/<APP_VERSION>/<project>-<APP_VERSION>.tar`, and puts
   `DEPLOY.md`, `<project>.env.example` and `openapi.yaml` (bundled when
@@ -489,3 +490,8 @@ CI instead of shipping:
   test" in `references/env-and-config-contract.md`.
 - Setting the mock gate with `APP_ENV` other than `test` makes config
   loading fail (a config-layer test, not a compose check).
+
+The acceptance stand is isolated by `scripts/image_preflight.py`, using the descriptor in
+`references/image-preflight.md`. Public nginx proxies only /api and returns 404 for management paths; dynamic
+resolver/variable lookup is mandatory. APP_VERSION and CI_COMMIT_SHORT_SHA are set in each runtime Dockerfile.
+No `.env.example` exception in .dockerignore; ship Dockerfiles, ignores and complete scan evidence in the release.

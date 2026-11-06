@@ -153,3 +153,7 @@ inverted ones — and its contrast is checked separately (UX-62).
 | Navigation is confusing | §9: `nav-hierarchy`, `adaptive-navigation`, `back-behavior` |
 | Layout breaks at a width | §5: `desktop-first`, `breakpoint-consistency` (UX-74) |
 | Performance | §3: `virtualize-lists`, `main-thread-budget`, `debounce-throttle` (UX-75) |
+
+Fonts, JS libraries and CSS must ship locally in the frontend image. Do not generate public CDN imports or links
+(including Google Fonts): closed deployments have no internet. Download permitted font assets at build time or
+use bundled packages; verify final HTML/CSS/JS through deploy-topology's image_preflight.py contents.

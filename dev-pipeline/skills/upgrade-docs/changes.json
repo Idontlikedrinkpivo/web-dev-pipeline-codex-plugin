@@ -1025,5 +1025,188 @@
       }
     },
     "fix": "Только в open-questions.md заменить класс «Можно решить при архитектуре» на «Решить при: архитектура», сохранив вопрос и историю; без поднятия версии документа. Проверить doc_check.py; коммит: docs: класс вопроса стал адресатом (плагин 1.3.0). Не менять цитаты в других документах."
+  },
+  {
+    "id": "platform-image-runtime",
+    "version": "1.3.2",
+    "title": "Образы: чистый runtime и версия",
+    "kind": "code",
+    "what": "Образы: чистый runtime и версия. Требования приёмки DevOps; прежние правила покрывали их не полностью.",
+    "applies": {
+      "any": [
+        {
+          "exists": "**/Dockerfile"
+        },
+        {
+          "exists": "**/*.Dockerfile"
+        }
+      ]
+    },
+    "behind": {
+      "any": [
+        {
+          "not": {
+            "files_match": {
+              "paths": [
+                "**/Dockerfile",
+                "**/*.Dockerfile"
+              ],
+              "require": [
+                "(?s)ENV[^\\n]*APP_VERSION=",
+                "(?s)ENV[^\\n]*CI_COMMIT_SHORT_SHA="
+              ]
+            }
+          }
+        },
+        {
+          "missing": "image-preflight.json"
+        }
+      ]
+    },
+    "fix": "deploy-topology → references/images.md и assets/dockerignore: исправить каждый контекст и финальную стадию, исключить тесты из dist, версия через ARG/ENV, фоновые воркеры и liveness. Добавить реальный image-preflight.json; собрать и проверить contents/stand. Существующие файлы и пути не переносить."
+  },
+  {
+    "id": "platform-nginx-runtime",
+    "version": "1.3.2",
+    "title": "nginx: UID, DNS, лимиты, безопасные логи и остановка",
+    "kind": "code",
+    "what": "nginx: UID, DNS, лимиты, безопасные логи и остановка. Требования приёмки DevOps; прежние правила покрывали их не полностью.",
+    "applies": {
+      "exists": "**/nginx/nginx.conf"
+    },
+    "behind": {
+      "any": [
+        {
+          "grep": {
+            "path": "**/nginx/**/*.conf*",
+            "pattern": "(?m)^\\s*upstream\\s+|\\$http_authorization|\\$request_uri|<<MAX_BODY_SIZE>>"
+          }
+        },
+        {
+          "not": {
+            "files_match": {
+              "paths": [
+                "**/nginx/nginx.conf"
+              ],
+              "require": [
+                "worker_shutdown_timeout",
+                "trusted_forwarder"
+              ]
+            }
+          }
+        },
+        {
+          "missing": "image-preflight.json"
+        }
+      ]
+    },
+    "fix": "deploy-topology → assets/nginx и references/images.md: адаптировать шаблоны, сохранив настройки проекта; /tmp, resolver/переменная, FQDN, runtime env из NFR, доверенный X-Forwarded-Proto, TLS CA, runtime-адаптер JSON/сигналов. Без оболочки весь conf.d — runtime mount. Проверить UID 5000, отсутствие/пересоздание backend, лимит/таймауты и TERM во время запроса."
+  },
+  {
+    "id": "platform-service-contract",
+    "version": "1.3.2",
+    "title": "Конфигурация сервиса, состояние и миграции",
+    "kind": "code",
+    "what": "Конфигурация сервиса, состояние и миграции. Требования приёмки DevOps; прежние правила покрывали их не полностью.",
+    "applies": {
+      "any": [
+        {
+          "exists": "**/package.json"
+        },
+        {
+          "exists": "**/pyproject.toml"
+        }
+      ]
+    },
+    "behind": {
+      "not": {
+        "files_match": {
+          "paths": [
+            "**/service-routes.ts",
+            "**/observability.py"
+          ],
+          "require": [
+            "app_build_info",
+            "db_pool_connections"
+          ]
+        }
+      }
+    },
+    "fix": "Сверить каждый пункт deploy-topology/references/env-and-config-contract.md → Platform acceptance rules и примеры fastapi/typescript-fastify service-endpoints: секреты, администратор, интеграции/TLS/CA, proxy/base URL, docs off, внешнее состояние/locks, heap/pool/build metrics. Descriptor не заменяет аудит кода. Проверить реальный backend, пустую БД, параллельные миграции и восстановление зависимостей."
+  },
+  {
+    "id": "platform-deploy-evidence",
+    "version": "1.3.2",
+    "title": "Документ: масштабирование, сборка и ограничения",
+    "kind": "docs",
+    "what": "Документ: масштабирование, сборка и ограничения. Требования приёмки DevOps; прежние правила покрывали их не полностью.",
+    "applies": {
+      "exists": "documentation/deploy/deploy.md"
+    },
+    "behind": {
+      "not": {
+        "files_match": {
+          "paths": [
+            "documentation/deploy/deploy.md"
+          ],
+          "require": [
+            "^## Масштабирование",
+            "^## Сборка образа",
+            "MAX_BODY_SIZE",
+            "CLIENT_TIMEOUT",
+            "BACKEND_TIMEOUT",
+            "APP_VERSION",
+            "CI_COMMIT_SHORT_SHA"
+          ]
+        }
+      }
+    },
+    "fix": "Дополнить по deploy-topology/references/deploy-doc.md из фактов проекта: реплики/процессы/память, пути/объём, worker/scheduler, ingress и защита API без frontend, объяснение общего порта, миграции/DBA, сборка и scan. Не переносить чужие измерения и названия платформ. Выполнить sync-проверку."
+  },
+  {
+    "id": "platform-env-generation",
+    "version": "1.3.2",
+    "title": "Одна генерация env вместо копирования",
+    "kind": "code",
+    "what": "Одна генерация env вместо копирования. Требования приёмки DevOps; прежние правила покрывали их не полностью.",
+    "applies": {
+      "exists": ".env.example"
+    },
+    "behind": {
+      "any": [
+        {
+          "grep": {
+            "path": "**/Makefile",
+            "pattern": "cp.*\\.env\\.example"
+          }
+        },
+        {
+          "grep": {
+            "path": "**/package.json",
+            "pattern": "cp.*\\.env\\.example"
+          }
+        }
+      ]
+    },
+    "fix": "Заменить копирование шаблона генератором env_files.py build; несекретные значения правятся только в шаблоне. Для локального prod копируется уже сгенерированный prod.env.example. Проверить build/check и запуск сред."
+  },
+  {
+    "id": "platform-scan-gate",
+    "version": "1.3.2",
+    "title": "Передача: все секреты и CRITICAL блокируют",
+    "kind": "code",
+    "what": "Передача: все секреты и CRITICAL блокируют. Требования приёмки DevOps; прежние правила покрывали их не полностью.",
+    "applies": {
+      "exists": "scripts/build-images.sh"
+    },
+    "behind": {
+      "not": {
+        "grep": {
+          "path": "scripts/*",
+          "pattern": "trivy_images.py"
+        }
+      }
+    },
+    "fix": "Добавить preflight и отдельный скан после сборки: trivy_images.py, все образы, vuln+secret без фильтра секретов. Сохранить strict manifest validator Codex; build/ и scan/ в комплекте. Принятый риск только CRITICAL, с digest/CVE/пакетом/целью/согласовавшим/датами. Никакой автоматической публикации registry."
   }
 ]

@@ -33,3 +33,7 @@ Read this only when the task implements registration, login or protected routes.
 ## Shared data boundaries
 
 Executor and reviewer apply [DBND-1](../../work/references/data-boundaries.md). Trace the applicable client/server boundary in implementation and review.
+
+Required secrets (including signing/encryption keys): no default; fewer than 32 characters or a known placeholder fails startup naming only
+the variable. Initial administrator credentials are provided by env/Secret, never a fixed seed account. Shared
+sessions/rate limits belong in external storage; PUBLIC_BASE_URL and trusted proxies govern URLs and cookies.

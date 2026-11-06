@@ -96,6 +96,17 @@ class TrivyReports(unittest.TestCase):
         path.write_text(json.dumps(payload), encoding='utf-8')
         self.assertEqual(self.run_validator(['api:v1'], [record]).returncode, 2)
 
+    def test_real_trivy_metadata_image_id_and_conflicting_ids(self):
+        record = dict(self.record('api:v1'), digest='sha256:abc')
+        path = self.root / record['report']
+        payload = json.loads(path.read_text())
+        payload['Metadata'] = {'ImageID': 'sha256:abc'}
+        path.write_text(json.dumps(payload))
+        self.assertEqual(self.run_validator(['api:v1'], [record]).returncode, 0)
+        payload['ArtifactID'] = 'sha256:wrong'
+        path.write_text(json.dumps(payload))
+        self.assertEqual(self.run_validator(['api:v1'], [record]).returncode, 2)
+
     def test_success_iff_exact_complete_successful_records(self):
         images = ['api:v1', 'web:v1', 'extra:v1']
         for size in range(4):

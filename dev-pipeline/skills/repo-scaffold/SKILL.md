@@ -426,3 +426,8 @@ and do not start the next stage on a no.
 
 At close, next stages come from [What to offer at a close](../pipeline/references/offer-at-close.md),
 several when several are ready; the default chain successor alone is not the offer.
+
+For platform acceptance also apply `deploy-topology/references/env-and-config-contract.md` → Platform acceptance
+rules. Migration runners must serialize parallel invocation (DB lock or a documented separate migration job).
+Test a clean database and two simultaneous invocations; applied-version checks alone do not prevent a race.
+Keep auto-migration optional (MIGRATIONS_ENABLED=false), with a separate command documented for operators.

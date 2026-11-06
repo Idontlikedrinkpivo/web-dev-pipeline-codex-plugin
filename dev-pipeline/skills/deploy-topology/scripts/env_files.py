@@ -159,6 +159,9 @@ def main() -> None:
             what = (["нет: " + ", ".join(missing)] if missing else []) + (["лишние: " + ", ".join(extra)] if extra else [])
             print(f"✗ {rel}: не совпадает с шаблоном — " + ("; ".join(what) or "другой порядок") + " — env_files.py . build")
             problems += 1
+        elif path.read_text(encoding="utf-8") != text:
+            print(f"✗ {rel}: значения/комментарии изменены вручную — правьте шаблон и выполните env_files.py . build")
+            problems += 1
     if mode == "check":
         print("env_files: все файлы совпадают с шаблоном" if not problems else f"env_files: расхождений {problems}")
         sys.exit(1 if problems else 0)

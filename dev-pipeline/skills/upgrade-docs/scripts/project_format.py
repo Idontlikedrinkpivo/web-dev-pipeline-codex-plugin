@@ -26,6 +26,8 @@ project's code and settings, brought in by the upgrade-code skill; no kind — d
 check that it applies to the project (`applies`) and a check that the project is still behind (`behind`). A check is one of
 {"exists": path}, {"missing": path} (a path with * is a glob), {"grep": {"path": file or folder, "pattern": regex}} (text files under a
 folder, multiline; a path with * is a glob of files read whatever their type — `*/Dockerfile`, `*/src/bootstrap/*`), {"all": [...]}, {"any": [...]}, {"not": check}; paths are relative to the project.
+files_match: {paths: [globs], require: [regexes], forbid: [regexes]} requires every matching project file to pass;
+no files is false, dependencies and release outputs are excluded. This avoids one upgraded component hiding another.
 The stamp is documentation/.dev-pipeline.json — {"plugin": "<version>", "skipped": [ids], "accepted": [the code audit's
 kept deviations while the project has no architecture: {"id", "audit", "rule", "where": [...], "reason", "date"}]}, committed with the
 documents. Changes up to the stamped version count as done; a project without a stamp is checked against all.
@@ -89,6 +91,15 @@ def present(root: Path, path: str) -> bool:
 
 
 def holds(root: Path, c: dict) -> bool:
+    if "files_match" in c:
+        rule = c["files_match"]
+        excluded = {"node_modules", ".git", ".venv", "release", "dist", "build"}
+        files = [p for pattern in rule["paths"] for p in root.glob(pattern)
+                 if p.is_file() and not excluded.intersection(p.relative_to(root).parts)]
+        return bool(files) and all(
+            all(re.search(pattern, p.read_text(errors="replace"), re.M) for pattern in rule.get("require", []))
+            and not any(re.search(pattern, p.read_text(errors="replace"), re.M) for pattern in rule.get("forbid", []))
+            for p in files)
     if "exists" in c:
         return present(root, c["exists"])
     if "missing" in c:

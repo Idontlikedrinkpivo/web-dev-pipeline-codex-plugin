@@ -182,3 +182,7 @@ result (inside `work`, the report's SCREEN CHECK field), libraries added, and ev
 ## Shared data boundaries
 
 Executor and reviewer apply [DBND-1, DBND-3](../work/references/data-boundaries.md). Trace the applicable client/server boundary in implementation and review.
+
+Fonts, JS libraries and CSS must ship locally in the frontend image. Do not generate public CDN imports or links
+(including Google Fonts): closed deployments have no internet. Download permitted font assets at build time or
+use bundled packages; verify final HTML/CSS/JS through deploy-topology's image_preflight.py contents.

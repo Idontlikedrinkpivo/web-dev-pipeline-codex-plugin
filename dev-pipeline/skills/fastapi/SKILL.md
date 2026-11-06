@@ -135,3 +135,11 @@ Outside `work`, read the file and check each point you rely on against the insta
 ## Shared data boundaries
 
 Executor and reviewer apply [DBND-1, DBND-3, DBND-4, DBND-5, DBND-6, DBND-7](../work/references/data-boundaries.md). Use its database failure mapping/retry table; keep adapter-specific accessors here.
+
+## Platform configuration
+
+Apply `deploy-topology` → `references/env-and-config-contract.md` → Platform acceptance rules when writing
+config, integrations, auth or background tasks: reject required secrets shorter than 32 characters, missing secrets and placeholders, first admin
+from Secret, per-integration URL/timeouts/pool/enable, TLS with mounted CA, TRUSTED_PROXIES and PUBLIC_BASE_URL,
+prod API pages disabled, external shared state and distributed scheduled-job locks. Read the service-endpoints
+reference for build/pool metrics, dependency outage recovery and quiet successful probes. Node heap follows limits.

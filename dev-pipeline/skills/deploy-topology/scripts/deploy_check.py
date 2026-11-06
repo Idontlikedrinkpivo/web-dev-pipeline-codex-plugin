@@ -22,6 +22,8 @@ Standard library only.
 from __future__ import annotations
 
 import re
+import fnmatch
+import importlib.util
 import sys
 from pathlib import Path
 
@@ -118,6 +120,19 @@ def check_images(root: Path, builds: list, out: list) -> None:
             seen_ctx.add(ctx)
             out.append(f"{ctx.relative_to(root.resolve()) if ctx != root.resolve() else '.'}: нет .dockerignore в "
                        "контексте сборки")
+        if (ctx / ".dockerignore").exists():
+            rules = [line.strip() for line in (ctx / ".dockerignore").read_text().splitlines()
+                     if line.strip() and not line.lstrip().startswith("#")]
+            for sample in (".env", ".env.example", "nested/.env.prod", "Dockerfile", "docker-compose.test.yml",
+                           ".git/config", "tests/example.py", "src/unit.test.ts", "secret.pem", "secret.key"):
+                excluded = False
+                for rule in rules:
+                    negated = rule.startswith("!")
+                    pattern = rule.lstrip("!").strip("/")
+                    variants = [pattern, pattern + "/**"]
+                    if pattern.startswith("**/"): variants += [v[3:] for v in variants]
+                    if any(fnmatch.fnmatchcase(sample, v) for v in variants): excluded = not negated
+                if not excluded: out.append(f"{ctx}: .dockerignore permits {sample}")
         stages = re.split(r"(?im)^FROM\s+", df.read_text(encoding="utf-8", errors="replace"))[1:]
         chosen = None
         for st in stages:
@@ -125,6 +140,10 @@ def check_images(root: Path, builds: list, out: list) -> None:
             if target and name and name.group(1) and name.group(1).lower() == target.lower():
                 chosen = st
         chosen = chosen or (stages[-1] if stages else "")
+        chosen = re.sub(r"\\\n\s*", " ", chosen)
+        for variable in ("APP_VERSION", "CI_COMMIT_SHORT_SHA"):
+            if not re.search(rf"(?im)^ENV\s+[^\n]*\b{variable}=", chosen):
+                out.append(f"{rel}: missing runtime ENV {variable}")
         users = re.findall(r"(?im)^USER\s+(\S+)", chosen)
         user = users[-1].split(":")[0] if users else ""
         label = f"{rel}{' → ' + target if target else ''}"
@@ -156,6 +175,18 @@ def check_release(root: Path, version: str | None, out: list) -> None:
             out.append(f"release/{v}: нет {need}")
     if not any(n.endswith(".env.example") for n in names):
         out.append(f"release/{v}: нет <project>.env.example")
+    dockerfiles = list((folder / "build").glob("*/Dockerfile"))
+    if not dockerfiles or any(not df.with_name(".dockerignore").is_file() for df in dockerfiles):
+        out.append(f"release/{v}/build: Dockerfiles and matching .dockerignore required")
+    manifest = folder / "scan/trivy-manifest.json"
+    try:
+        module_spec = importlib.util.spec_from_file_location("image_scan", Path(__file__).with_name("trivy_images.py"))
+        module = importlib.util.module_from_spec(module_spec); module_spec.loader.exec_module(module)
+        risk = manifest.with_name("accepted-risks.json")
+        if module.gate(manifest, risk if risk.is_file() else None):
+            out.append(f"release/{v}/scan: blocked security findings")
+    except (OSError, ValueError, KeyError):
+        out.append(f"release/{v}/scan: incomplete scan evidence")
     deploy = folder / "DEPLOY.md"
     if deploy.exists():
         cited = set(re.findall(r"`([\w.-]+\.(?:yml|yaml|tar|sh|example|json))`", deploy.read_text(encoding="utf-8")))
@@ -171,6 +202,13 @@ def main() -> None:
     out: list[str] = []
     builds = check_compose(root, out)
     check_images(root, builds, out)
+    for config in root.glob("**/nginx/**/*.conf*"):
+        if any(part in {"node_modules", ".git", "release"} for part in config.parts): continue
+        text = config.read_text(errors="replace")
+        if re.search(r"^\s*upstream\s+\S+\s*\{", text, re.M):
+            out.append(f"{config}: static upstream must use resolver + variable")
+        if any(value in text for value in ("$http_authorization", "$http_cookie", "$request_uri")) and "log_format" in text:
+            out.append(f"{config}: credential/query data in log format")
     check_release(root, version, out)
     if (root / ".env.example").exists():   # the variables files against their one template
         import subprocess

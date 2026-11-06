@@ -48,10 +48,14 @@ def validate(path: Path) -> int:
         if (data.get('SchemaVersion') != 2 or data.get('ArtifactType') != 'container_image'
                 or data.get('ArtifactName') != image):
             raise ValueError(f'{image}: report schema or artifact identity mismatch')
-        if 'digest' in record and (not isinstance(record['digest'], str)
-                                   or not record['digest']
-                                   or record['digest'] != data.get('ArtifactID')):
-            raise ValueError(f'{image}: artifact digest mismatch')
+        if 'digest' in record:
+            metadata = data.get('Metadata', {})
+            if not isinstance(metadata, dict):
+                raise ValueError(f'{image}: invalid metadata')
+            identities = [value for value in (data.get('ArtifactID'), metadata.get('ImageID')) if value is not None]
+            if (not isinstance(record['digest'], str) or not record['digest'] or not identities
+                    or any(value != record['digest'] for value in identities)):
+                raise ValueError(f'{image}: artifact digest mismatch')
         results = data.get('Results')
         if not isinstance(results, list):
             raise ValueError(f'{image}: Results must be an array')
@@ -68,6 +72,14 @@ def validate(path: Path) -> int:
                 for vulnerability in vulnerabilities
             ):
                 raise ValueError(f'{image}: invalid vulnerabilities')
+            secrets = result.get('Secrets', [])
+            if secrets is None: secrets = []
+            if not isinstance(secrets, list) or any(
+                not isinstance(secret, dict) or not isinstance(secret.get('RuleID'), str)
+                or secret.get('Severity') not in {'UNKNOWN', 'LOW', 'MEDIUM', 'HIGH', 'CRITICAL'}
+                for secret in secrets
+            ):
+                raise ValueError(f'{image}: invalid secrets')
     if scanner_exit:
         return scanner_exit
     if seen != set(expected):

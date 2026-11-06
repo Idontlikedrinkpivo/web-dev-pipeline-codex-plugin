@@ -4,7 +4,7 @@ server {
 
     # Health check endpoint
     location = /_healthz {
-        access_log off;
+        access_log /dev/stdout json_combined if=$log_request;
         return 200 'OK';
         add_header Content-Type text/plain;
     }

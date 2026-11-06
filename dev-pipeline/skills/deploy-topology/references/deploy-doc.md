@@ -3,7 +3,7 @@
 Contents:
 
 - Where it lives — the source in `documentation/deploy/`, the hand-over copy.
-- What it holds — the template of `deploy.md`, section by section: Карточка сервиса, Контейнеры, Порядок
+- What it holds — the template of `deploy.md`, section by section: Карточка сервиса, Масштабирование, Сборка образа, Контейнеры, Порядок
   запуска, Сеть и проверки, Ресурсы, Переменные, Внешние зависимости, Для DBA, Логи, Метрики, Остановка,
   Безопасность пода, Трассировка, Состояние и тома, Первый запуск, Обновление на новую версию; then probe
   timings, secrets and the files it may name.
@@ -17,7 +17,8 @@ Step 7 while writing its sync test, and in Step 7b for the stand's proof
 
 The operators receive one folder per release: the image archive,
 `DEPLOY.md`, the variables file `<project>.env.example`, the API contract
-`openapi.yaml`, and `OPERATIONS.md` when the operations document exists.
+`openapi.yaml`, build/<component>/ (Dockerfile and .dockerignore), scan/ (reports, manifest, approved risks),
+and `OPERATIONS.md` when the operations document exists.
 They do not receive `docker-compose.prod.yml` — they run the images in
 their own way (their compose, their orchestrator, their secrets store), so
 they need the facts, not this project's file. So `DEPLOY.md` names no file
@@ -85,6 +86,20 @@ comes from this project's files.
 | Зависимости | PostgreSQL 17, S3-совместимое хранилище, почтовый сервис — раздел «Внешние зависимости» |
 | Заметки | миграции — контейнер `migrate`, один раз перед `backend`; остановка по SIGTERM за 25 с; томов нет — состояние в PostgreSQL и S3 |
 
+## Масштабирование
+
+Для каждого backend/frontend/worker/scheduler: допустимые реплики, процессы/потоки на контейнер, переменная
+конкурентности, замер памяти на процесс и общий бюджет пула. Один процесс по умолчанию. Общее состояние — в
+БД/Redis; если нужна одна реплика, указать причину. Планировщик перечислен как singleton и берёт распределённую
+блокировку. Ограничение одной репликой не заменяет защиту от перекрытия при обновлении.
+
+## Сборка образа
+
+Исходники — конкретный Git commit; команда — scripts/build-images.sh, платформа из карточки. В комплекте
+build/<компонент>/Dockerfile и .dockerignore каждого образа, scan/ с отчётами и манифестом. APP_VERSION и
+CI_COMMIT_SHORT_SHA доступны в образе; backend публикует app_build_info. Базы заново проверены перед выпуском.
+Исходники для пересборки берутся из указанного commit отдельно; build/ не является полным исходным кодом.
+
 ## Контейнеры
 
 | Контейнер | Образ | Команда | Запуск |
@@ -99,7 +114,7 @@ comes from this project's files.
    `backend` на непримененной схеме не запускать. Повторный запуск безопасен: применённые миграции
    пропускаются.
 2. `backend` — после успешного `migrate`.
-3. `frontend` — после того как `backend` отвечает на проверку готовности.
+3. `frontend` стартует независимо: пока backend отсутствует, статика и /_healthz работают, /api возвращает 502.
 
 ## Сеть и проверки
 
@@ -118,7 +133,10 @@ comes from this project's files.
 Наружу публикуется только `frontend:8080`. Служебные пути backend — `/health/live`, `/health/ready`,
 `/metrics` — доступны только внутри кластера на порту 3000: `frontend` проксирует к бэкенду лишь
 `/api/`. TLS и внешний прокси перед `frontend` — на стороне эксплуатации; `frontend` работает по
-HTTP, а адрес бэкенда получает из `BACKEND_SERVICE`.
+HTTP, а адрес бэкенда получает из `BACKEND_SERVICE` (в кластере FQDN:port).
+Отдельный служебный порт backend не нужен: проверки и метрики остаются на порту приложения и не входят в
+публичные маршруты. Для API без frontend закрыть /health, /health/*, /metrics и /actuator на внешнем входе;
+проверить запрет при работающем backend. Указание порта само по себе не является защитой.
 
 ## Ресурсы
 
@@ -153,8 +171,13 @@ requests — обычное значение, округлённое вверх;
 
 | Переменная | Обязательна | Секрет | Пример / формат | Что задаёт |
 |---|---|---|---|---|
-| BACKEND_SERVICE | да | нет | `backend:3000` | адрес бэкенда |
-| BACKEND_PROTOCOL | да | нет | `http` | протокол до бэкенда |
+| BACKEND_SERVICE | да | нет | `<service>.<namespace>.svc.cluster.local:3000` | полное имя бэкенда в кластере; Compose использует backend:3000 |
+| BACKEND_PROTOCOL | да | нет | `http` или `https` | при https CA монтируется в /etc/nginx/ssl/backend-ca.pem; проверка сертификата обязательна |
+| LOG_LEVEL | нет | нет | notice | уровень ошибок nginx |
+| TRUSTED_PROXY_CIDR | нет | нет | 127.0.0.1/32 | доверенная сеть внешнего прокси; указать реальную сеть ingress |
+| MAX_BODY_SIZE | нет | нет | значение NFR из Dockerfile | лимит запроса; ingress не ниже |
+| CLIENT_TIMEOUT | нет | нет | значение NFR из Dockerfile | ожидание клиента между чтением/записью; ingress не ниже |
+| BACKEND_TIMEOUT | нет | нет | значение NFR из Dockerfile | ожидание backend; ingress не ниже |
 | SECURE_MODE | да | нет | `plain` или `secure` | `plain` — HTTP, TLS на прокси эксплуатации; `secure` — TLS в самом контейнере, сертификаты в `/etc/nginx/ssl/`. Другое значение — nginx не стартует |
 
 ## Внешние зависимости
@@ -209,8 +232,9 @@ ALTER DEFAULT PRIVILEGES FOR ROLE <schema>_migrate IN SCHEMA <schema>
 - Секретов, токенов и персональных данных в логах нет.
 - `request_id` сквозной: берётся из заголовка `X-Request-Id` (его ставит `frontend`) или создаётся,
   и возвращается в ответе.
-- frontend (nginx) пишет журнал запросов JSON-строками в stdout (`@timestamp`, `status`,
-  `request_time`, `request_id`, …), ошибки — в stderr.
+- frontend (nginx) пишет журнал запросов JSON-строками в stdout (`time`, `status`,
+  `request_time`, `request_id`, `logger`, `msg`), без query/credential headers/Referer/Location. Успешные
+  пробы не логируются, 5xx остаются. Ошибки nginx преобразует nginx-runtime в JSON-категории без исходных строк, которые могут содержать секреты.
 
 ## Метрики
 
@@ -219,6 +243,7 @@ ALTER DEFAULT PRIVILEGES FOR ROLE <schema>_migrate IN SCHEMA <schema>
 | Где | `GET /metrics` на backend:3000, без авторизации; через `frontend` наружу не доступен |
 | Формат | Prometheus, текстовый |
 | Основные | `http_request_duration_seconds` — гистограмма длительности запросов с метками `method`, `route` (шаблон пути), `status_code`; стандартные метрики процесса (`process_cpu_seconds_total`, `process_resident_memory_bytes`, …) |
+| Дополнительно backend | app_build_info, db_pool_connections; метрики очереди, если используется |
 | frontend | метрик нет |
 
 ## Остановка
@@ -227,14 +252,16 @@ ALTER DEFAULT PRIVILEGES FOR ROLE <schema>_migrate IN SCHEMA <schema>
   `SHUTDOWN_TIMEOUT_SEC` (по умолчанию 25 с), закрывает пул соединений с базой и завершается с кодом 0.
 - Рекомендуем `terminationGracePeriodSeconds` не меньше 30 (25 + 5).
 - migrate — разовый, останавливать не нужно.
-- frontend (nginx) останавливается сигналом образа SIGQUIT и дожидается текущих запросов.
+- frontend: nginx-runtime принимает TERM/INT, передаёт QUIT мастеру nginx и ожидает завершения. worker_shutdown_timeout
+  ограничен 25 с, аварийный предел адаптера — 28 с с ненулевым выходом. Привести результат проверки запроса во
+  время остановки; если не запускалась, так и написать.
 
 ## Безопасность пода
 
-| Контейнер | runAsUser | Пишет на диск |
-|---|---|---|
-| backend, migrate | 1000 | только `/tmp` |
-| frontend | 101 | `/tmp`, `/etc/nginx/conf.d` |
+| Контейнер | USER образа | Пишет на диск | Объём |
+|---|---|---|---|
+| backend, migrate | 1000; проверено под 5000 | только `/tmp` | измеренный максимум |
+| frontend | 101; проверено под 5000 | только `/tmp` | параллельные загрузки × MAX_BODY_SIZE + запас |
 
 Для всех: `runAsNonRoot: true`; `readOnlyRootFilesystem: true` с `emptyDir` на каждый путь из
 таблицы; `allowPrivilegeEscalation: false`; capabilities — drop ALL; `seccompProfile: RuntimeDefault`.
@@ -246,7 +273,8 @@ ALTER DEFAULT PRIVILEGES FOR ROLE <schema>_migrate IN SCHEMA <schema>
 
 ## Состояние и тома
 
-Томов нет: всё состояние в базе и S3. Контейнеры можно пересоздавать в любой момент.
+Томов нет, если всё постоянное состояние внешнее. При необходимости тома: переменная пути вне /tmp,
+ёмкость, RWO/RWX, резервное копирование. Сессии, rate limit и блокировки не хранятся в памяти реплик.
 
 ## Первый запуск
 
@@ -289,13 +317,10 @@ Where each section comes from:
 | Первый запуск | the architecture or SRS (how the first admin or seed data appears); ask the user when neither says |
 | Обновление | fixed text above, with the project's names; «Когда откатывать»: the readiness wait from «Сеть и проверки», the 5xx share and the key scenario from the SRS NFRs and this release's main change — when the NFRs give no threshold, ask the user once; never left as a placeholder |
 
-The image without a shell changes three places: «Образ» says «без
-оболочки (distroless)», the UIDs are 65532, and the frontend has no
-variables — its table says «Переменных нет: адрес бэкенда `backend:<port>`
-и протокол заданы при сборке образа» and the network section tells the
-operators to name the backend's service `backend` or mount their own
-`/etc/nginx/conf.d/upstream.conf` (`images.md` → Frontend image — without a
-shell). Its frontend writes only `/tmp`.
+For an image without a shell, the card says so. All rendered conf.d configuration is mounted read-only at
+runtime (images.md → Frontend image — without a shell), with no baked Compose address/protocol. List every
+required file, DNS server, FQDN, proxy network, limits, log severity, HTTP/TLS selection and mounted CA/cert paths.
+Only /tmp writable. Ship secret-free templates and the rendering command separately with the release.
 
 **Probe timings.** Liveness: timeout 2 s, period 10 s, failure threshold 3.
 Readiness: timeout 3 s — above the 2 s database ping it waits for — period
@@ -601,3 +626,11 @@ up each file `DEPLOY.md` names in `release/<version>/` and fails naming the
 one that is missing. Someone who adds a variable, changes a port or a
 `USER`, or adds an extension and forgets the document then finds out in CI,
 not from the operators.
+
+## Additional acceptance facts
+
+The document's scaling and build sections are sourced from architecture NFR decisions, actual Dockerfiles and
+build commands, not copied example measurements. Resources include Node heap limit with native-memory reserve,
+process count and measured memory per process. Migration instructions name the serialization mechanism, clean-DB
+and parallel-run evidence and, if auto-run exists, MIGRATIONS_ENABLED=false. The first administrator comes from
+Secret, never an example password. State which checks were NOT_RUN. Each runtime component has a service card.

@@ -26,7 +26,7 @@ themselves.
   skill, `.claude/settings.json`): `upgrade-code` makes it, with the project's checks around it. Leave it out for
   a document change, like the row above — `upgrade-docs` makes those.
 - `id` — stable, kebab-case; a project's stamp lists skipped ids, so never rename one.
-- `version` — the release that brings the change (the version `sync.sh` is about to print).
+- `version` — the release that brings the change (the independent Codex version in .codex-plugin/plugin.json).
 - `applies` — true only for projects that have the thing at all: no API, no API rule.
 - `behind` — true while the project lacks the change, false once it is made. It is the check the upgrade skill
   runs after the fix, so it must turn false when the fix is done, and stay false on a project written by the new
@@ -46,3 +46,7 @@ a Python regex in multiline mode. Prefer a sign that only the old format has —
 over a sign of the new one; and keep it away from text where the old word is legitimate (a changelog, a quote).
 
 Check by hand: `python3 upgrade-docs/scripts/project_format.py list <project>` on both projects.
+
+For checks across multiple components, `files_match` takes `paths` (globs), `require` (regexes) and `forbid`
+(regexes). It succeeds only with at least one file and when **every** matching file passes; generated/release and
+dependency folders are excluded. Use `not: files_match` for remaining upgrades. Test a mixed old/new monorepo too.

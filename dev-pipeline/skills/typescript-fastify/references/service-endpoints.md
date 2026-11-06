@@ -18,8 +18,12 @@ const app = Fastify({
     level: deps.logLevel, // LOG_LEVEL, default "info"; the tests pass "silent"
     base: { logger: "<project>" }, // the logger name; replaces pid and hostname
     timestamp: () => `,"time":"${new Date().toISOString()}"`, // ISO-8601 UTC, not epoch milliseconds
+    serializers: {
+      req: (request) => ({ method: request.method, url: request.url?.split("?")[0] }),
+    }, // no headers, query, body or credential-bearing redirect URLs
     formatters: { level: (label) => ({ level: label }) }, // "info", not 30
   },
+  trustProxy: deps.trustedProxies.length ? deps.trustedProxies : false,
   requestIdHeader: "x-request-id", // the caller's id when present...
   genReqId: () => randomUUID(), // ...else a new one
   logController: new LogController({ requestIdLogLabel: "request_id" }),
@@ -28,7 +32,11 @@ app.addHook("onRequest", (request, reply, done) => {
   reply.header("x-request-id", request.id) // echoed, on errors and 404s too
   done()
 })
-registerServiceRoutes(app, deps.ready) // before the area routes, so the histogram hook covers them
+// Fastify's default 404 diagnostic includes the original URL/query. Keep the response/log message fixed.
+app.setNotFoundHandler((_request, reply) => reply.code(404).type("application/problem+json").send({
+  type: "about:blank", title: "Not Found", status: 404,
+}))
+registerServiceRoutes(app, deps) // before the area routes, so the histogram hook covers them
 ```
 
 - Every line is then `{"level","time","logger","msg"}`, plus `request_id` inside a request and `err` (`type`,
@@ -46,11 +54,17 @@ registerServiceRoutes(app, deps.ready) // before the area routes, so the histogr
 
 ```typescript
 import type { FastifyInstance, LogLevel } from "fastify"
-import { collectDefaultMetrics, Histogram, Registry } from "prom-client"
+import { collectDefaultMetrics, Gauge, Histogram, Registry } from "prom-client"
 
 export type CheckState = "up" | "down"
 /** Each store the app cannot serve without, by name: `{ db: "up" }`. Never a third-party API. */
 export type ReadinessChecks = () => Promise<Record<string, CheckState>>
+
+export type ServiceDeps = {
+  ready: ReadinessChecks
+  build: { version: string; commit: string }
+  poolStats?: () => { total: number; idle: number; waiting: number }
+}
 
 const SERVICE_PATHS = new Set(["/health/live", "/health/ready", "/metrics"])
 /** The levels quieter than warn: the service routes follow the app down to them. */
@@ -70,9 +84,18 @@ export async function probe(check: () => Promise<unknown>, ms = 2000): Promise<C
 }
 
 /** /health/live, /health/ready, /metrics and the request-duration histogram. Register before the area routes. */
-export function registerServiceRoutes(app: FastifyInstance, ready: ReadinessChecks): void {
+export function registerServiceRoutes(app: FastifyInstance, { ready, build, poolStats }: ServiceDeps): void {
   const registry = new Registry() // one per app: tests build many servers, and the global one refuses a second metric
   collectDefaultMetrics({ register: registry })
+  new Gauge({ name: "app_build_info", help: "Build provenance", labelNames: ["version", "commit"] as const,
+    registers: [registry] }).set(build, 1)
+  if (poolStats) {
+    new Gauge({ name: "db_pool_connections", help: "Pool connections", labelNames: ["state"] as const,
+      registers: [registry], collect() {
+        const stats = poolStats()
+        for (const state of ["total", "idle", "waiting"] as const) this.set({ state }, stats[state])
+      } })
+  }
   const duration = new Histogram({
     name: "http_request_duration_seconds",
     help: "HTTP request duration by route template",
@@ -94,7 +117,7 @@ export function registerServiceRoutes(app: FastifyInstance, ready: ReadinessChec
   app.get("/health/ready", quiet, async (request, reply) => {
     const checks = await ready()
     if (!Object.values(checks).includes("down")) return { status: "ready" }
-    request.log.warn({ checks }, "not ready")
+    request.log.warn({ checks, status: 503, route: "/health/ready" }, "not ready")
     return reply.code(503).send({ status: "not ready", checks })
   })
   app.get("/metrics", quiet, async (_request, reply) => reply.type(registry.contentType).send(await registry.metrics()))
@@ -118,12 +141,17 @@ import { buildServer } from "./bootstrap/server.js"
 import { probe } from "./bootstrap/service-routes.js"
 
 const config = loadConfig(process.env)
-const pool = config.databaseUrl === undefined ? undefined : new Pool({ connectionString: config.databaseUrl })
+const pool = config.databaseUrl === undefined ? undefined : new Pool({ connectionString: config.databaseUrl, connectionTimeoutMillis: 2000, query_timeout: 2000 })
 const app = buildServer({
   logLevel: config.logLevel,
+  trustedProxies: config.trustedProxies,
+  build: { version: config.appVersion, commit: config.commitSha },
+  poolStats: pool ? () => ({ total: pool.totalCount, idle: pool.idleCount, waiting: pool.waitingCount }) : undefined,
   ready: async () => ({ db: pool === undefined ? "down" : await probe(() => pool.query("select 1")) }),
   // ...the dependencies the routes take
 })
+// A lost idle PostgreSQL connection must not become an unhandled EventEmitter error.
+pool?.on("error", () => app.log.warn("idle database connection lost; reconnect on next use"))
 app.addHook("onClose", async () => {
   await pool?.end() // after the last in-flight request
 })
@@ -165,3 +193,8 @@ with the other variables, and listed in `.env.example`.
 `repo-scaffold`'s quality gate runs `repo-scaffold/scripts/service_check.py` against the started entry point: the
 three paths, the request id echoed and logged, JSON on every line, exit 0 on SIGTERM within the timeout + 5 s. Run
 it again after changing any of the code above.
+
+Read and validate APP_VERSION, CI_COMMIT_SHORT_SHA, TRUSTED_PROXIES (comma-separated allowlist, default empty),
+PUBLIC_BASE_URL and NODE_OPTIONS through the config module. Never register swagger-ui in prod. Follow
+`deploy-topology/references/env-and-config-contract.md` → Platform acceptance rules, including secret validation,
+TLS, external state and locks. Queue metrics are required when a queue is used. Failed probes still log 5xx.

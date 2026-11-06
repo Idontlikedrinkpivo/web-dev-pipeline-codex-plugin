@@ -113,7 +113,7 @@ For each image, use a distinct report path in a fresh audit output directory:
 ```bash
 docker run --rm -v /var/run/docker.sock:/var/run/docker.sock \
   -v pipeline-trivy-cache:/root/.cache/trivy aquasec/trivy:latest \
-  image --image-src docker --severity HIGH,CRITICAL --format json "$IMAGE" > "$REPORT"
+  image --image-src docker --scanners vuln,secret --image-config-scanners secret --severity UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL --format json "$IMAGE" > "$REPORT"
 scan_status=$?
 ```
 
@@ -138,15 +138,17 @@ and one record per command. Paths are relative to this manifest:
 ```
 
 When an image ID is available, add `digest` to that record; it must match the
-report's `ArtifactID` (use the same identity kind, not a registry digest in
+report's `Metadata.ImageID` (or `ArtifactID` in older evidence) (use the same identity kind, not a registry digest in
 place of a local image ID). The report must have `SchemaVersion: 2`,
 `ArtifactType: "container_image"`, an exact matching `ArtifactName`, and an
 array `Results`. Result entries require `Target`; any vulnerability entries
 require `VulnerabilityID` and a Trivy severity. Additional Trivy fields are allowed.
 
 Run `python3 "<security-audit skill folder>/scripts/trivy_reports.py" "$OUT/trivy-manifest.json"`.
-Exit 0 confirms completeness only; apply the unchanged severity policy to the
-findings. Exit 2 means incomplete/invalid evidence; a recorded scanner error
+Exit 0 confirms completeness only; apply the hand-over gate with `deploy-topology/scripts/trivy_images.py --check` to the findings.
+Any secret at any severity blocks; every CRITICAL blocks unless explicitly approved against the image digest,
+CVE/package/target with acceptance and expiry dates. No secret risk waiver. Reports/manifest belong in
+release/<version>/scan; the runner records both scanners and all severities and strips secret excerpts. Exit 2 means incomplete/invalid evidence; a recorded scanner error
 retains its nonzero exit. Missing, empty, corrupt, truncated, duplicate,
 unexpected or wrong-image reports never mean zero findings. `Results: []`
 is valid only with a successful scan and matching artifact identity for every

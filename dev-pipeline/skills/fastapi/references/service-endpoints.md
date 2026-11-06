@@ -2,7 +2,7 @@
 
 Read this when writing or changing `bootstrap/` (`repo-scaffold` writes it once), the logging setup, the production
 entry or a readiness check. What the platform expects of every service is fixed in `repo-scaffold` → SKILL.md §5;
-this is how FastAPI and uvicorn do it. The file names are the architecture §5 tree's — `bootstrap/…` below is
+this is how FastAPI and uvicorn do it. Install `sqlalchemy[asyncio]` with the driver so greenlet is present. The file names are the architecture §5 tree's — `bootstrap/…` below is
 only the default; adding these files to an existing project is a changed architecture decision (`pipeline` →
 `references/decision-changes.md`).
 
@@ -24,10 +24,11 @@ from datetime import UTC, datetime
 
 from fastapi import APIRouter, Response
 from fastapi.responses import JSONResponse
-from prometheus_client import CONTENT_TYPE_LATEST, REGISTRY, Histogram, generate_latest
+from prometheus_client import CONTENT_TYPE_LATEST, REGISTRY, Gauge, Histogram, generate_latest
 from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncEngine
+from sqlalchemy.pool import QueuePool
 from starlette.datastructures import MutableHeaders
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
@@ -38,6 +39,8 @@ REQUEST_DURATION = Histogram(
     "HTTP request duration by route template",
     ("method", "route", "status_code"),
 )
+APP_BUILD = Gauge("app_build_info", "Build provenance", ("version", "commit"))
+DB_POOL = Gauge("db_pool_connections", "Pool connections", ("state",))
 _RECORD_FIELDS = frozenset(vars(logging.makeLogRecord({}))) | {"message", "asctime", "color_message"}
 logger = logging.getLogger(__name__)
 access_log = logging.getLogger("http.access")
@@ -108,6 +111,8 @@ class RequestContext:
                 access_log.info(
                     "%s %s %d", scope["method"], route, status, extra={"duration_ms": round(elapsed * 1000)}
                 )
+            elif status >= 500:
+                access_log.error("service endpoint failed", extra={"route": route, "status": status})
             REQUEST_ID.reset(token)
 
 
@@ -140,6 +145,9 @@ def build_service_router(engine: AsyncEngine | None) -> APIRouter:
 
     @router.get("/metrics")
     def metrics() -> Response:
+        if engine is not None and isinstance(engine.pool, QueuePool):
+            DB_POOL.labels("idle").set(engine.pool.checkedin())
+            DB_POOL.labels("in_use").set(engine.pool.checkedout())
         return Response(generate_latest(REGISTRY), media_type=CONTENT_TYPE_LATEST)
 
     return router
@@ -164,7 +172,7 @@ def build_service_router(engine: AsyncEngine | None) -> APIRouter:
 
 ```python
 def create_app(settings: Settings) -> FastAPI:
-    engine = create_async_engine(settings.database_url) if settings.database_url else None
+    engine = create_async_engine(settings.database_url, pool_pre_ping=True, pool_timeout=2) if settings.database_url else None
 
     @asynccontextmanager
     async def lifespan(_: FastAPI) -> AsyncIterator[None]:
@@ -172,7 +180,8 @@ def create_app(settings: Settings) -> FastAPI:
         if engine is not None:
             await engine.dispose()  # after uvicorn has finished the in-flight requests
 
-    app = FastAPI(lifespan=lifespan)
+    app = FastAPI(lifespan=lifespan, docs_url=None, redoc_url=None, openapi_url=None)
+    APP_BUILD.labels(settings.app_version, settings.commit_sha).set(1)
     app.add_middleware(RequestContext)
     app.include_router(build_service_router(engine))
     # ...the area routers, the problem+json handlers
@@ -216,6 +225,8 @@ def main() -> None:
         workers=1,  # one process per container; replicas scale it
         log_config=None,  # keep the JSON handler configured above
         access_log=False,  # RequestContext writes the access line, with the route template
+        proxy_headers=True,
+        forwarded_allow_ips=settings.trusted_proxies or "",
         timeout_graceful_shutdown=settings.shutdown_timeout_sec,
     )
 
@@ -247,3 +258,10 @@ Both are optional and listed in `.env.example` with their defaults in the commen
 `repo-scaffold`'s quality gate runs `repo-scaffold/scripts/service_check.py` against
 `.venv/bin/python -m <package>.bootstrap.serve`: the three paths, the request id echoed and logged, JSON on every
 line, exit 0 on SIGTERM within the timeout + 5 s. Run it again after changing any of the code above.
+
+Settings must read APP_VERSION (`dev` outside an image), CI_COMMIT_SHORT_SHA (`unknown`), TRUSTED_PROXIES (empty
+allowlist by default) and PUBLIC_BASE_URL. Validate required secrets before opening any listener; log variable
+names only. Follow `deploy-topology/references/env-and-config-contract.md` → Platform acceptance rules.
+Use a driver connection timeout too: readiness's deadline must not leave unbounded connection attempts running.
+The async pool derives from QueuePool; a different pool needs its own collector rather than fabricated zeros.
+Queue metrics are included when the service uses a queue. Keep 5xx probe logs; only successful probes are quiet.

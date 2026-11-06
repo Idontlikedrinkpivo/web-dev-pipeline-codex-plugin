@@ -257,3 +257,7 @@ src/features/bookings/BookingForm.tsx:88 — UX-78 — "..." → «…»
 
 Inside `code-review-unit` the same lines become that skill's findings, with
 its own severity and verdict.
+
+Fonts, JS libraries and CSS must ship locally in the frontend image. Do not generate public CDN imports or links
+(including Google Fonts): closed deployments have no internet. Download permitted font assets at build time or
+use bundled packages; verify final HTML/CSS/JS through deploy-topology's image_preflight.py contents.

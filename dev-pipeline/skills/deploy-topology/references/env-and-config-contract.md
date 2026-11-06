@@ -150,3 +150,33 @@ I require" and "what do I recognize" as introspectable data (a function, a
 class attribute — whatever the stack makes easiest), and it is the guard
 that keeps the human-readable template from drifting out of sync with the
 machine-enforced contract as the app grows past this skill's first pass.
+
+## Platform acceptance rules (IMG / CFG / FS / LC / OBS / RES / SEC)
+
+These rules apply from scaffold and implementation, not only when packaging:
+- Required secrets have no defaults. A missing/empty secret, known placeholder (`change-me`, `admin`, `secret`)
+  or a required secret under 32 characters fails startup with the variable name, never its value.
+  First-admin credentials come only from env/Secret, never seeded fixed credentials in code/config/migrations.
+- Each integration has URL, connect/read/response timeout, pool size and `<INTEGRATION>_ENABLE`. No real host,
+  IP or personal email in defaults. Secrets are env or separate files, not the shared non-secret config file.
+- TLS verification is always enabled. Corporate CA is a mounted file configured by `<INTEGRATION>_SSL_FILE`,
+  SSL_CERT_FILE / REQUESTS_CA_BUNDLE / NODE_EXTRA_CA_CERTS. Never `verify=False`, `ssl=False`,
+  `rejectUnauthorized:false` or NODE_TLS_REJECT_UNAUTHORIZED=0. Outbound destinations and data categories need
+  explicit approval before user data leaves the agreed contour; document host/port/protocol/purpose.
+- `TRUSTED_PROXIES` is an explicit network allowlist (empty means trust nobody); `PUBLIC_BASE_URL` determines
+  externally generated links. Secure-cookie and forwarded IP/scheme follow these settings, not arbitrary headers.
+- Generated API pages are disabled in prod; admin interfaces are disabled or authenticated. No reload/debug/demo
+  or mock mode in prod. Keep the machine-readable OpenAPI in the release, independent of runtime docs routes.
+- Sessions, rate limits, shared caches, locks and queues live externally. If only one replica is possible, write
+  why. Scheduled jobs use distributed locks with ownership/expiry appropriate to the job.
+- Migration runners serialize concurrent invocations (DB advisory lock or one separately managed migration job),
+  record completed versions, and document clean-DB and parallel-start tests. Migrations are a separate command by
+  default; if auto-run exists, MIGRATIONS_ENABLED=false disables it. Dependency outage is not a missing-config
+  error: valid config with unavailable DB/Redis stays live and unready, retries boundedly and recovers.
+- Node heap is budgeted from the container memory limit with native overhead; document NODE_OPTIONS and measured
+  memory per process. Pool sizes and concurrency obey the replica budget. Export pool and queue metrics when used.
+- Runtime paths and peak write volume are documented, including concurrent upload buffers. Persistent paths are
+  configurable outside /tmp, with capacity, access mode and backup needs. Never file logs.
+
+All applicable variables are in the single `.env.example` template with required/optional, secret, default and
+purpose. APP_VERSION/CI_COMMIT_SHORT_SHA are baked build provenance, read by code; operators do not override them.

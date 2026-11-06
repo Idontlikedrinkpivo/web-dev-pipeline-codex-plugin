@@ -88,3 +88,10 @@ read the architecture, not the SRS table.
   next pipeline transition — that stays in `pipeline`.
 - No quality tree and no scenarios table: the SRS already states the
   measure.
+
+## Replicas and runtime budgets
+
+Shared sessions, rate limits, locks, caches and queues require external storage. Document each singleton and its
+distributed lock, or the reason a service can run only one replica. Name replicas, processes/concurrency per
+container, memory per process, connection-pool budget, writable paths/capacity and configured persistent volumes.
+External data transfers require explicit approval; list hosts, ports, protocols and purposes for operators.

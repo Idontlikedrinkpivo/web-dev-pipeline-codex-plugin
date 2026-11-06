@@ -148,10 +148,9 @@ project already pins digests); `latest` or a bare major makes two builds
 of the same commit differ. Use a multi-stage build when the toolchain is
 not needed at runtime.
 
-Write or extend `.dockerignore` in the same step: every `.env.*.local`,
-`.env`, `.git`, local virtualenv / `node_modules`, test caches and the
-compose files. Without it a `COPY . .` bakes `.env.prod.local`'s real
-secrets into the image; `.env.example` may stay — it holds no secrets.
+Copy the complete `assets/dockerignore` into each context: no `.env.example` exception. Final stages copy
+runtime paths only; build tsconfig excludes tests. Every image sets APP_VERSION and CI_COMMIT_SHORT_SHA.
+The SPA has only /tmp writable, dynamic backend lookup and runtime limits (`references/images.md`).
 
 ### Step 3. The mock/live gate lives in the app, not in compose
 
@@ -321,7 +320,10 @@ stand's proof).
    code; `docker compose run` adds lines that are not JSON). It proves
    probes, metrics, JSON logs and the SIGTERM exit under the read-only root
    and the image's `USER`; then start `backend` again.
-2. **Resources.** Idle, typical at a fixed request rate, peak under the
+2. **Platform preflight.** Run contents and stand modes of `scripts/image_preflight.py` as documented in
+   `references/image-preflight.md`: foreign UID, dependency outage, frontend recovery, secrets, logs and stop.
+   Resolve failures before hand-over; report any unrun case explicitly.
+3. **Resources.** Idle, typical at a fixed request rate, peak under the
    fullest load, each app container's time to ready, on an image of this
    machine's architecture (or marked as emulated) — DEPLOY.md's «Ресурсы»
    with the date and how, and a startup probe when ready takes over 10 s.
@@ -372,27 +374,19 @@ from the project's own Dockerfiles and compose files as they are
    the next stage). The script ends by checking that every file `DEPLOY.md`
    names is in the folder, and fails naming the one that is not.
    `release/` is in `.gitignore` and `.dockerignore`. Images leave as the
-   tar only — no push: the operators load them into their own registry.
+   tar only — no push: the operators load them into their own registry. Recheck every base against its registry
+   before each release; copy Dockerfiles/.dockerignore into build/<component>/ and record build provenance.
 4. **Run it once** and report the folder, the tar size, the image tags and the platform;
    if Docker or buildx is not available here, say so instead of claiming the
-   build. Add the «Сборка образов» section to the README.
-5. **Scan each exact built image separately** with `trivy` (`security-audit` →
-   `references/scanners.md` → Docker images, with its proxy, cache and
-   fallback rules), HIGH and CRITICAL only. The release tar may contain several
-   images: do not scan it once as proof for them all or pass multiple image refs
-   to one Trivy command. Record the complete expected image list, one distinct
-   report and command status per image, and image ID/digest when available in
-   `trivy-manifest.json` per that reference. Run its `trivy_reports.py` validator;
-   missing/invalid evidence blocks a clean scan verdict. `Results: []` is valid
-   only for a successful scan with matching artifact identity and full expected
-   coverage. Preserve scanner error/severity exit codes. Keep fixture validation
-   separate from live Docker/Trivy evidence; report `NOT_RUN` when unavailable.
-   A CRITICAL with a fixed
-   version in the base image stops the hand-over with one question —
-   `references/images.md` → A vulnerable base, the same inside
-   `upgrade-code`; the rest go into the closing report and under «Образы»
-   in `security-audit.md` when it exists. The build itself does not run
-   the scan, so an operator's rebuild does not need it.
+   build. Add the «Сборка образов» section to the README; inspect every exported image with image_preflight.py contents.
+5. **Scan and gate each exact image**: `python3 <skill>/scripts/trivy_images.py --out release/<version>/scan IMAGE...`.
+   Both vulnerability and secret scans run at every severity; preserve the complete expected image list, distinct
+   reports, image IDs and exit codes. The existing trivy_reports.py completeness validator remains mandatory.
+   Empty/invalid/wrong-image/missing evidence fails; a valid Results: [] is not an empty report. Any secret or
+   CRITICAL blocks hand-over; only CRITICAL has explicitly approved dated risk acceptance (`references/images.md`).
+   Reports and manifest stay in scan/, Dockerfiles and ignores in build/<component>/. No registry push or SBOM.
+   A failed/unavailable live scan is NOT_RUN/FAILED, never zero findings; fixture checks are separate evidence.
+
 
 `release/`, not `dist/`: `clean` scripts and bundlers empty `dist/` before a
 build, and the hand-over archive would go with it. A folder per version
@@ -448,13 +442,13 @@ release folder and what DEPLOY.md names); each line it prints is fixed first.
 - App containers in the test and prod files hardened (read-only root, `/tmp` tmpfs, no capabilities, no new
   privileges), `backend`'s healthcheck on `/health/ready` through the runtime, and the test stand's two database
   accounts — Step 4.
-- The service check passed against the `backend` container, and «Ресурсы» holds the stand's numbers with the date
+- The service check and isolated image_preflight.py contents/stand passed against built images, and «Ресурсы» holds the stand's numbers with the date
   and how, or «Не замерено» — Step 7b.
 - `documentation/deploy/deploy.md` opens with «Карточка сервиса» and covers every section of
   `references/deploy-doc.md` — probes, resources, dependencies, «Для DBA», logs, metrics, shutdown, pod security,
   tracing — Step 8.
 - `scripts/build-images.sh` ran for the card's platform: `release/<version>/` holds the tar with every image under
-  the `<version>-<date>` tag, `DEPLOY.md`, `<project>.env.example` and `openapi.yaml` (one file) — Step 8.
+  the `<version>-<date>` tag, `DEPLOY.md`, `<project>.env.example`, `openapi.yaml`, build/<component>/ and scan/ — Step 8.
 - Mock gate enforced in application config — Steps 3 and 5.
 - Prod file has no local stateful service; `up-test` runs the suite with zero outbound network calls — Step 4.
 - Bootstrap and `up-<environment>` targets for all three — Step 6.
@@ -488,3 +482,6 @@ release folder and what DEPLOY.md names); each line it prints is fixed first.
 - `pipeline` (skill) — where this stage sits. At the close, ask about the
   stage its table names after this one, per "Asking before a transition".
   Read it at the end instead of naming a next step from memory.
+
+- `references/image-preflight.md` — isolated live acceptance descriptor and commands.
+- `references/env-and-config-contract.md` → Platform acceptance rules — required service/config behavior.

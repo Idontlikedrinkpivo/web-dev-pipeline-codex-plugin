@@ -1,1 +1,2 @@
-include /etc/nginx/conf.d/${SECURE_MODE}.conf;
+error_log /dev/stderr ${LOG_LEVEL};
+include <<CONF_DIR>>/${SECURE_MODE}.conf;

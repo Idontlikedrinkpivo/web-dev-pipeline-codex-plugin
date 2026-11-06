@@ -13,8 +13,26 @@ ROOT = Path(__file__).resolve().parent
 SKILL_LINE_LIMIT = 500
 
 
+def progress_labels(root: Path) -> list[str]:
+    """Read literal mappings without importing scripts or starting their runtime."""
+    mappings = []
+    try:
+        for filename, symbol in (("progress_page.py", "FILES"), ("progress_link.py", "LABEL")):
+            path = root / "skills/pipeline/scripts" / filename
+            tree = ast.parse(path.read_text())
+            value = next(node.value for node in tree.body if isinstance(node, ast.Assign)
+                         and any(isinstance(target, ast.Name) and target.id == symbol for target in node.targets))
+            mappings.append(ast.literal_eval(value))
+    except (OSError, SyntaxError, ValueError, StopIteration) as exc:
+        return [f"progress labels: cannot read FILES/LABEL: {exc}"]
+    files, labels = mappings
+    return [f"progress labels: {name}: FILES={files.get(name)!r}, LABEL={labels.get(name)!r}"
+            for name in sorted(files.keys() | labels.keys()) if name not in files or name not in labels
+            or files[name] != labels[name]]
+
+
 def check(root: Path) -> list[str]:
-    errors = []
+    errors = progress_labels(root)
     for path in sorted(root.rglob('*')):
         if not path.is_file() or '__pycache__' in path.parts:
             continue

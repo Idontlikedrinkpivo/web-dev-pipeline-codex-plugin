@@ -450,6 +450,9 @@ read when their case comes up:
 - `references/progress-files.md` — which stages keep a progress file in
   `plans/<version>/`, its shape, and the chat line `scripts/progress_link.py`
   prints for it. Read before a stage that keeps one creates it.
+- `references/progress-keeping.md` — updates, the four script exceptions,
+  subagent rows and watcher cleanup; read before each long run. Every long
+  run also reads `references/unattended.md` → Keeping the run moving.
 - `references/pause-and-resume.md` — the resume note a long run (`work`,
   `ui-test-cases` mode run, `security-audit`) keeps current, and what a
   session that picks up a stopped run reads first.

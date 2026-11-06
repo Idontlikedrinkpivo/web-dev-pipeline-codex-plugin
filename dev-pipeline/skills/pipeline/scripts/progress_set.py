@@ -5,8 +5,8 @@
 Rewrites the first bar (`█…░… N%`) of the file — or of the section that starts at the heading given, e.g.
 "## Исправления по финальному ревью" — and the «N из M» of the count line right under that bar, then redraws the
 page beside the file. The rows themselves still change with Edit, one row per call. An Edit of the bar fails
-whenever the copy in the old string is off by one cell; this script is the second allowed writer of a progress
-file outside Edit/Write (pipeline → references/progress-files.md → How). Percent = ⌊done × 100 / total⌋, the
+whenever the copy in the old string is off by one cell; this script is one of four allowed writers of a progress
+file outside Edit/Write (pipeline → references/progress-keeping.md → How). Percent = ⌊done × 100 / total⌋, the
 filled cells equal the percent. Standard library only.
 """
 from __future__ import annotations
@@ -36,15 +36,22 @@ def main() -> None:
         start = m.end()
     bar = re.compile(r"^[█░]{20,}\s*\d+\s*%[^\n]*$", re.M)
     b = bar.search(text, start)
-    if not b:
+    boundary = re.compile(r"^#{1,6} ", re.M).search(text, start) if heading else None
+    if not b or (boundary and b.start() >= boundary.start()):
         sys.exit(f"progress_set: no bar after {heading or 'the top'} in {md}")
     pct = done * 100 // total
     text = text[: b.start()] + "█" * pct + "░" * (100 - pct) + f" {pct}%" + text[b.end():]
     after = text.index("\n", b.start()) + 1
     c = re.compile(r"\d+\s*из\s*\d+").search(text, after)
-    nxt = re.compile(r"^#{1,3} ", re.M).search(text, after)
+    nxt = re.compile(r"^#{1,6} ", re.M).search(text, after)
     if c and (not nxt or c.start() < nxt.start()):
         text = text[: c.start()] + f"{done} из {total}" + text[c.end():]
+    from progress_page import stamp
+    nxt = re.compile(r"^#{1,6} ", re.M).search(text, after)
+    end = nxt.start() if nxt else len(text)
+    state = re.compile(r"^(?:\*\*)?(?:Состояние|Verdict):[^\n]*обновлено [^\n]*", re.M).search(text, after, end)
+    if state:
+        text = text[:state.start()] + stamp(state[0]) + text[state.end():]
     md.write_text(text, encoding="utf-8")
     try:
         import progress_page

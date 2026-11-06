@@ -404,7 +404,7 @@ def question_points(root: Path, version: str | None, opens: list[str]) -> list[s
             if stage == 11 and (folder / 'plan.md').is_file() and (folder / 'plan-review.md').is_file() and not plan_state(folder)[1]:
                 continue
             if stage == 12 and any(row[1] == 'work' and not row[5] for row in progress(folder)) and re.search(
-                    r'^Финальное ревью:.*\bPASS\b', read(folder / 'progress.md'), re.M):
+                    r'^(?:Финальное ревью:|Состояние:.*финальное ревью).*\bPASS\b', read(folder / 'progress.md'), re.M):
                 continue
             late = {15: 'deploy', 16: 'ops'}.get(stage)
             if late and re.search(rf'^Stage-Closed: {late} {re.escape(version)}\s*$', git(root, 'log', '--format=%B'), re.M):

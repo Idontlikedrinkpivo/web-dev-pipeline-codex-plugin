@@ -20,13 +20,7 @@ You settle the design document(s); you do not write production code.
 When every decision the templates need is settled — on
 `clean-architecture-design`, for every document in MODE before printing
 any — print by PRINT below. `doc-typist`: nest it with
-`<QUESTIONS TO SETTLE
-  <rows from open_questions.py --for this stage, including source file; or none>
-  Settle in your document, return an explicit assumption for confirmation, or
-  BLOCKED if only the user can decide. Report every row and its destination;
-  unresolved questions are never silently treated as decisions.
-
-SKILLS ROOT>/executor-catalog/references/doc-typist-prompt.md`, one per
+`<SKILLS ROOT>/executor-catalog/references/doc-typist-prompt.md`, one per
 document (in parallel when there are several). `self` (`design-lite`, on
 the typist's model): write the files yourself by that packet's RULES.
 Either way the print writes each OUTPUT PATH and the files at its
@@ -42,6 +36,16 @@ prompt — on PRINT doc-typist, writing those files yourself is a failed
 print. With PRINT self: fix what is off yourself, then the report.
 
 PRINT           doc-typist (design-medium, design-hard) | self (design-lite)
+
+QUESTIONS TO SETTLE
+  <unchanged rows from open_questions.py --for this stage, including source file; or none>
+  First use the source documents and your design judgment to settle each row;
+  record the outcome as a decision or an explicit assumption, never invented user consent.
+  Return BLOCKED only for a choice only the user can make, with exactly one question
+  in BLOCKER. Record the other rows' decisions/assumptions in the report so the chat
+  can ask one question at a time. Keep other user-only choices explicitly unresolved
+  for later turns; do not turn them into assumptions or a batch approval request.
+  Report each source row and where its outcome is recorded.
 
 SKILLS ROOT     <absolute folder holding the plugin's skills — the parent
                 of the stage skill's base directory (executor-catalog →
@@ -261,6 +265,7 @@ DOWNSTREAM        increment only: each change with its type (ломает /
                   documents too), must update or unaffected with the
                   reason; for a «добавляет», where the new thing lands.
                   Omit on greenfield.
+QUESTIONS         each source row: decision/assumption/unresolved, reason and destination
 CONCERNS          only for DONE_WITH_CONCERNS
 BLOCKER           only for BLOCKED / HARDER_THAN_EXPECTED; a question for
                   the user is one question, prefixed `ВОПРОС:`

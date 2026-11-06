@@ -52,3 +52,51 @@ one sanctioned exception, a list the user answers once.
 The chain runs through a parent session that opens each stage in a nested session —
 `references/parent-session.md`. Without the user, a nested session's question goes to the parent as «ВОПРОС · …»:
 the standing answers settle it, or that branch waits and the rest goes on.
+
+## Keeping the run moving
+
+Every long run reads this section, including runs with a user present.
+
+A long stage runs while the user is away — asleep, in a meeting — so a turn
+that ends with nothing running stops it for hours: nothing wakes the
+session until the user writes again.
+
+- **A turn ends only while the next step runs — or on a question that
+  blocks it.** Until the last item is done, every turn ends with the next
+  step already started — an executor, a reviewer, a check, dispatched in
+  the background, whose completion wakes the session again. The one other
+  way to end a turn is a question the run cannot go past without the
+  user's answer — one of the stage's own stop cases (a missing decision, a
+  review's `STOP`, rounds that stopped making progress): then nothing is
+  started, the question is the end of the turn, and the row says
+  `⛔ остановлено`. Never end a turn on prose alone, and never on
+  «продолжаю…» without the call.
+- **Call first, then write.** Start the next step, then write the chat
+  line (After each item). Text written before the call can be cut off —
+  a dropped connection, a stream that ends mid-sentence — and the call
+  after it is lost with it; text after the call costs nothing if it is
+  cut. A blocking question has no call after it, so it is simply the last
+  thing in the turn.
+- **A message that is not a decision does not stop the run.** A stray
+  keystroke, «ну?», «ты тут?», a question about progress: answer in one
+  line with the count and the link, and go on. Only a stop («стоп»,
+  «подожди», «остановись») or a changed decision changes the run — the
+  latter through `pipeline` → `references/decision-changes.md`.
+- **Check, don't ask, when a run can find out.** Before a question to the
+  user inside a run (`work`, a UI test run, an audit), sort it: a fact the
+  session can observe by running something — which port the stand uses,
+  whether the API returns a field, whether a test passes without the fix,
+  whether a failure is the app's or the test's, whether a library supports
+  a call — is not the user's to answer: run the check and record it as
+  «решил по проверке: <что запустил> → <результат>». Only a decision —
+  product, scope, a rule the documents leave open, a finding against a
+  settled decision — goes to the user. The design stages ask their
+  questions on purpose and are not affected.
+- **Pause and pick up through the resume note.** A long run keeps
+  `resume.md` beside its progress file and reads it first when it resumes
+  (`references/pause-and-resume.md`).
+- **Never ask whether to continue.** The run was agreed when it started; it
+  asks only in its stage's stop cases. A turn that finds the run idle — the
+  last one was cut off, the session was compacted, the user wrote into a
+  silence — rebuilds the rows from disk and git and starts the next step
+  at once, saying in one line that it resumed.

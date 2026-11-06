@@ -179,12 +179,24 @@ does this, whatever the finding's severity:
 ## Вопросы, адресованные этапу
 
 At entry run `python3 <skills-root>/doc-versioning/scripts/open_questions.py <project> --for '<этап>'`
-with the exact recipient from doc-versioning → Открытые вопросы. Give every returned row, with its
-source path, to the writer in `QUESTIONS TO SETTLE`. The writer settles it in the document, returns an
-explicit assumption for confirmation, or returns BLOCKED when only the user may decide. Name every
-row and its outcome in the report. Never turn a proposed assumption into a settled answer.
-Development, release and operations without a delegated writer settle or ask these questions themselves.
-A `Блокирует старт` the stage cannot settle stops dependent work with a question to the user.
+with the exact recipient from doc-versioning → Открытые вопросы. Pass the returned rows unchanged,
+with their source paths, in the writer's `QUESTIONS TO SETTLE` packet — not to the user beforehand.
+The writer first settles what the source documents and its own design judgment allow, recording each
+outcome as a decision or an explicit assumption. An assumption is not a user-approved answer and
+must not override a settled requirement. Only a choice reserved to the user returns BLOCKED:
+one question in BLOCKER, with the other rows' decisions, assumptions or unresolved status preserved
+in the report. Never disguise another user-only choice as an assumption just to avoid BLOCKED.
+
+Ask a returned user-only question one per message, following [the question form](question-format.md):
+a concrete example, options and a recommendation. Wait for that answer before the next question.
+Never send the stage's questions as a numbered batch with «принимаю всё» or «только номера с поправками».
+A stage without a writer follows the same order: settle what it can first, then ask the rest one by one.
+A `Блокирует старт` that remains unresolved stops dependent work; it does not justify a batch interview.
+Name every source row and its outcome in the report; an unanswered assumption is not a resolved row.
+
+Reason: in a live architecture run, the stage asked all eight addressed questions before starting
+the writer and offered «принимаю всё» or corrections by number. That bypassed the writer's judgment
+and made individual answers ambiguous. Intake is a writer handoff, not a preliminary questionnaire.
 
 At close change the class of each settled row in its original file to `Решено: <документ и раздел или коммит>`.
 This is a changed decision without a version bump, included in the stage-close commit; keep the row for

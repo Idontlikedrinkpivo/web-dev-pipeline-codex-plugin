@@ -176,7 +176,11 @@ def acceptance(progress: list, rng: str, cwd: str) -> tuple[int, int, int, str]:
                 continue
             accepted += 1
             review = cells[-1]
-            if re.search(r"RETURN|FIX_THEN|→|×\s*[2-9]|возвращ|эскалац", review + " " + line, re.I):
+            # Words wrap the verdict code now: «исправлено после ревью (FIX_THEN_COMMIT: ...)».
+            # Keep legacy bare codes too; the goal's wording is not evidence of another review round.
+            codes = " ".join(re.findall(r"\([^)]*\)", review))
+            evidence = review + " " + codes + " " + cells[2]
+            if re.search(r"RETURN|FIX_THEN|→|×\s*(?:[2-9]|[1-9]\d)|возвращ|эскалац", evidence, re.I):
                 back += 1
             else:
                 first += 1

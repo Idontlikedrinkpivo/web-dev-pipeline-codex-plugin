@@ -9,7 +9,8 @@ description: >-
 
 # Database Schema Design
 
-At entry: run `open_questions.py <project> --for 'схема БД'`; pass rows as `QUESTIONS TO SETTLE`.
+At entry: run `open_questions.py <project> --for 'схема БД'`; pass rows unchanged in the writer's `QUESTIONS TO SETTLE`, not to the user beforehand.
+Ask only what the writer returns BLOCKED for the user, one question per message in the question form.
 At close: settle or readdress each original row and report every outcome.
 Both steps: [Вопросы, адресованные этапу](../pipeline/references/decision-changes.md#вопросы-адресованные-этапу).
 

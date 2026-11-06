@@ -9,7 +9,7 @@ test is one line: a mark (✓ / ok passed, ✘ / x failed, - skipped, ± flaky),
 loop or a watch — and once more with --done when it ends.
 
 It rewrites only the «## e2e» section of the file (created when missing, at the end), then rebuilds the page beside
-the file itself: this script is the one allowed writer of a progress file outside Edit/Write, because a run of
+the file itself: this script is one of four allowed writers of a progress file outside Edit/Write, because a run of
 hundreds of tests cannot be followed one Edit at a time (work → references/progress-file.md → The e2e section).
 Standard library only.
 """
@@ -61,7 +61,7 @@ def section(results: dict, total: int, stand: str, finished: bool) -> str:
     rows = []
     for file in sorted(files):
         c = files[file]
-        status = "⛔ есть падения" if c["fail"] else "✅ прошёл" if not c["skip"] else "✅ прошёл, есть пропуски"
+        status = "⛔ есть падения" if c["fail"] else "✅ прошёл" if not c["skip"] else "✅ прошёл: есть пропуски"
         rows.append(f"| `{file}` | {c['pass'] + c['flaky']} | {c['fail']} | {c['skip']} | {status} |")
     state = "закончен" if finished else "идёт"
     return "\n".join([
@@ -77,7 +77,7 @@ def section(results: dict, total: int, stand: str, finished: bool) -> str:
         "|---|---|---|---|---|",
         *rows,
         "",
-        f"Стенд: {stand or '—'} · прогон {state} · обновлено {now}",
+        f"Состояние: прогон {state} · стенд: {stand or '—'} · обновлено {now}",
         "",
     ])
 

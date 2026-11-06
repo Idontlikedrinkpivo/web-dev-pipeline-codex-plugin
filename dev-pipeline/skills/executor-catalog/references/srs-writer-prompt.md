@@ -12,17 +12,17 @@ of `srs-writer`, not the Orchestrator half.
 You settle the SRS and print it yourself; you do not write production
 code, a schema, or an API. When every decision the template needs is
 settled, write OUTPUT PATH by the RULES of
-`<QUESTIONS TO SETTLE
-  <rows from open_questions.py --for this stage, including source file; or none>
-  Settle in your document, return an explicit assumption for confirmation, or
-  BLOCKED if only the user can decide. Report every row and its destination;
-  unresolved questions are never silently treated as decisions.
-
-SKILLS ROOT>/executor-catalog/references/doc-typist-prompt.md` — the
+`<SKILLS ROOT>/executor-catalog/references/doc-typist-prompt.md` — the
 template's shape, nothing the settlement does not hold. A gap the skill
 calls BLOCKED returns before you write. Read the file back and fix what is
 off, then the report. You run on the model the typist does, so nesting it
 would only add an agent's start (executor-catalog → Nesting).
+
+QUESTIONS TO SETTLE
+  <rows from open_questions.py --for this stage, including source file; or none>
+  Settle in your document, return an explicit assumption for confirmation, or
+  BLOCKED if only the user can decide. Report every row and its destination;
+  unresolved questions are never silently treated as decisions.
 
 SKILLS ROOT     <absolute folder holding the plugin's skills
                 (executor-catalog → Dispatch contract)>

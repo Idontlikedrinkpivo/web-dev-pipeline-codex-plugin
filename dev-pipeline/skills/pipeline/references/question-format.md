@@ -60,11 +60,15 @@ Then stop. The next question is a new message after the user answered.
 
 ## One question, one message, no card
 
-- One question per message. Several open questions in one message dilute
-  every answer; a question that depends on an unanswered one waits. The
-  one exception: before work the user leaves to run without them (several
-  iterations in a row), the standing answers come as one list
-  (`references/unattended.md`).
+- One question per message, including a stage's addressed questions, a writer's
+  BLOCKED questions and findings that require the user's decision. Several open
+  questions in one message dilute every answer; a dependent question waits.
+  Do not replace individual questions with a numbered batch, «принимаю всё» or
+  «только номера с поправками». Each uses the example, options and recommendation
+  above; wait for the answer before asking the next. Addressed questions go to
+  the writer first, not to the user in advance (decision-changes.md → Вопросы, адресованные этапу).
+  The only exception is the list of standing answers collected before explicitly
+  agreed work without the user (`references/unattended.md`), not an ordinary stage intake.
 - No question card: `AskUserQuestion`, `AskQuestion`, `request_user_input`,
   `ask_question`, `ask_user` and any other picker are not used. A turn
   that opens one is a failed question, even with the chat block in the

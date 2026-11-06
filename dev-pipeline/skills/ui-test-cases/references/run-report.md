@@ -63,7 +63,7 @@ top, labelled by its section's heading: «Общий итог», then «Прог
    прогон` while the first run is on; `PASS | DEFECTS | BLOCKED` after its
    разбор; the moment anything runs again, `идёт перепрогон · прошлый:
    DEFECTS, коммит 6e96d58`, until that run's разбор gives the new one.
-   With the commit and the update time.
+   With the commit and «обновлено …»; the scripts stamp the time, never the agent.
 
 The bars follow `work` → `references/progress-file.md` → The progress bar
 (a hundred cells in a code block, filled cells = the percent shown after
@@ -75,7 +75,7 @@ other sections may repeat a case freely.
 ## Example
 
 ````markdown
-# Прогресс прогона по кейсам — итерация 2.4.0
+# Прогресс UI-тестирования — итерация 2.4.0
 
 ```text
 ███████████████████████████████████████████████████████████████████████████████████████░░░░░░░░░░░░░ 87%
@@ -151,7 +151,7 @@ other sections may repeat a case freely.
 | TC-31 | Закрытие окна по Esc | ✅ прошёл | ❌ не прошёл | admin.spec.ts · фокус не вернулся на «Действия с бронью» |
 | TC-40 | … | ❌ не прошёл | ⏳ ждёт | |
 
-Verdict: идёт перепрогон · прошлый: DEFECTS, коммит 6e96d58 · обновлено 2026-10-31 11:20
+Verdict: идёт перепрогон · прошлый: DEFECTS, коммит 6e96d58 · обновлено …
 ````
 
 The comment cell holds the spec file, and for a failure what was seen
@@ -195,8 +195,8 @@ that is running — then the bars it moves (its section's and «Общий ит�
 with `progress_set.py` (it redraws the page itself). Nothing else from the
 shell (`python`, `sed`, `cat >`): the plugin's hook rebuilds the report's
 `.html` page — the one the user watches — only after an Edit or Write call,
-so a shell write leaves that page stale, and the guard hook refuses it (`pipeline` → `references/progress-files.md` → Rules for every
-file, «The page» and «How»).
+so a shell write leaves that page stale, and the guard hook refuses it (`pipeline` → `references/progress-keeping.md` → How;
+page shape: `references/progress-files.md` → The page).
 
 ## Acceptance evidence
 

@@ -3,7 +3,7 @@
 Read this before creating the progress file (Step 1), when a unit lands
 (Step 5.5), and at the close (Step 7). The other stages' progress files
 share its shape; which stages keep one is in `pipeline` →
-`references/progress-files.md`.
+`references/progress-files.md`; how to keep it: `references/progress-keeping.md`.
 
 The user follows the run in `documentation/plans/<version>/progress.md`, next
 to the plan. It is a view of git, never a source of truth: the `Plan-Unit:`
@@ -24,17 +24,20 @@ no changelog, no `sources:`.
 
 | U | Цель | Исполнитель | Статус | Ревью |
 |---|---|---|---|---|
-| U1 | <goal from the plan> | impl-lite | ✅ готово | COMMIT |
+| U1 | <goal from the plan> | impl-lite | ✅ готово | принято с первого ревью (COMMIT) |
 | U2 | … | impl-medium | ⛔ остановлено: <one-line reason> | — |
 | U3 | … | impl-hard | ⏳ ждёт | — |
 
-Финальное ревью: <не запускалось | verdict of code-review-full> · BASE `<sha>` · обновлено <YYYY-MM-DD HH:MM>
+Состояние: U4 у impl-hard, U5 на ревью · финальное ревью не запускалось · BASE `<sha>` · обновлено …
 ````
 
 Statuses: `⏳ ждёт`, `🔄 в работе`, `🔍 ревью`, `✅ готово`,
 `⛔ остановлено: <причина>`, `⏭ пропущено: вне объёма прогона`. Escalations add `(эскалация → impl-critical)` to the
 executor cell. The Ревью cell shows the unit review's path
-(`FIX_THEN_COMMIT (<что>) → исправлено`, `review-hard ×2: COMMIT`).
+in words, with the code in parentheses:
+«принято с первого ревью (COMMIT)», «исправлено после ревью (FIX_THEN_COMMIT: <что>)»,
+«принято после двух кругов (review-hard ×2: COMMIT)»,
+«переделано (RETURN_TO_EXECUTOR ×2 → COMMIT)».
 
 When a decision changes during the run (`pipeline` →
 `references/decision-changes.md`), a section «Изменённые решения» appears
@@ -66,12 +69,14 @@ the file. Change it with **Edit** — one call per row or line that changes —
 and use **Write** only to create it or rebuild it on a resumed run. Never
 write it from the shell (`python`, `sed`, `cat >`, a heredoc, a script): the
 hook does not fire, so the file on disk changes but the page keeps showing
-the old version.
+the old version. The four exceptions are in `pipeline` →
+`references/progress-keeping.md` → How; they rebuild the page themselves.
 
 Change it the moment a status changes, not in a batch at the commit:
 `🔄 в работе` when the unit is dispatched (with its executor), `🔍 ревью`
 when `code-review-unit` starts, `✅ готово` right after the unit's commit
-lands — and the progress bar line and the `Обновлено` time with each change.
+lands. The scripts update the bar, count and «обновлено» time after each change;
+never type the time yourself (create it as «обновлено …»).
 The bar and the count line are set by
 `python3 "<folder of this SKILL.md>/../pipeline/scripts/progress_set.py" documentation/plans/<version>/progress.md <done> <total>`
 (the fixes section: add `--section "## Исправления по финальному ревью"`), never by
@@ -105,7 +110,7 @@ weighs the same, whatever its grade or size: percent = ⌊done × 100 /
 total⌋, rounded down so the bar never shows 100% before the last unit
 lands, and the filled cells equal the percent. Done means `✅ готово`
 (units out of the run's scope do not count). The bar and the count change
-in the same Edit as the row; the line under the table carries the run's
+after the row through `progress_set.py`; the line under the table carries the run's
 state and the update time. The fixes section has its own bar, in the same
 shape, over its blocking findings (`✅ готово` of the rows that block).
 
@@ -115,7 +120,7 @@ A browser suite in Step 7 (the критерии готовности) runs for a
 the user follows it in the same file. **Run it through `run_check.py`** (`run_check.py e2e -- npx playwright
 test …`): in a project with an open iteration it counts the suite (`--list`), adds the section with nothing
 checked yet, and keeps it current every minute from the streamed log through
-`pipeline/scripts/progress_e2e.py` — the one writer of a progress file allowed outside Edit/Write, since hundreds
+`pipeline/scripts/progress_e2e.py` — one of the four writers allowed outside Edit/Write, since hundreds
 of tests cannot be followed one Edit at a time — with a last pass at the end. Post the progress line when it
 starts. By hand, outside `run_check`, the same takes three commands:
 
@@ -140,7 +145,7 @@ python3 "<folder of this SKILL.md>/../pipeline/scripts/progress_e2e.py" <that lo
 | `e2e/booking.spec.ts` | 31 | 0 | 0 | ✅ прошёл |
 | `e2e/admin.spec.ts` | 12 | 2 | 1 | ⛔ есть падения |
 
-Стенд: e2e-стенд, вход по паролю, образы HEAD · прогон идёт · обновлено 2026-10-23 19:20
+Состояние: прогон идёт · стенд: e2e-стенд, вход по паролю, образы HEAD · обновлено …
 ````
 
 The bar is the share of the suite that passed; a retried test counts once, by
@@ -155,7 +160,7 @@ When `code-review-full` returns anything but `PASS`, the fixes are planned in
 the file **before the first fix is dispatched**, so the user can follow them
 the same way as the units, and the progress line goes to the chat again
 before the first fix (`work` → Step 7). Add this section under the units table, set the
-`Финальное ревью:` line to the verdict:
+«финальное ревью» part of the `Состояние:` line to the verdict:
 
 ````markdown
 ## Исправления по финальному ревью
@@ -172,7 +177,7 @@ before the first fix (`work` → Step 7). Add this section under the units table
 | F2 | старый валидатор вместимости остался в HTTP-адаптере | P1 | RF1 (U2, U5) | mechanical-worker | ⏳ ждёт | — |
 | F3 | имя `roomCap` против `capacity` | P2 | — | — | ⏭ пропущено: в отчёт, не блокирует | — |
 
-Вердикт: RETURN_TO_UNIT · замечаний 3 (P1 — 2, P2 — 1) · повторное ревью: ждёт · обновлено <YYYY-MM-DD HH:MM>
+Состояние: вердикт RETURN_TO_UNIT · замечаний 3 (P1 — 2, P2 — 1) · повторное ревью: ждёт · обновлено …
 ````
 
 - **One row per finding**, in the review's order, with its severity. A
@@ -194,8 +199,8 @@ before the first fix (`work` → Step 7). Add this section under the units table
   section's bar and count, the update time), like a unit.
 - **The re-reviews** (`code-review-full` over each round's fix commits, until
   `PASS`): each round's verdict goes to «повторное ревью:» on the line under
-  the fixes table («круг 2: закрыто 2, осталось 1»), and the `Финальное
-  ревью:` line shows the path (`RETURN_TO_UNIT → исправлено → RETURN_TO_UNIT
+  the fixes table («круг 2: закрыто 2, осталось 1»), and the «финальное ревью» part
+  of the main `Состояние:` line shows the path (`RETURN_TO_UNIT → исправлено → RETURN_TO_UNIT
   → исправлено → PASS`). New findings of a round are added under the same
   table as `F4`, `F5`… When progress stops (`pipeline` →
   `references/convergence.md`): «Повторное ревью: <verdict> → остановлено,

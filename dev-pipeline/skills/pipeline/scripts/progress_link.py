@@ -8,18 +8,14 @@ Prints exactly one line, e.g.
 
     План: 3 из 6 · [progress.html](http://127.0.0.1:8790/progress.html)
 
-The link is always the page beside the file (progress.md -> progress.html), never the Markdown. Its address:
-- with --desktop (the session has the built-in browser), the progress server's http://127.0.0.1:<port>/ address
-  (progress_server.py, started or reused): a page opened as a file is not reloaded there, a served one is;
-- without it, the same server's address when one already runs for this folder, else the page's path from the
-  repository root, which the user's own browser reloads by itself.
---desktop is remembered beside the file (.progress-desktop): a later call without it — after a context compaction
-dropped the flag — still starts or reuses the server, so the link never falls back to a file path.
-The Codex build always uses HTTP: its local HTML file preview can be blocked.
+The link is always the page beside the file (progress.md -> progress.html), never the Markdown.
+The Codex build always starts or reuses the progress server's http://127.0.0.1:<port>/ address:
+its local HTML file preview can be blocked. --desktop is accepted and remembered for compatibility.
 When HTTP was requested but cannot start, report the failure instead of a broken file link.
 
-A bar that disagrees with the count line (a file edited from the shell, so the page and the bar were not redrawn)
-is named on stderr; the line on stdout stays as it is.
+Before printing, stamp the state and rebuild the page (pipeline → references/progress-keeping.md → How).
+Unknown table statuses, missing counts and a bar that disagrees with its count are named on stderr;
+stdout stays one chat line. Derived files do not need a stored count below the bar.
 
 The count is the file's count line (the line under its bar, «Сделано: 3 из 6»), without its label; the label is
 the stage's name. Paste the line as printed — never write the link by hand. Standard library only.
@@ -37,7 +33,7 @@ sys.path.insert(0, str(HERE))
 # the chat label per progress file (pipeline → references/progress-files.md → Which stages keep one)
 LABEL = {
     "progress.md": "План", "progress-design.md": "Макеты", "progress-screen-specs.md": "ТЗ на экраны",
-    "progress-test-cases.md": "Тест-кейсы", "test-run.md": "Проверка через интерфейс",
+    "progress-test-cases.md": "Тест-кейсы", "test-run.md": "UI-тестирование",
     "security-audit.md": "Аудит безопасности",
     "progress-scaffold.md": "Каркас", "progress-deploy.md": "Релиз", "progress-mutation.md": "Мутации",
 }
@@ -77,6 +73,42 @@ def count_of(md: Path) -> str:
 
 DERIVED_NAMES = {"progress-design.md", "progress-screen-specs.md", "progress-test-cases.md", "security-audit.md",
                  "progress-scaffold.md", "progress-deploy.md"}
+
+
+def warnings(md: Path) -> list[str]:
+    """Validate every status column and every bar's count, without changing rows."""
+    from progress_page import bars, status_word
+    allowed = {"⏳ ждёт", "🔄 в работе", "🔍 проверка", "🔍 ревью", "🔍 аудит", "🔍 разбор",
+               "✅ готово", "🔁 возвращено", "⛔ остановлено", "⏭ пропущено"}
+    if md.name == "progress.md":
+        allowed |= {"✅ прошёл", "⛔ есть падения"}
+    if md.name == "test-run.md":
+        allowed |= {"✅ прошёл", "❌ не прошёл", "⛔ заблокирован", "⏭ не автоматизирован",
+                    "✅ тест исправлен, прошёл", "⛔ тест не удалось исправить", "❌ дефект приложения",
+                    "🖼 расхождение с макетом", "❓ пробел в ТЗ"}
+    text = md.read_text(encoding="utf-8", errors="replace")
+    lines = text.splitlines()
+    result = []
+    cols = []
+    for i, line in enumerate(lines):
+        if not line.lstrip().startswith("|"):
+            cols = []
+            continue
+        cells = [re.sub(r"[*`]", "", c).strip() for c in line.strip().strip("|").split("|")]
+        if i + 1 < len(lines) and re.match(r"^\s*\|[\s:|-]+\|\s*$", lines[i + 1]):
+            cols = [k for k, c in enumerate(cells) if c.startswith("Статус")]
+            continue
+        if re.match(r"^\s*\|[\s:|-]+\|\s*$", line):
+            continue
+        for col in cols:
+            cell = cells[col] if col < len(cells) else ""
+            if status_word(cell) not in allowed:
+                result.append(f"progress_link: {md.name}:{i + 1}: неизвестный статус {cell!r}; строка: {line.strip()}")
+    if md.name not in DERIVED_NAMES:
+        for bar in bars(text):
+            if not re.search(r"\d+\s*из\s*\d+", bar["count"]):
+                result.append(f"progress_link: {md.name}: под полосой {bar['label'] or 'в начале файла'} нет счёта N из M")
+    return result
 
 
 def bar_mismatch(md: Path, count: str) -> str:
@@ -137,8 +169,16 @@ def main() -> None:
     if md.suffix != ".md" or not md.is_file():
         sys.exit(f"progress_link: no progress file {md}")
     md = md.resolve()
+    from progress_page import stamp
+    text = md.read_text(encoding="utf-8")
+    state = re.search(r"^(?:\*\*)?(?:Состояние|Verdict):[^\n]*обновлено [^\n]*", text, re.M)
+    if state:
+        text = text[:state.start()] + stamp(state[0]) + text[state.end():]
+        md.write_text(text, encoding="utf-8")
     count = args[args.index("--count") + 1] if "--count" in args else count_of(md)
     rebuild(md)
+    for warning in warnings(md):
+        print(warning, file=sys.stderr)
     page = md.with_suffix(".html")
     marker = md.parent / ".progress-desktop"
     # Codex-only: native file previews can block HTML. This build must use HTTP

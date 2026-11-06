@@ -25,11 +25,40 @@ import mdhtml  # noqa: E402
 # the files the stages keep (pipeline → references/progress-files.md), with the stage's name
 FILES = {
     "progress-design.md": "Макеты", "progress-screen-specs.md": "ТЗ на экраны",
-    "progress-test-cases.md": "Тест-кейсы", "progress-scaffold.md": "Каркас", "progress.md": "Код",
-    "test-run.md": "Проверка через интерфейс", "security-audit.md": "Аудит безопасности",
+    "progress-test-cases.md": "Тест-кейсы", "progress-scaffold.md": "Каркас", "progress.md": "План",
+    "test-run.md": "UI-тестирование", "security-audit.md": "Аудит безопасности",
     "progress-deploy.md": "Релиз", "progress-mutation.md": "Мутации",
 }
 STATUS = ["✅", "❌", "🔄", "🔍", "⏳", "🔁", "⛔", "⏭", "🖼", "❓"]
+
+
+def status_word(cell: str) -> str:
+    """A status without its optional detail (colon or spaced middle dot)."""
+    return re.split(r":| · ", re.sub(r"[*`]", "", cell), maxsplit=1)[0].strip()
+
+
+def stamp(text: str, start: int = 0) -> str:
+    """Refresh the first update time after start; templates may use an ellipsis."""
+    now = dt.datetime.now().strftime("%Y-%m-%d %H:%M")
+    return text[:start] + re.sub(
+        r"обновлено (?:\d{4}-\d{2}-\d{2} \d{2}:\d{2}|<YYYY-MM-DD HH:MM>|…)",
+        f"обновлено {now}", text[start:], count=1)
+
+
+def bar_hint(name: str, heading: str = "") -> str:
+    heading = heading.lower()
+    for word, hint in (("e2e", "доля успешных тестов"),
+                       ("исправлен", "доля исправленных замечаний"),
+                       ("разбор", "доля разобранных кейсов"),
+                       ("прогон", "доля кейсов, которые проходят"),
+                       ("повтор", "доля кейсов, которые проходят"),
+                       ("общий итог", "доля кейсов, которые проходят")):
+        if word in heading:
+            return hint
+    if name in DERIVED:
+        return "по строкам: готово и пропущено — целиком, на проверке — две трети, в работе — треть"
+    return {"progress.md": "доля готовых задач", "test-run.md": "доля кейсов, которые проходят",
+            "progress-mutation.md": "доля проверенных мутантов"}.get(name, "")
 
 
 def status_counts(lines: list[str], lo: int = 0, hi: int | None = None) -> list[tuple[str, int]]:
@@ -52,7 +81,7 @@ def status_counts(lines: list[str], lo: int = 0, hi: int | None = None) -> list[
                 for r in rows:
                     cell = r[col] if col < len(r) else ""
                     if cell[:1] and not cell[:1].isalnum():
-                        label = cell.split(":")[0].strip()
+                        label = status_word(cell)
                         counts[label] = counts.get(label, 0) + 1
                 order = {e: n for n, e in enumerate(STATUS)}
                 return sorted(counts.items(), key=lambda kv: (order.get(kv[0][:1], len(STATUS)), -kv[1]))
@@ -97,8 +126,9 @@ def derived(text: str) -> tuple[int, str] | None:
             if not marks:
                 return None
             pct = int(sum(WEIGHT[m] for m in marks) * 100 // len(marks))
-            done = sum(1 for m in marks if m in "✅⏭")
-            extra = [f"{w} {n}" for w, n in (("в работе", sum(1 for m in marks if m in "🔄🔁")),
+            done = marks.count("✅")
+            extra = [f"{w} {n}" for w, n in (("пропущено", marks.count("⏭")),
+                                              ("в работе", sum(1 for m in marks if m in "🔄🔁")),
                                               ("на проверке", marks.count("🔍")), ("остановлено", marks.count("⛔")))
                      if n]
             return pct, f"Готово: {done} из {len(marks)}" + (" · " + " · ".join(extra) if extra else "")
@@ -139,7 +169,7 @@ h1{font-size:24px;line-height:1.25;margin:4px 0 16px}.head{background:var(--card
 .head>.lbl{font-size:13px;font-weight:600;color:var(--muted);margin-bottom:2px}.row{display:flex;align-items:baseline;justify-content:space-between;gap:12px}.count{font-weight:600}.pct{font-size:28px;font-weight:700;font-variant-numeric:tabular-nums}
 .track{height:12px;background:var(--bar);border-radius:7px;overflow:hidden;margin:10px 0}.fill{height:100%;background:var(--done);border-radius:7px}
 .chips{display:flex;flex-wrap:wrap;gap:6px;font-size:13px;color:var(--muted)}.chips span{background:var(--bar);border-radius:999px;padding:2px 10px}
-.sub{color:var(--muted);font-size:12.5px;margin-top:10px}.runs{margin-top:14px;border-top:1px solid var(--line);padding-top:10px;display:grid;gap:10px}
+.hint{color:var(--muted);font-size:12.5px;margin:4px 0 10px}.state{margin-top:14px}.sub{color:var(--muted);font-size:12.5px;margin-top:10px}.runs{margin-top:14px;border-top:1px solid var(--line);padding-top:10px;display:grid;gap:10px}
 .run .lbl{font-size:13px;font-weight:600}.run .cnt{font-size:13px;color:var(--muted)}.run .track{height:8px;margin:5px 0}.run .chips{font-size:12px}.body{overflow-x:auto}.body h1{display:none}.body h2{font-size:18px;margin:28px 0 10px}.body h3{font-size:16px}
 table{border-collapse:collapse;width:100%;font-size:14px;background:var(--card)}th,td{border-bottom:1px solid var(--line);padding:7px 9px;text-align:left;vertical-align:top}
 th{color:var(--muted);font-weight:600;white-space:nowrap}pre{background:var(--bar);padding:8px 10px;border-radius:6px;overflow-x:auto;font-size:12px}code{font-size:.92em}
@@ -168,7 +198,11 @@ def lines_of(text: str) -> tuple[str, str]:
             break
     if not count:
         count = next((l for l in lines if re.search(r"\d+\s*из\s*\d+", l) and not l.startswith("|") and len(l) < 160), "")
-    state = next((l for l in reversed(lines) if "обновлено" in l.lower() and not l.startswith("|")), "")
+    state = next((l for l in lines if re.match(r"Состояние:", re.sub(r"[*`]", "", l))), "")
+    if not state:
+        state = next((l for l in lines if re.match(r"Verdict:", re.sub(r"[*`]", "", l))), "")
+    if not state:  # old progress files still have a readable header
+        state = next((l for l in lines if "обновлено" in l.lower() and not l.startswith("|")), "")
 
     def clean(s: str) -> str:
         return re.sub(r"[*`]", "", s)
@@ -191,6 +225,7 @@ def page(md: Path) -> None:
         f'<div class="run"><div class="row"><div class="lbl">{html.escape(b["label"] or "—")}</div>'
         f'<div class="lbl">{b["pct"]}%</div></div><div class="cnt">{html.escape(b["count"])}</div>'
         f'<div class="track"><div class="fill" style="width:{b["pct"]}%"></div></div>'
+        f'<div class="hint">{html.escape(bar_hint(md.name, b["label"]))}</div>'
         f'<div class="chips">{chip(b["chips"])}</div></div>' for b in found[1:])
     lead = (found[0]["label"] or "Общий итог") if len(found) > 1 else ""
     # the bar and the count line are drawn in the header, not repeated in the body
@@ -201,11 +236,19 @@ def page(md: Path) -> None:
     body_md = "\n".join(l for l in body_md.split("\n") if re.sub(r"[*`]", "", l).strip() not in drop)
     body = mdhtml.convert(body_md).html
     # a section's own bar (a re-run, pass 2, the fixes after the final review) is drawn as a bar too
+    section_bars = iter(found[1:])
+
+    def section_bar(match: re.Match) -> str:
+        current = next(section_bars, {"label": ""})
+        hint = html.escape(bar_hint(md.name, current["label"]))
+        return (f'<div class="bar2"><div class="track"><div class="fill" style="width:{match[1]}%">'
+                f'</div></div><span>{match[1]}%</span></div><div class="hint">{hint}</div>')
+
     body = re.sub(r'<pre><code class="language-text">[█░\s]+?(\d{1,3})\s*%\s*</code></pre>',
-                  lambda m: f'<div class="bar2"><div class="track"><div class="fill" style="width:{m.group(1)}%">'
-                            f'</div></div><span>{m.group(1)}%</span></div>', body)
+                  section_bar, body)
     now = dt.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     width = pct if pct is not None else 0
+    state_html = re.sub(r"^(Состояние:|Verdict:)", r"<strong>\1</strong>", html.escape(state))
     doc = (f'<!doctype html><html lang="ru"><head><meta charset="utf-8">'
            f'<meta name="viewport" content="width=device-width,initial-scale=1">'
            f'<meta http-equiv="refresh" content="5"><title>{html.escape(title)}</title><style>{CSS}</style></head>'
@@ -215,9 +258,11 @@ def page(md: Path) -> None:
            f'<div class="row"><div class="count">{html.escape(count)}</div>'
            f'<div class="pct">{"—" if pct is None else f"{pct}%"}</div></div>'
            f'<div class="track"><div class="fill" style="width:{width}%"></div></div>'
+           f'<div class="hint">{html.escape(bar_hint(md.name, found[0]["label"] if found else ""))}</div>'
            f'<div class="chips">{chips}</div>'
+           f'<div class="state">{state_html}</div>'
            f'{f"<div class=runs>{runs}</div>" if runs else ""}'
-           f'<div class="sub">{html.escape(state)}{" · " if state else ""}страница обновляется сама каждые 5 секунд · '
+           f'<div class="sub">страница обновляется сама каждые 5 секунд · '
            f'собрана {now} из <a href="{html.escape(md.name)}">{html.escape(md.name)}</a></div></div>'
            f'<div class="body">{body}</div></main></body></html>')
     out = md.with_suffix(".html")

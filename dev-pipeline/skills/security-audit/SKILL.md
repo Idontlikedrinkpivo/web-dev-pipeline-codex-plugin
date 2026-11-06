@@ -62,7 +62,7 @@ with the iteration's other files (`pipeline` → `references/service-version.md`
 close's push, when the repository is public (`gh repo view --json visibility`, or the user says so), ask once
 whether to keep the report out of git — it names live weaknesses — and on yes add its `.gitignore` line. It is
 the progress file too (`pipeline` →
-`references/progress-files.md`): create it before the first scanner with
+`references/progress-files.md`, `references/progress-keeping.md`): create it before the first scanner with
 every row `⏳ ждёт` — one per scanner, one per area, the verification pass —
 then post its progress line, and again after each row: run
 `python3 "<folder of this SKILL.md>/../pipeline/scripts/progress_link.py" documentation/plans/<version>/security-audit.md`
@@ -70,7 +70,7 @@ then post its progress line, and again after each row: run
 prints, never a link written by hand; after each area returns, check the context (`pipeline` →
 `references/context.md` → When to hand over). Change the file with Edit only — never
 from the shell, also after a compaction: the page redraws on Edit and Write
-alone. Keeping the run moving applies: every
+or the four progress scripts. `pipeline` → `references/unattended.md` → Keeping the run moving applies: every
 turn ends with the next scanner or auditor running. Its shape:
 `references/report.md`.
 

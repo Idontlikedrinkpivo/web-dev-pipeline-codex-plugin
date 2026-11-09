@@ -6,13 +6,14 @@ usage:
              [--progress <plans/<version>/progress.md> ...] [--units <git range>] [--json <out.json>]
 
 --json also writes the run's figures (total, by group, the session's spend and peak, executors over 250k, unit
-acceptance) for compare.py, which compares several runs of two variants (reflect/references/comparing.md).
+acceptance, including by_grade) for compare.py, which compares several runs of two variants (reflect/references/comparing.md).
 
 --progress (one per iteration whose progress file is still there) and --units (the iterations' git range, e.g.
 v2.1.2..HEAD) add «Принятие задач»: how many plan units passed their review the first time, how many went back,
 and what one accepted unit cost — executors and code review together, divided by the units accepted. From the
 progress file's Ревью column (`COMMIT` alone is the first time; `RETURN_…`, `FIX_THEN_COMMIT`, `×2`, `→` mean
-rounds). Each progress file read is also saved outside the project — ~/.claude/dev-pipeline-feedback/.acceptance/
+rounds). Difficulty comes from Исполнитель, with first/fixed/redone counts per grade.
+Each progress file read is also saved outside the project — ${CODEX_HOME:-~/.codex}/dev-pipeline-feedback/.acceptance/
 <project>/<version>.txt — because reflect runs at the iteration's close before the cleanup removes the file; a
 later run reads the saved numbers for a version whose file is gone. Without either, from git — a unit with more
 than one commit carrying its Plan-Unit line was fixed after its commit.
@@ -153,8 +154,26 @@ STORE = ((Path(os.environ.get("CODEX_HOME", Path.home() / ".codex"))
          / "dev-pipeline-feedback" / ".acceptance")  # outside every project; the Codex build keeps its own
 
 
-def acceptance(progress: list, rng: str, cwd: str) -> tuple[int, int, int, str]:
-    """(accepted, first time, sent back, source) over the plan units of the progress files, else of git."""
+GRADES = {
+    "mechanical-worker": "0 — механическая", "impl-lite": "Low — простая",
+    "impl-medium": "Mid — средняя", "impl-hard": "High — сложная", "impl-ui": "UI — экран",
+}
+GRADE_ORDER = (*GRADES.values(), "не указана")
+
+
+def merge_grades(target: dict, source: dict) -> None:
+    for grade, counts in source.items():
+        row = target.setdefault(grade, dict.fromkeys(("accepted", "first", "fixed", "redone"), 0))
+        for key in row:
+            row[key] += counts[key]
+
+
+def acceptance(progress: list, rng: str, cwd: str, *, by_grade: dict | None = None) -> tuple[int, int, int, str]:
+    """Return the existing totals/source tuple; optionally collect first/fixed/redone by executor grade.
+
+    Cache line 1 stays 'accepted first back'; later lines are 'grade accepted first fixed redone'.
+    Legacy one-line caches and Git totals have no observable grade breakdown.
+    """
     import re
     import subprocess
     accepted = first = back = 0
@@ -164,29 +183,52 @@ def acceptance(progress: list, rng: str, cwd: str) -> tuple[int, int, int, str]:
             text = Path(path).read_text(encoding="utf-8")
         except OSError:
             try:  # removed by the close's cleanup: the numbers this script saved while the file was there
-                a, f, b = (int(x) for x in saved.read_text().split()[:3])
-            except (OSError, ValueError):
+                saved_lines = saved.read_text().splitlines()
+                a, f, b = (int(x) for x in saved_lines[0].split())
+            except (OSError, ValueError, IndexError):
                 continue
             accepted, first, back = accepted + a, first + f, back + b
+            if by_grade is not None:
+                for line in saved_lines[1:]:
+                    try:
+                        grade, a, f, fixed, redone = line.rsplit(maxsplit=4)
+                        values = [int(n) for n in (a, f, fixed, redone)]
+                        if grade not in GRADE_ORDER or values[0] <= 0 or min(values) < 0 or values[0] != sum(values[1:]):
+                            continue
+                    except ValueError:
+                        continue
+                    merge_grades(by_grade, {grade: dict(zip(("accepted", "first", "fixed", "redone"), values))})
             continue
         a0, f0, b0 = accepted, first, back
+        grades: dict = {}
         for line in text.splitlines():
             cells = [c.strip() for c in line.strip().strip("|").split("|")]
-            if len(cells) < 5 or not re.fullmatch(r"U\d+", cells[0]) or "✅" not in line:
+            if len(cells) < 5 or not re.fullmatch(r"U\d+", cells[0]) or "✅" not in cells[3]:
                 continue
             accepted += 1
             review = cells[-1]
-            # Words wrap the verdict code now: «исправлено после ревью (FIX_THEN_COMMIT: ...)».
-            # Keep legacy bare codes too; the goal's wording is not evidence of another review round.
-            codes = " ".join(re.findall(r"\([^)]*\)", review))
-            evidence = review + " " + codes + " " + cells[2]
-            if re.search(r"RETURN|FIX_THEN|→|×\s*(?:[2-9]|[1-9]\d)|возвращ|эскалац", evidence, re.I):
+            # Review evidence belongs to its column, not the goal or executor's escalation annotation.
+            role = re.search(r"(?<![\w-])(?:mechanical-worker|impl-lite|impl-medium|impl-hard|impl-ui)(?![\w-])", cells[2])
+            grade = GRADES.get(role.group() if role else "", "не указана")
+            if re.search(r"RETURN|→|×\s*(?:[2-9]\d*|1\d+)|возвращ|эскалац|переделан", review, re.I):
+                outcome = "redone"
+                back += 1
+            elif re.search(r"FIX_THEN_COMMIT|исправлено после", review, re.I):
+                outcome = "fixed"
                 back += 1
             else:
+                outcome = "first"
                 first += 1
+            counts = dict.fromkeys(("accepted", "first", "fixed", "redone"), 0)
+            counts["accepted"] = counts[outcome] = 1
+            merge_grades(grades, {grade: counts})
+        if by_grade is not None:
+            merge_grades(by_grade, grades)
         try:
             saved.parent.mkdir(parents=True, exist_ok=True)
-            saved.write_text(f"{accepted - a0} {first - f0} {back - b0}\n")
+            saved.write_text(f"{accepted - a0} {first - f0} {back - b0}\n" + "".join(
+                f"{grade} {row['accepted']} {row['first']} {row['fixed']} {row['redone']}\n"
+                for grade in GRADE_ORDER if (row := grades.get(grade))))
         except OSError:
             pass
     if accepted:
@@ -344,16 +386,33 @@ def report(args: list, cwd: str, since: str | None, session, agents: list, activ
         flags.append(f"сама сессия — {session.units / total:.0%} расхода: оркестратор держит большой контекст "
                      f"(пик {fmt(session.peak)})")
     accepted = first = back = 0
+    by_grade: dict = {}
     progress = [args[i + 1] for i, a in enumerate(args) if a == "--progress" and i + 1 < len(args)]
     rng = args[args.index("--units") + 1] if "--units" in args and args.index("--units") + 1 < len(args) else ""
     if progress or rng:
-        accepted, first, back, source = acceptance(progress, rng, cwd)
+        accepted, first, back, source = acceptance(progress, rng, cwd, by_grade=by_grade)
         print("\n#### Принятие задач\n")
         if accepted:
             cost = (by_group.get("Исполнители", [0.0])[0] + by_group.get("Ревью кода", [0.0])[0]) / accepted
             label = "с первого ревью" if source.startswith("файлы прогресса") else "без исправлений после коммита"
             print(f"Задач принято: {accepted} · {label}: {first} ({first / accepted:.0%}) · возвращались: "
                   f"{back} · одна принятая задача (исполнители и ревью кода): **{fmt(cost)}** единиц · источник: {source}")
+            if by_grade:
+                print("\n**По сложности задач** — сложность по исполнителю в файле прогресса:\n")
+                print("| Сложность | Задач | С первого ревью | Исправлено после ревью | Переделано | С первого раза |")
+                print("|---|---:|---:|---:|---:|---:|")
+                for grade in GRADE_ORDER:
+                    if grade not in by_grade:
+                        continue
+                    row = by_grade[grade]
+                    n, m = row['first'], row['accepted']
+                    print(f"| {grade} | {m} | {n} | {row['fixed']} | {row['redone']} | {n / m:.0%} |")
+                    if m >= 3 and n / m < .5:
+                        flags.append(f"задачи сложности {grade}: с первого ревью {n / m:.0%} ({n} из {m}) — "
+                                     "здесь и просаживаемся; смотреть их пакеты, грейд в плане и исполнителя")
+                print()
+                if sum(row['accepted'] for row in by_grade.values()) < accepted:
+                    print("Раскладка покрывает только задачи с сохранённой сложностью; старые однострочные копии её не содержат.")
             print("Стоимость одной задачи считается по всему окну: работа других итераций в том же окне её завышает.")
             if first / accepted < 0.5:
                 flags.append(f"с первого ревью прошло меньше половины задач ({first / accepted:.0%}) — переделки "
@@ -388,6 +447,7 @@ def report(args: list, cwd: str, since: str | None, session, agents: list, activ
             "first_review": first if accepted and progress else None, "sent_back": back if accepted and progress else None,
             "acceptance_provenance": "progress" if accepted and progress else "git-trailers (review acceptance unknown)" if rng else "structured reports" if observed_acceptance else "unknown",
             "first_review_share": first / accepted if accepted and progress else None,
+            "by_grade": by_grade,
             "per_accepted_unit": built / accepted if accepted and progress and complete else None,
         }, ensure_ascii=False, indent=1))
 

@@ -183,7 +183,8 @@ class ProgressViewTests(unittest.TestCase):
                        for i, r in enumerate(reviews, 1))
         md = self.md('progress.md', rows)
         with patch.object(measure, 'STORE', self.folder / 'store'):
-            self.assertEqual(measure.acceptance([md], '', str(self.folder))[:3], (6, 1, 5))
+            # Executor annotations determine grade, not the review outcome.
+            self.assertEqual(measure.acceptance([md], '', str(self.folder))[:3], (6, 2, 4))
 
 
 if __name__ == '__main__':

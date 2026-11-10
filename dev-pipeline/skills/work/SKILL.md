@@ -278,6 +278,12 @@ Per unit, in this order, and never skip to the next unit on a broken tree:
    the evidence rather than committing on the claim. `RED OBSERVED` cannot be
    reconstructed after the fact, which is exactly why an empty one is a return
    and not a note in the report.
+   For Low, Mid and High units, an empty `BREAK CHECK` also returns the unit to
+   its executor. For test-first/characterization-first in PHASE full or implementation,
+   verify rule → observed failing test in the report and details, including tests
+   added for surviving breaks, restoration and final green checks. A predicted
+   failure or unexplained n/a is not evidence. Grade 0, smoke and none owe
+   `n/a — <reason>`; tests-only may defer it until implementation, not skip it.
 4. **Review by grade** — first set the unit's row to `🔍 ревью` (the page shows the user where the run
    is); then `code-review-unit` does the review, and your part is its inputs and its verdict:
    1. Write the diff to a file under `$(git rev-parse --path-format=absolute --git-common-dir)/pipeline-work/`.

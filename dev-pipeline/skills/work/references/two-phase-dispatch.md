@@ -13,6 +13,9 @@ unit's own implementer twice:
 2. `PHASE implementation` — the same implementer makes them pass without
    editing their assertions. An assertion it believes is wrong comes back as
    `BLOCKED`, not as a quietly relaxed expectation.
+   After green, perform the worker packet's BREAK CHECK. Add missing tests for
+   surviving breaks without weakening the witnessed assertions; tests-only
+   deferred this check and does not discharge the implementation's obligation.
 
 Both phases go to the same named implementer: the one that wrote the tests is
 the one that has to satisfy them, and a cheaper agent picking up the second

@@ -90,6 +90,10 @@ TEST CHECK
     the test was written from the code, not from the design;
   - a claimed red observation for a test that is not in the diff, or one that
     could not have failed against the pre-change tree;
+  - for Low/Mid/High with test-first or characterization-first, a unit rule
+    (boundary, rounding, SRS number, branch or error mapping) missing from the
+    worker's BREAK CHECK, or paired with a test that would not fail if that
+    line were broken; check its evidence in the details, not just the claim;
   - an existing assertion relaxed or deleted without the report saying the
     design changed;
   - something in the worker's details file that needed the orchestrator's
@@ -99,8 +103,10 @@ TEST CHECK
     coverage threshold raised, a rule switched off, a file added to the
     legacy list, a suppression (`eslint-disable`, `# noqa`, `# type: ignore`,
     `@ts-expect-error`) with no reason on its line.
-  Do not demand a failing assertion when the strategy was characterization-first
-  (owes a captured baseline), smoke (owes a runtime check), or none.
+  For RED OBSERVED, do not demand a pre-implementation failing assertion when
+  the strategy was characterization-first (owes a captured baseline), smoke
+  (owes a runtime check), or none. This does not waive BREAK CHECK after green
+  implementation for characterization-first Low/Mid/High units.
   Test naming, structure, and fixture style are P2 at most.
 
 CROSS-UNIT SUSPICION  (optional, does not affect the verdict)

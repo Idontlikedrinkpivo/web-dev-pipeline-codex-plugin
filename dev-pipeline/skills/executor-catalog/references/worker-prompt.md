@@ -111,6 +111,24 @@ EVIDENCE STRATEGY   <test-first | characterization-first | smoke | none>
     or install check instead and report what it returned.
   none — no behavior at all; the report says why.
 
+BREAK CHECK
+  For Low, Mid and High units using test-first or characterization-first, after
+  implementation and green tests, deliberately break each rule once: a boundary,
+  rounding, SRS number, branch or error mapping. Flip its comparison, change its
+  number or remove its branch; run the unit's tests and observe which test fails,
+  then restore the line before the next break. A surviving break means that rule
+  is not pinned down: add a meaningful assertion and repeat until it is caught.
+  Change only your unit's allowed files; never reset/stash the shared tree or
+  overwrite another writer's edits. At the end, restore every deliberate break:
+  the tree must equal your intended final diff (plus the added tests), and the
+  complete required checks must be green again. Record each break and its actual
+  failure in DETAILS FILE. A red before implementation proves the test can fail;
+  this break proves it fails for the rule it should protect.
+  PHASE tests-only still touches no production code: record deferred — awaiting
+  implementation, not a completed break check. PHASE full/implementation owes
+  the check; smoke, none and grade 0 report n/a with the reason. Never claim a
+  predicted failure as observed. A check you could not run goes into CONCERNS.
+
 <when the unit's «Вложенный» is not —:>
 DELEGATION
   You may dispatch <nested name> for exactly this mechanical part:
@@ -206,8 +224,13 @@ TESTS             how many added / changed / reused, and the test files
 RED OBSERVED      one line: the failing test and the first line of the failure you
                   saw before the implementation, or the exception the strategy
                   allows (baseline captured / smoke check / none — reason)
+BREAK CHECK       one line per rule: <rule> → <test that actually failed>;
+                  include every initially surviving break and the assertion added
+                  to catch it; or n/a — <reason> for grade 0, smoke, none;
+                  tests-only: deferred — awaiting implementation
 VERIFICATION      one line per check: what ran → its summary line (run_check.py)
-SCREEN CHECK      UI units only: ok, or the items that are defects — one line each;
+SCREEN CHECK      UI units only: each checked size and actions performed there,
+                  then ok or defects, one line per size/action, with screenshot paths;
                   `n/a` otherwise
 DECISIONS         each local decision you made that the design did not fix
                   (public name, signature, error type, file placement), one per
@@ -221,11 +244,13 @@ BLOCKER           only for BLOCKED / HARDER_THAN_EXPECTED: what is missing or
 DETAILS           the path of the details file you wrote
 ```
 
-The details file: each test with the scenario it proves; the full red you observed; each check's command and
+The details file: each test with the scenario it proves; the full red you observed; each deliberate break,
+its changed rule/line, command, actual failing test/assertion, any surviving break and the added test,
+and confirmation of restoration and the final green checks; each check's command and
 the path of its log; the evidence strategy as you followed it; the screen check item by item and the Figma
 comparison (UI units). A part of a screen checks its own elements; the last part checks the whole screen.
 
-`RED OBSERVED` and `TESTS` cannot be reconstructed from the diff afterwards —
+`RED OBSERVED`, `BREAK CHECK` and `TESTS` cannot be reconstructed from the diff afterwards —
 a worker that omits them on a behavior-bearing unit gets the unit returned, not
 committed with a caveat. A green suite proves the tests pass now; only the red
 proves they can fail. Everything else the orchestrator re-checks against the real tree

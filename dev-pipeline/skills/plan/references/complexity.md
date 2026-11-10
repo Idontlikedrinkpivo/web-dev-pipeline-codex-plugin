@@ -5,7 +5,7 @@ from whoever writes it?** Not how long it takes, not how many lines it
 produces, not how important the feature is. A 400-line codemod is cheap
 judgment; a 12-line state transition may not be.
 
-Grade after the unit's fields are filled, from the fields.
+Grade after the unit's fields are filled, from the fields. Apply the anti-deflation gates before accepting the cascade's result.
 
 ## The six signals
 
@@ -86,6 +86,12 @@ latitude and a second review pass, and hides which units actually need care.
 
 ## Anti-deflation gates
 
+- **A rule with numbers is never Low:** a calculation, a rounding, a percentage,
+  a threshold, a date or period boundary, a format the SRS fixes. Precise docs
+  do not make it a transcription — the edge values are where it goes wrong,
+  and only a test at each edge proves them. Such a rule is at least Mid;
+  retain High when a higher gate applies. In Дашборд руководителя 1.2.0,
+  SRS rounding was implemented incorrectly in two Low units despite precise requirements.
 - **Small is not cheap** when the design left the shape open (rule 4).
 - **"Just wiring"** that decides transaction boundaries, error mapping, or
   ordering is Mid — wiring is where consequences get decided.
@@ -139,6 +145,7 @@ Schematic on purpose — match the shape, not the domain.
 | Rename a symbol across the repo; add a config key; regenerate a client from an unchanged spec | **0** | rule 3 — one repeatable shape, nothing open |
 | Value object whose one invariant is quoted in the design, with a sibling value object already in the repo to mirror | **Low** | rule 5 — determined, precedented, one ring |
 | A read model / query for an audience whose fields the design lists | **Low** | rule 5 — transcription |
+| A formatter or calculation the SRS gives with its numbers — rounding of a report cell, a percentage, a period boundary | **Mid** | anti-deflation — a rule with numbers is never Low |
 | Aggregate root owning three quoted invariants and a two-state transition | **Mid** | rule 6 — signal 6, and the transition is the first of its kind |
 | Use case whose steps are listed but whose error-to-status mapping the design leaves to the adapter | **Mid** | rule 4 — spec incomplete on the boundary |
 | Repository adapter with an explicit storage model and mapper in the design | **Low** | rule 5 — unless it introduces the unit-of-work shape, then Mid |

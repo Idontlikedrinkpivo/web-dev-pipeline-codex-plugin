@@ -157,6 +157,14 @@ Read the real commands from `package.json` (dev, build, lint, typecheck, test); 
    checked against the Responsive layout rules, not against a picture),
    `screenshot` the page and each state, get the frame with `get_screenshot`, and list the visible differences (layout,
    spacing, colour, missing element). If Figma or the running app is not reachable, say the comparison was not done.
+   At every registered size, use the screen: fill the longest values allowed by
+   the data contract and enough rows for vertical scrolling; scroll a wide table
+   sideways and down and verify fixed columns/header retain their background over
+   tall rows. Open menus and dialogs near the viewport edges. Take and inspect a
+   screenshot after each action; preserve its path with the size/action/result.
+   Apply these checks even at sizes with no separate frame; omit inapplicable
+   widgets explicitly. A static page hides scrolling defects: in Дашборд 1.2.0,
+   pinned cells at width 1366 lost their background when rows became taller.
    Never report "matches the mockup" without that comparison: a reviewer cannot tell an unchecked screen from a checked
    one.
 4. Before hand-off, go through `ux-patterns` → «Проверка экрана перед сдачей» and review the diff with
@@ -176,7 +184,7 @@ the file and check each point you rely on against the installed version (context
 
 Name: profile used (or "no profile"), files by `S-n`, each state and response outcome → where it is handled, commands
 run with results, the Figma comparison result or why it was skipped, the «Проверка экрана перед сдачей» items with their
-result (inside `work`, the report's SCREEN CHECK field), libraries added, and every gap sent back to `screen-spec` or
+result (inside `work`, SCREEN CHECK lists each size, actions, ok/defects and screenshot paths), libraries added, and every gap sent back to `screen-spec` or
 `ui-design`.
 
 ## Shared data boundaries

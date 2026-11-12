@@ -44,6 +44,9 @@ still needs the spec (`screen-spec`) or the frames (`ui-design`) first.
 
 ## Pick the stack profile
 
+Read `references/browser-support.md` for browser-facing implementation/review and follow the product's policy.
+For date/time fields or calendar logic also read `../srs-writer/references/date-time-contract.md`.
+
 Read §1 «Стек» and load only the matching file — the other profiles carry defaults that contradict it and only add
 noise:
 
@@ -64,6 +67,8 @@ A profile's library choices are marked «по умолчанию, можно п�
 **Selection criterion.** A profile default, or a library this skill adds, is widely used with full official docs for the
 current major, because the code is checked against current docs (Version-sensitive behaviour); prefer what the framework
 ships over a third-party package. A library already in the project is used as is.
+Before adding a dependency, check whether native HTML/CSS/browser APIs meet the spec and browser policy.
+Keep existing components and the chosen UI kit; record why a new dependency is needed.
 
 ## Per screen or component
 
@@ -142,6 +147,10 @@ are checked by hand, because axe's contrast rule reads text only. A colour pair 
 variant, never as a one-off class, and named in the report.
 
 ## Verification
+
+Apply the declared browser matrix and fallback checks from `references/browser-support.md`; one engine is
+not evidence for unrun targets. Include affected date/time, form-error, forced-colors and searchable-content
+checks below and in `web-design-guidelines`; name anything that could not be verified.
 
 Read the real commands from `package.json` (dev, build, lint, typecheck, test); a missing one is reported, not invented.
 

@@ -261,6 +261,7 @@ gives the API name.
   — not `varchar(n)` / `char(n)` by default.
 - Instants: `timestamptz`; `date` for a calendar day with no time — not
   `timestamp` without time zone.
+  Read `../srs-writer/references/date-time-contract.md` for local schedules/IANA zones; `timestamptz` alone does not retain a zone name.
 - Ids and counters that can grow: `bigint` (identity for keys) — not
   `int` / `serial` / `bigserial`.
 ### Relationships and ON DELETE

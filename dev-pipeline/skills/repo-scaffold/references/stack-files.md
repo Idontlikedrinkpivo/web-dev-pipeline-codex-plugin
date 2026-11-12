@@ -63,6 +63,9 @@ Do not put `@Injectable()` on anything in `domain/` or `application/`.
 
 ## Frontend (React + Vite / Next.js)
 
+Implement architecture's browser targets and test matrix using `../../frontend/references/browser-support.md`.
+Reuse `../../playwright-cli/references/test-config.md` for E2E configuration and stand isolation.
+
 Layout, default libraries, and command names: the profile in
 `frontend/references/react-vite.md` or `frontend/references/nextjs.md` —
 follow it, do not restate it here. Create:
@@ -76,8 +79,8 @@ follow it, do not restate it here. Create:
 - `tsconfig.json` with the compiler flags of `quality-gates.md` → By
   stack, the bundler / framework config, ESLint config (ESLint 10.7 or
   later), the Vitest config with `coverage.thresholds` (as for the
-  backend), `playwright.config.ts` with `baseURL` and `webServer` pointing
-  at the dev server
+  backend), `playwright.config.ts` with the declared browser projects and stand-provided `baseURL`
+  (no second `webServer`; follow the shared test-config reference)
 - the app shell from the profile (root layout or `main.tsx` + router) with
   one placeholder route; no screens, no API client yet — the first screen
   unit runs `api:gen` and builds the app-wide error handler (`frontend`)

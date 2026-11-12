@@ -74,6 +74,10 @@ figma: <fileKey> / <screen nodeId>
 
 ## Поля ввода
 
+<For date/time inputs and displayed/derived dates, read `../../srs-writer/references/date-time-contract.md`.
+In the owning row cite the API field and the input/display zone, or «calendar date — no zone»; reuse a shared
+policy by reference. Do not infer the user's zone or invent DST behaviour. Omit this instruction from output.>
+
 | Поле | Обязательное | Правило | Когда проверяется | Текст ошибки |
 |---|---|---|---|---|
 | <эл. №> <поле> | да / нет | `<operationId>` → `<property>` (<ограничение>) или <SRS id> | при уходе с поля / при отправке / ответ <код> | «<из «Тексты»>» |

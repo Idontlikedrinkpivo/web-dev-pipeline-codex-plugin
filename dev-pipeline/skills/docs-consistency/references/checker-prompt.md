@@ -26,7 +26,8 @@ AXES (run each one whose documents both exist; a skipped one gets one line)
                          human does it, a screen element; every stored entity
                          has a table; every BR has an invariant row or a
                          constraint; every NFR with a number or a security rule
-                         has a home
+                         has a home; browser support also maps to architecture
+                         targets/fallbacks/test matrix (frontend/references/browser-support.md)
   2 Downstream → SRS     every table, operation, scenario, screen traces to an
                          SRS id; an orphan says whether it looks like scope creep
                          or a requirement the SRS is missing
@@ -55,7 +56,10 @@ AXES (run each one whose documents both exist; a skipped one gets one line)
                          same in every scenarios document and matches the
                          foundation's «Откат и уборка»
   7 One meaning per word one name per concept, one value per number (limits,
-                         timeouts, page sizes, retention) across the set
+                         timeouts, page sizes, retention) across the set;
+                         scoped date/time fields agree on kind, zone source,
+                         boundaries and ambiguity handling across SRS/DB/API/domain/screens
+                         (srs-writer/references/date-time-contract.md — read when applicable)
   8 No visual binding    no SRS, schema, API or architecture document names a
                          widget, a presentation, layout, colour, icon or a
                          narrow-width layout change; each one is P1, owned by

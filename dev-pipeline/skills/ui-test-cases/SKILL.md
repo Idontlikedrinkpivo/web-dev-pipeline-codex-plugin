@@ -300,7 +300,8 @@ backend.
 sees how far the full picture is:
 
 1. **Pass 1 — the declared scope, once.** Every selected case (the whole set for
-   a full run) is written and run once and
+   a full run) is written once and run in its required browser projects; the row aggregates all targets
+   as `references/run-report.md` specifies. Read `../frontend/references/browser-support.md`. It
    gets a pass-1 result: `✅ прошёл`, `❌ не прошёл` (with what was seen
    against what was expected), `⛔ заблокирован: <причина>` (a missing
    piece that can be added — a test stub for sign-in or SMS), or

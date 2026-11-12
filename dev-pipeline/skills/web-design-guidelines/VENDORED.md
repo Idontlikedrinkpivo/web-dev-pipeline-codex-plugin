@@ -50,6 +50,12 @@
 
 ## Updating from the original
 
+Codex additions reviewed 2026-11-12: explicit authentication autocomplete and aria-invalid timing,
+forced-colors checks, conditional search through collapsed reading content, and date/time contract routing.
+Sources and adaptation boundaries: `references/modern-web-sources.md`. These are not changes to the Vercel
+snapshot or a synchronization with another plugin version. The outline scan now leaves removed outlines
+as review candidates even beside a shadow or focus-visible selector; cross-file fallbacks require inspection.
+
 Diff the new `command.md` against commit `434b7f9`, give each new rule its
 `UX-n` (a rule with no home goes into `ux-patterns` first), rewrite one that
 disagrees, then update the commit at the top of this file.

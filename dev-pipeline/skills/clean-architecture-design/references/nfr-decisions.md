@@ -67,6 +67,9 @@ bump the SRS.
 
 ## Other NFRs
 
+For a browser UI, read `../../frontend/references/browser-support.md`: turn the browser NFR into build targets,
+fallback policy and browser test coverage. A missing policy is an upstream gap, not an implicit Chromium-only target.
+
 Every SRS §4 row outside Security (performance, reliability /
 availability, scalability, observability, and any other category the SRS
 names) gets one row in foundation §1 «Решения по NFR». Without the row, a measure

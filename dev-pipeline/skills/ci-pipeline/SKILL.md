@@ -191,8 +191,9 @@ do not scope the test runner's invocation to exclude the file they live in.
 
 **Browser e2e** (a frontend with a `test:e2e` target — `repo-scaffold`,
 `frontend`): add it as its own job, `e2e`, that installs the browsers the
-Playwright config names, starts the app the way the config's `webServer`
-does, and runs `npm run test:e2e` — the same command a developer runs. A
+Playwright config names per the architecture's browser matrix (`frontend/references/browser-support.md`),
+starts the stand via the project's verify/stand scripts (existing `webServer` only where the project uses it),
+and runs `npm run test:e2e` — the same command a developer runs. A
 suite of several test files is split into shards by file — a matrix of
 `--shard=<i>/<N>` jobs, each with its own stand, and a last job that merges
 the reports (`ui-test-cases` → `references/parallel-stands.md` → In CI).

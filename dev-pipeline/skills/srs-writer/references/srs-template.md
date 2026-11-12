@@ -189,6 +189,9 @@ Fixed category checklist — every category gets a row or an explicit «Не п�
 - **Масштабируемость**
 - **Соответствие и аудит**
 - **Наблюдаемость**
+- **Совместимость браузеров** — for a browser UI, supported browsers/minimums or a dated policy, mobile/WebView
+  constraints and verification; otherwise «Не применимо». Follow `../../frontend/references/browser-support.md`.
+  An unconfirmed Baseline proposal is a question, not a settled requirement.
 
 Stack constraints belong here only as limits, not as a chosen framework:
 team language, "this repo already runs X", hosting, latency that rules a
@@ -207,6 +210,10 @@ The eleven sub-items and what each row must state are in `references/security-ch
 Mark a sub-item «Не применимо» with a one-line reason when the product genuinely has no surface for it (e.g., no LLM component) — never omit the row silently, and never leave a sub-item unaddressed just because the source material didn't mention it: send it to `open-questions.md`, or return `STATUS BLOCKED` when the row cannot be written without the answer.
 
 ### 5. Бизнес-правила
+
+For scoped date/time fields and calendar rules, read `date-time-contract.md` beside this template.
+Record their meaning and zone policy in the owning requirement/BR; downstream stages cite it. The contract
+distinguishes calendar dates, instants and local scheduled time, including relevant clock-change decisions.
 
 | Идентификатор | Правило | Когда применяется |
 |---|---|---|

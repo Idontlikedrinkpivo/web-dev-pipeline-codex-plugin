@@ -17,6 +17,9 @@ embedded copy of Vercel's Web Interface Guidelines (MIT,
 `vercel-labs/web-interface-guidelines`, commit `434b7f9`); `LICENSE` is
 the original licence and `VENDORED.md` lists what changed.
 
+The browser/forms/forced-colors/search additions are local Codex rules informed by Modern Web Guidance;
+see `references/modern-web-sources.md` for sources and the adaptation boundary.
+
 Who uses it:
 
 - `frontend` and `impl-ui` write screen code by these rules and, before
@@ -67,6 +70,9 @@ quotes, focus after a failed submit).
 ### Focus
 
 - Every interactive element has a visible focus: `focus-visible:ring-*` or equivalent → UX-63
+- In `forced-colors: active`, focus remains visible through an outline or equivalent system-colour border;
+  a shadow-only ring is insufficient. Preserve selected/error/control boundaries without shadows or background
+  images alone; do not globally disable forced colours. Check the installed kit's actual CSS → UX-63, UX-7
 - Never `outline-none` / `outline: none` without a replacement → UX-63
 - `:focus-visible` rather than `:focus` (no ring on click) → UX-63
 - `:focus-within` for compound controls → UX-63
@@ -77,6 +83,12 @@ quotes, focus after a failed submit).
 ### Forms
 
 - Inputs have `autocomplete` and a meaningful `name` → UX-19
+- Auth fields: login identifier `username`, existing password `current-password`, new/confirmed password
+  `new-password`, verification code `one-time-code`. Use `inputmode="numeric"` only for a digits-only code;
+  preserve leading zeros and paste. Verify rendered attributes, including kit wrappers → UX-19
+- `aria-invalid="true"` follows the displayed validation error: after blur or failed submit (including untouched
+  fields), never just because an untouched required field starts empty; clear it when corrected. Keep the
+  existing `aria-describedby` error link. Test initial, blur, failed-submit and corrected states → UX-20, UX-21
 - The right `type` (`email`, `tel`, `url`) and `inputmode` (`numeric`, `decimal`); never `type="number"` → UX-19
 - Paste is never blocked (`onPaste` + `preventDefault`) → UX-19
 - A click on the label focuses the field (`htmlFor` or a wrapping label) → UX-69
@@ -134,6 +146,14 @@ The motion tokens — one set for every product, defined once in the theme (CSS 
 - Flex children that hold text have `min-w-0` → UX-71
 - Empty strings and arrays render the screen's empty state, not a broken layout → UX-44
 - The screen holds short, average and very long values → UX-71
+- When the screen spec requires page search/fragment navigation through collapsed reading content (help,
+  instructions, long descriptions), keep that content searchable and reveal the match → UX-71.
+  Use the existing component when it meets the requirement; otherwise choose a compatible disclosure or
+  `hidden="until-found"` with `beforematch` synchronizing React state and ARIA. Keep content mounted, avoid
+  `display:none`/`visibility:hidden` on it or hiding ancestors, and verify in the declared browsers. An unsupported
+  target needs a spec-compatible fallback (e.g. expanded reading content), not an unrequested layout change.
+  This is not a default for every tab/menu, inactive form step, sensitive content or screen-reader-only text.
+  Check real find-in-page and fragment navigation plus a later rerender; a synthetic event alone is not proof.
 
 ### Images
 
@@ -201,6 +221,7 @@ so the rest is held by these rules, and the screen is checked in a window of eac
 ### Locale
 
 - Dates and times through `Intl.DateTimeFormat`, not hand-made formats → UX-77
+  Preserve date-only vs instant semantics and the declared zone per `../srs-writer/references/date-time-contract.md`.
 - Numbers and money through `Intl.NumberFormat` → UX-77
 - The interface language from `Accept-Language` / `navigator.languages`, never from the IP → только по требованиям (a multilingual product)
 - Brand names, code tokens and identifiers carry `translate="no"` → UX-77
@@ -232,7 +253,7 @@ Only in a Next.js project; the details are in `frontend` →
 
 `scripts/flag_antipatterns.py` searches for the breaches of the rules above
 that show in the text: zoom disabled, paste blocked, `type="number"`,
-`transition: all`, `outline` removed with no replacement, `<div>` or
+`transition: all`, removed `outline` needing a focus/forced-colors check, `<div>` or
 `<span>` with `onClick`, navigation by `onClick`, `<img>` without size, a
 GIF, `autoFocus`, a date built by hand. What it cannot see — a long list
 without virtualization, an icon button's name, a field's label, a

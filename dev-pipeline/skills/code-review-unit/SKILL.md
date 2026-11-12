@@ -97,6 +97,12 @@ Always: **spec fidelity**. Then add only what the diff actually touched:
 A lens that does not fire is not mentioned in the report. Silence is the
 correct output for an absent surface.
 
+For browser UI/build/API use, the Stack rules lens reads `frontend/references/browser-support.md` with the
+declared policy and compatibility evidence; verify fallbacks and claimed browser coverage. For affected dates,
+read `srs-writer/references/date-time-contract.md`, including in backend/hook-only units. UI checks include
+auth autofill/error timing, forced-colors focus and, only when specified, searchable collapsed reading content.
+All paths are under SKILLS ROOT and go into the reviewer packet, not just the implementer's packet.
+
 ### Step 3. Dispatch by grade
 
 Resolve reviewers through `executor-catalog` and dispatch each under that

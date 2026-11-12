@@ -142,6 +142,9 @@ The sections, in order (template in `references/template.md`):
    rule (`operationId` → property and its constraint, or an SRS id), when it
    is checked (`при уходе с поля`, `при отправке`, `ответ <код>`), and the
    error text verbatim from «Тексты».
+   For date/time inputs, outputs and derived values read `../srs-writer/references/date-time-contract.md`;
+   cite field meaning and the input/display zone. For long collapsed reading content, record an existing
+   page-search/fragment requirement in the element row, with fallback behaviour; do not add it to every tab/menu.
 5. **Состояния экрана** — every state the register's «Состояния» cell lists,
    under the register's name (`Loading`, `Empty`, `Error`, `Forbidden`,
    `Занято (UC-4 Exc-1)`), and every other state from the `ux-patterns`

@@ -36,6 +36,12 @@ pack: `none — no stack skill for <stack>`.
 The reviewer of the unit (`code-review-unit`) receives the «The reviewer checks» section of each of these skills
 that has one — every language and library skill above does — so the review looks at what the linter cannot.
 
+For browser UI/build/E2E work include `frontend/references/browser-support.md`, the declared policy/matrix
+and applicable compatibility evidence in both packets. This does not add a full screen pack to hook-only tests.
+For a date/time contract, mapping, computation or display (any stack, including hooks and tests), include
+`srs-writer/references/date-time-contract.md` and the owning field/zone decisions for implementer and reviewer.
+Do not trigger that reference for an unrelated timestamp merely mentioned in a log or fixture.
+
 ## Bounded reading coverage
 
 Keep each selected skill's main rules, runtime/conflict instructions and any dependency needed to understand

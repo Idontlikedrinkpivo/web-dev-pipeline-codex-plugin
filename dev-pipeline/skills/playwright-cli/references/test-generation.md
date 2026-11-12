@@ -27,7 +27,7 @@ This file is written for a person at the keyboard who owns the app's behaviour. 
 - **Files follow the suite, not the scenario.** One spec file per section of the cases, each test titled with its `TC-` id (`ui-test-cases` → `references/runner-prompt.md`), not one test per file; no `specs/*.plan.md` and no seed spec of §1 — the cases are the plan.
 - **No question to a person.** §3.4 «stop and ask the user» becomes a line in the run's report (an app defect, a spec gap); `show --annotate` is never run, because it waits for a person forever.
 - **A known app defect stays a failing test** — no `test.fixme` (§3.5): the fix plan turns it green.
-- **No interactive install.** Not `npm init playwright@latest` (§1.1), which waits for answers: `npm install -D @playwright/test` and `npx playwright install chromium`, with the config from [test-config.md](test-config.md).
+- **No interactive install.** Not `npm init playwright@latest` (§1.1), which waits for answers: `npm install -D @playwright/test` and `npx playwright install <engines from the declared browser matrix>`, with the config from [test-config.md](test-config.md).
 
 ---
 

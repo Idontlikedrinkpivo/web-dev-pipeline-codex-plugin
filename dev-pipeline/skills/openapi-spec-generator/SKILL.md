@@ -135,6 +135,9 @@ answer and is not in the packet is STATUS BLOCKED with the question:
 
 Map from the SRS and the schema:
 
+For date/time fields, read `../srs-writer/references/date-time-contract.md` and preserve the field's meaning,
+zone source and ambiguity rules in the wire schema and examples. Do not infer them from a SQL type alone.
+
 | Source | OpenAPI |
 |---|---|
 | One use case | One operation (`operationId` = camelCase of that use-case verb) |

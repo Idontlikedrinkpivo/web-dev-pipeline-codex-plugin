@@ -168,8 +168,9 @@ side effect belongs in the use case Ошибки table, not here. If one entity
 owns rules about three unrelated concepts, you have merged entities that
 should be separate.
 
-Time belongs here too when the rules mention it: a calendar day, a month, a
-quarter, "until end of day", "within N days". The domain receives time-zone-aware
+Time belongs here too: a calendar day, month, quarter, local schedule, "until end of day" or "within N days".
+Read `../../srs-writer/references/date-time-contract.md` for field meaning and zones. Keep calendar dates as
+dates; calculations needing an instant receive time-zone-aware
 instants. A `Clock` port supplies `Now` and the IANA location — it is not an
 «Где проверяется» cell. **One** value object computes each boundary, named in the
 table. Otherwise the agent computes the same boundary in three places with

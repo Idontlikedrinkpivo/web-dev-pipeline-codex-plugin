@@ -142,7 +142,7 @@ finding.
   so focus stays on it; the server is idempotent anyway.
 - **UX-16 Groups:** 2–3 actions in a row; more go into a menu.
 - **UX-63 Control states:** every interactive element has hover, pressed,
-  focus and disabled states; focus is always visible (`:focus-visible`),
+  focus and disabled states; focus is always visible, including forced colours (`:focus-visible`),
   and removing the outline without a replacement is a finding; hover and
   focus raise contrast; the reaction is instant or within 150 ms, with a
   pointer cursor; non-interactive cards do not react to hover; an input
@@ -164,13 +164,13 @@ finding.
 - **UX-19 Field fit:** width matches the expected length; mobile keyboard
   and autofill via `type` / `inputmode` / `autocomplete` (WCAG 1.3.5),
   `autocomplete="off"` only where browser autofill misleads (search,
-  internal codes); `spellcheck` off in emails, codes and logins;
+  internal codes); auth autocomplete tokens follow `web-design-guidelines`; `spellcheck` off in emails, codes and logins;
   `inputmode="numeric|decimal"` instead of `type=number`; paste is never
   blocked; formats are accepted loosely (spaces, dashes) and explained
   beforehand in a hint between the label and the field; a password field
   has «Показать пароль».
 - **UX-20 Validation timing:** on blur, never while typing; the error
-  clears as soon as the value is fixed; everything is checked again on
+  and `aria-invalid` clear as soon as the value is fixed; both start only after validation; everything is checked again on
   submit and on the server. B2C: a positive check mark on complex fields
   (password, email).
 - **UX-21 Error copy** is an instruction in the question's words
@@ -477,14 +477,14 @@ compares a screen with its frame. An item that cannot apply is skipped.
    an ultrawide screen (UX-74). At each size the screen is used: a wide table scrolled sideways and down
    keeps its fixed columns and header, with their background, over tall rows.
 2. **Keyboard only:** the whole screen works without a pointer; focus is
-   always visible and never covered (UX-63, UX-64, UX-65).
+   always visible and never covered, also with `forced-colors: active`; check selected/error boundaries (UX-63, UX-64, UX-65).
 3. **Contrast** of text and controls in every theme the product has (UX-7,
    UX-62).
 4. **Reduced motion:** with `prefers-reduced-motion` nothing slides or
    scales; only fades, colour changes and loading indicators remain (UX-61).
 5. **Zoom:** at 200 % and at the narrow width nothing is lost (UX-71).
-6. **Value lengths:** short, average and very long values keep the layout
-   (UX-71).
+6. **Value lengths:** short, average and very long values keep the layout; when the spec requires searchable
+   collapsed reading content, actual page search/fragment navigation reveals it and keeps state consistent (UX-71).
 7. **Icons** from one set, no emoji; icon-only buttons have a name (UX-57,
    UX-8).
 8. **Texts** follow Russian typography and one name per action (UX-78,

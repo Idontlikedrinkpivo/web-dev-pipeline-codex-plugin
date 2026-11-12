@@ -84,6 +84,9 @@ LENSES TO APPLY
     count that starts nothing) and stated but never set (a body limit left at
     the framework default) both count as not applied. Rows outside this run
     are OPEN.
+    Browser NFRs: read <SKILLS ROOT>/frontend/references/browser-support.md; verify build targets, required
+    API/CSS fallbacks and actual browser evidence, not only a green Chromium run. For affected date/time flows
+    read <SKILLS ROOT>/srs-writer/references/date-time-contract.md and compare kind/zone across layers.
   Superseded code — code this run made dead or duplicate without removing it,
     whoever wrote the original: an earlier unit's approach a later unit
     replaced (a duplicate validator, an old code path), or a scaffold stub

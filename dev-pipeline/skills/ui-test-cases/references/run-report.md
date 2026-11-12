@@ -7,6 +7,14 @@ of repeating it.
 
 ## Where and what
 
+For multiple required browsers keep the existing case × mode identity and aggregate that row across targets:
+any failed target means failed; otherwise any unavailable required target means blocked; only all required
+targets passing permits pass. In the comment name browser results and link their evidence. Add a «Покрытие
+браузеров» paragraph naming policy, actual engines/versions, fallbacks checked and unrun device/manual targets.
+Native page-search and forced-colors checks that tools could not perform remain explicitly unverified in the
+screen checklist. Case percentage alone is not full browser/accessibility acceptance; unresolved required checks
+prevent a PASS verdict. Do not silently advance a dated support policy or count viewports as separate browsers.
+
 `documentation/plans/<version>/test-run.md`, in the version folder of the
 current iteration — the open `plans/<v>/` folder, the one without
 `summary.md` (several UI products: one file part per product, each shaped
@@ -172,9 +180,10 @@ against what was expected and the screenshot path.
 ## The verdict and the lists under it
 
 After a run's разбор the runner sets the `Verdict:` line: `PASS` when every
-automated case passes by its latest result (directly or after a test fix), `DEFECTS` when any
+automated case passes across all its required browser targets and no required browser/screen check is unverified
+(directly or after a test fix), `DEFECTS` when any
 app defect, mockup mismatch, spec gap or screen-check breach remains,
-`BLOCKED` when blocked cases leave a screen unchecked. Under it:
+`BLOCKED` when blocked cases or missing required browser/screen evidence leave coverage incomplete. Under it:
 
 - «Проверить вручную» names every `⏭ не автоматизирован` case with its
   reason and the manual steps — they are not a defect, but nobody has

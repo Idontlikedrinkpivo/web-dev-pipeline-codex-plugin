@@ -5,6 +5,12 @@ parallel stands (`ui-test-cases` → `references/parallel-stands.md`): tests on 
 users, so a stand gets one worker; speed comes from more stands, each running its own share of the files at its own
 address.
 
+Before selecting projects, read `../../frontend/references/browser-support.md` and the architecture's browser
+matrix. The example below is a single-Chromium matrix only: extend/replace its projects for the declared targets
+(e.g. Firefox/WebKit) and install those engines. A mobile viewport or WebKit run is not proof of an actual device
+or a named Safari version. Keep unverified targets explicit. Each browser project needs isolated/reset mutable
+fixtures and compatible auth setup; one worker does not prevent data from a previous project leaking into the next.
+
 ```typescript
 import { defineConfig, devices } from '@playwright/test'
 

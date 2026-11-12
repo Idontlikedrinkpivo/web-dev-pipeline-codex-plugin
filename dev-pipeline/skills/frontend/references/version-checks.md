@@ -17,6 +17,10 @@ lockfile); an answer written beside a point is a dated hint, so confirm it again
   `destructive` variant and its neutral `outline` and input borders against their backgrounds (4.5:1 for text, 3:1
   for boundaries; earlier versions fell below it). A failing pair is fixed in the project's theme (`SKILL.md` →
   Accessibility baseline).
+- **Browser compatibility and kit behaviour** — exact capabilities against the declared browser policy,
+  forced-colors focus/boundaries, forwarded autocomplete and aria-invalid attributes; when search through
+  collapsed reading content is required, whether content stays mounted and disclosure state can synchronize
+  with native reveal. Record evidence for both implementer and reviewer; do not assume all kit releases behave alike.
 
 Of the two profile sections below, ask only the one the architecture's §1 «Стек» names (`SKILL.md` → Pick the stack
 profile).

@@ -59,9 +59,11 @@ RULES
 - Keep or add the `test:e2e` script. A new playwright.config.ts follows
   playwright-cli → references/test-config.md (one worker, baseURL from
   E2E_BASE_URL, testDir the E2E FOLDER, no webServer); an existing one keeps
-  its settings unless it breaks a stand rule, which you name in the report.
+  its settings unless it breaks a stand rule or the declared browser matrix, which you name in the report.
+  Read frontend/references/browser-support.md; use the SRS browser NFR and architecture matrix, and isolate/reset
+  fixtures across projects. Report actual engines/versions and unavailable required targets without claiming coverage.
   Install Playwright non-interactively (`npm install -D @playwright/test`,
-  `npx playwright install chromium`); never `npm init playwright`, which
+  `npx playwright install <selected engines>`); never `npm init playwright`, which
   waits for answers nobody gives.
 - The case and the screen spec are right, the app is what is checked: a
   test asserts what the case expects, never what the app happens to do. A
@@ -80,7 +82,7 @@ RULES
   against the seat's limit and as many images in your context). A
   mismatch fails that first case and gets its line in «Сверка с макетом».
   No Figma access: skip the comparison and say so.
-- The cases run once, in a window of the main size (the first of the
+- The cases run once per required browser project, in a window of the main size (the first of the
   register's «Размеры»). Then **«Просмотр размеров»**: each screen, once, in
   a window of every other size — no sideways page scroll, nothing clipped or
   overlapping, the title, the filters and the main table or chart visible
@@ -89,13 +91,22 @@ RULES
   depend on it, and the suite would run three times as long.
 - On the same screens, check the `ux-patterns` → «Проверка экрана перед
   сдачей» items a browser can show: the case's path by keyboard with
-  visible focus (UX-63, UX-64), no motion with reduced motion emulated
+  visible focus (UX-63, UX-64), including focus/selected/error boundaries under `forced-colors: active`,
+  no motion with reduced motion emulated
   (UX-61), icons from one set and no emoji (UX-57), Russian typography in
   the texts (UX-78). A breach goes into the «Проверка экрана» list under
   the verdict with its screen and UX-n; it does not change the case's
   status.
+- For affected forms verify rendered autocomplete tokens and aria-invalid at initial/blur/failed-submit/corrected
+  states. For date/time cases follow srs-writer/references/date-time-contract.md. When the spec requires searchable
+  collapsed reading content, exercise real page search and fragment navigation, then rerender and check state/ARIA.
+  If the browser tool cannot perform a native search or emulate forced colours, report that check as unverified;
+  dispatching a synthetic beforematch event alone does not verify native search.
+- Keep one report row per case × mode: it passes only when every required browser result for that row passes.
+  Name per-browser results/evidence in its comment; a failed target stays failed, an unavailable required target
+  leaves the row blocked unless another target already failed. Never overwrite a browser failure with a later pass.
 - Two passes (ui-test-cases → Mode run → Two passes). Pass 1: write and
-  run every case once (each case × mode its own row) — ✅ прошёл /
+  run every case in its required browser projects (one aggregated case × mode row) — ✅ прошёл /
   ❌ не прошёл (seen vs expected) / ⛔ заблокирован (a missing stub that can
   be added) / ⏭ не автоматизирован (needs a failure that would break the
   shared stand, an app restart with other settings, or a state the stand

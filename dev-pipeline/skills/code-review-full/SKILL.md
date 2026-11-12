@@ -147,6 +147,9 @@ and again when you judge the findings (Step 4).
   worker count that starts no worker), or a limit the document states and
   the server never sets (a body limit left at the framework default), is
   not applied. Rows outside this run's scope are `OPEN`, not findings.
+  For browser NFRs check build targets, required API/CSS fallbacks and the actual browser coverage together
+  (`frontend/references/browser-support.md`); a successful build or Chromium run alone proves no other target.
+  For affected date/time flows check kind/zone consistency across layers (`srs-writer/references/date-time-contract.md`).
 - **Security** — two modes, both bounded by this run's diff. *Declared
   baseline*: each SRS Security NFR row and architecture security decision,
   verified as cross-unit — the check lives in one unit, the route that

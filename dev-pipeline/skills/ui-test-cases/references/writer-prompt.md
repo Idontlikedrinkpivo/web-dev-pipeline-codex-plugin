@@ -47,6 +47,10 @@ RULES
 - One case per reachable AC (main, Alt, Exc), per state row and per
   user-causable response outcome not yet covered, per «Поля ввода» rule,
   per forbidden action per role.
+- Include declared browser/fallback requirements without duplicating case documents per engine. For affected
+  dates read srs-writer/references/date-time-contract.md; include relevant zone/calendar/clock-change cases.
+  Form errors include initial, blur, failed submit and correction with aria-invalid expectations (UX-20/21).
+  Search through collapsed reading content is a case only when the spec requires it, including the specified fallback.
 - Two layers (ui-test-cases → Mode write → Two readers, two layers):
   the body for a person — roles and screens by name, steps as actions by
   the label the user sees (never a widget, a gesture, or an element

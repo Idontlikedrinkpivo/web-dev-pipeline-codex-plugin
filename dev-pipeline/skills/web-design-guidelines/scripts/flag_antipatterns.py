@@ -9,6 +9,8 @@ Every line is a candidate, not a finding: the reviewer opens it and keeps it onl
 holds there (an `autoFocus` on the one main field of a desktop form is allowed). Patterns that need
 judgement — a long list without virtualization, an icon button's name, a form field's label, a
 gesture-only action — are not searched; they are read.
+Removed outlines are candidates even with focus-visible or a shadow: inspect the cascade and forced-colors
+replacement, possibly in another file. This scan cannot certify an accessible replacement or prove its absence.
 Folders are walked for .tsx .jsx .ts .js .vue .svelte .html .css .scss, skipping node_modules,
 dist, build, .next, coverage, test and story files.
 """
@@ -30,8 +32,8 @@ PATTERNS = [
      re.compile(r"type\s*=\s*\{?\s*['\"]number['\"]")),
     ("UX-61", "transition: all — перечислить свойства",
      re.compile(r"transition\s*:\s*all\b|['\"`\s]transition-all\b|transition\s*:\s*['\"]all\b")),
-    ("UX-63", "outline убран без замены через focus-visible",
-     re.compile(r"^(?!.*focus-visible).*(?:\boutline-none\b|outline\s*:\s*(?:none|0)\b)", re.M)),
+    ("UX-63", "outline снят — проверьте замену фокуса, включая forced-colors",
+     re.compile(r"\boutline-(?:none|0)\b|outline\s*:\s*(?:none\b|0\b(?!\.))")),
     ("UX-64", "<div>/<span> с onClick — нужен <button> или <a>",
      re.compile(r"<(?:div|span)\b[^>]*?\bonClick\s*=", re.S)),
     ("UX-64", "переход по onClick — нужна ссылка <a> / <Link>",
@@ -59,25 +61,11 @@ def files(args: list[str]):
                     yield f
 
 
-def outline_replaced(text: str, at: int) -> bool:
-    """In a CSS block, `outline: none` is fine when the selector is :focus-visible or the block draws
-    another ring (box-shadow, border-color)."""
-    start = text.rfind("{", 0, at)
-    if start < 0 or text.rfind("}", 0, at) > start:
-        return False
-    selector = text[text.rfind("}", 0, start) + 1:start]
-    block = text[start:text.find("}", at) if text.find("}", at) > 0 else len(text)]
-    return "focus-visible" in selector or re.search(r"box-shadow|border-color|outline-offset", block) is not None
-
-
 def scan(f: Path) -> list[tuple[int, str, str]]:
     text = f.read_text(errors="replace")
-    css = f.suffix in {".css", ".scss"}
     hits = set()
     for rule, what, rx in PATTERNS:
         for m in rx.finditer(text):
-            if css and rule == "UX-63" and outline_replaced(text, m.start()):
-                continue
             hits.add((text.count("\n", 0, m.start()) + 1, rule, what))
     return sorted(hits)
 

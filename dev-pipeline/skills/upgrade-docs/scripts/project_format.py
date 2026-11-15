@@ -116,7 +116,6 @@ def holds(root: Path, c: dict) -> bool:
 
 
 SKILL = {"docs": "dev-pipeline:upgrade-docs", "code": "dev-pipeline:upgrade-code"}
-WHAT = {"docs": "documents", "code": "code and project settings"}
 
 
 def kind(c: dict) -> str:
@@ -131,27 +130,25 @@ def pending(root: Path, only: str | None = None) -> list[dict]:
             and (only is None or kind(c) == only) and holds(root, c["applies"]) and holds(root, c["behind"])]
 
 
+def optional_note(root: Path, only: str | None = None) -> str | None:
+    if not (root / "documentation").is_dir():
+        return None
+    todo = pending(root, only)
+    if not todo:
+        return None
+    kinds = {kind(change) for change in todo}
+    commands = ", ".join("$" + skill for k, skill in SKILL.items() if k in kinds)
+    return f"По желанию, позже можно обновить форматы проекта ({len(todo)} изм.) через {commands}."
+
+
 def main() -> None:
     if len(sys.argv) < 3:
         sys.exit(__doc__)
     cmd, root = sys.argv[1], Path(sys.argv[2]).resolve()
     if cmd == "hook":
-        if not (root / "documentation").is_dir():
-            return
-        todo = pending(root)
-        if not todo:
-            return
-        st, now = stamp_of(root).get("plugin"), installed()
-        head = (f"The dev-pipeline plugin is {now}; this project was brought in line with {st}." if st else
-                f"The dev-pipeline plugin is {now}; this project has no stamp of the plugin version.")
-        print(f"{head} {len(todo)} change(s) of the plugin's formats are not in the project yet.")
-        groups = [k for k in SKILL if any(kind(c) == k for c in todo)]
-        for k in groups:
-            print(f"{WHAT[k].capitalize()} — the {SKILL[k]} skill: "
-                  + "; ".join(f"«{c['title']}» ({c['version']})" for c in todo if kind(c) == k) + ".")
-        print("Tell the user in one or two plain sentences and offer "
-              + " and ".join(f"the {SKILL[k]} skill for the {WHAT[k]}" for k in groups)
-              + "; change nothing without their answer.")
+        note = optional_note(root)
+        if note:
+            print(note)
         return
     if cmd == "next":
         only = sys.argv[sys.argv.index("--kind") + 1] if "--kind" in sys.argv else "docs"

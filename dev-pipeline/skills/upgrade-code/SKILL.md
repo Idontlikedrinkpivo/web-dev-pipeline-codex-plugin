@@ -2,7 +2,7 @@
 name: upgrade-code
 description: >-
   Brings a project's code, linters and CI up to a newer dev-pipeline plugin and audits code by its rules. Use when the
-  hook names code changes, «обнови CI под новую версию плагина», «аудит кода по правилам плагина». Docs: upgrade-docs.
+  user requests code upgrades or an audit: «обнови CI под новую версию плагина», «аудит кода по правилам плагина». Docs: upgrade-docs.
 ---
 
 > **Codex runtime.** Before using this skill, read `../executor-catalog/references/codex-runtime.md`. It defines tool mappings, named-agent dispatch and stage-chat orchestration; use it for inherited Claude Code terms below.
@@ -33,7 +33,7 @@ is «позже»»: a non-answer counts as «позже»), the «The branch» 
    does not change. A row whose `fix` names its own question asks it — the quality gates ask whether to make them
    now on a separate branch or as the first unit of the next iteration. «Первой задачей итерации» is «позже»
    here: nothing is made and nothing recorded. When that iteration opens, `open_iteration.py` names the change
-   again, and `plan` makes it the iteration's first unit — or the user runs this skill then.
+   again as an optional note. Include it in the plan only when the user chose that change for this iteration.
 
 3. **Make the chosen change.** The branch as `upgrade-docs` step 3 → «The branch», but outside an open iteration it is
    `chore/plugin-<installed version>`. Before the first change, run the project's own checks — the `lint`,

@@ -160,13 +160,9 @@ def code_changes(root: Path) -> str | None:
     try:
         sys.path.insert(0, str(fmt))
         import project_format
-        todo = project_format.pending(root, "code")
+        return project_format.optional_note(root, "code")
     except Exception:
         return None
-    if not todo:
-        return None
-    return ("Plugin code changes still pending (upgrade-code): " + "; ".join(f"{c['id']} «{c['title']}»" for c in todo)
-            + " — offer $dev-pipeline:upgrade-code, or `plan` makes them this iteration's first unit.")
 
 
 def main() -> None:

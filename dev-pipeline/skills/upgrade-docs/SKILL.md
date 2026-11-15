@@ -2,7 +2,7 @@
 name: upgrade-docs
 description: >-
   Brings a project's documents up to the installed dev-pipeline plugin; writes a missing one from code on a yes. Use
-  when the hook names document changes, «обнови документы под новую версию плагина», «проект без плагина». A changed
+  when the user requests document migration: «обнови документы под новую версию плагина», «проект без плагина». A changed
   rule: pipeline.
 ---
 

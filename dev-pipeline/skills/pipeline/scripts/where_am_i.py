@@ -444,11 +444,20 @@ def main() -> None:
         if len(by_branch) > 1:
             print(f"!! Открытых веток итераций: {len(by_branch)}. Спросите пользователя, какую продолжаем (одним "
                   "вопросом).")
-        v = by_branch[0][0]
+            return
+        v, ref = by_branch[0]
         print(f"  войти: python3 \"{HERE / 'open_iteration.py'}\" {v} — переключит на ветку и создаст папку; номер "
               "версии не спрашивать")
-        print("  этапы 10–14 по файлам здесь не видны: их отчёты придут с веткой (plans/ в git с 1.2.260; у более ранних — на машине, где шли)")
-        opens.append(f"войти в итерацию {v} (ветка {by_branch[0][1]}): open_iteration.py {v}")
+        if branch != ref:
+            print("  При продолжении перейдите на ветку и повторите where_am_i.py: предложите шаг по её отчётам.")
+            resume_ref = f"{ref}:documentation/plans/{v}/resume.md"
+            if git_ok(root, "cat-file", "-e", resume_ref):
+                print(f"  На ветке есть точка продолжения. Для сводки прочитайте её без переключения: git show {resume_ref}")
+            else:
+                print(f"  Для сводки без переключения проверьте документы и отчёты: git ls-tree -r --name-only {ref} "
+                      f"documentation/ и git show {ref}:<путь>. Закрытие этапа сверяйте по git log {ref}.")
+            return
+        opens.append(f"восстановить папку итерации {v}: open_iteration.py {v}")
     elif closed:
         print(f"Итерации: открытых нет; закрыты {', '.join(closed)} — следующая откроется первым этапом "
               "(open_iteration.py)")

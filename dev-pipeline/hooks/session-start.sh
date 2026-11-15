@@ -14,13 +14,16 @@ src=$(printf '%s' "$input" | sed -n 's/.*"source"[[:space:]]*:[[:space:]]*"\([a-
 root="$(cd "$(dirname "$0")/.." && pwd)"
 fmt="$root/upgrade-docs/scripts/project_format.py"
 [ -f "$fmt" ] || fmt="$root/skills/upgrade-docs/scripts/project_format.py"   # the Codex layout
+where="$root/pipeline/scripts/where_am_i.py"
+[ -f "$where" ] || where="$root/skills/pipeline/scripts/where_am_i.py"
+# A fresh clone on the default branch may have no local pipeline files.
+if [ -f "$dir/documentation/.dev-pipeline.json" ] || [ -d "$dir/documentation/plans" ] ||
+   [ -n "$(git -C "$dir" for-each-ref --count=1 --format='%(refname)' refs/heads/iteration/ refs/remotes/origin/iteration/ 2>/dev/null)" ]; then
+  echo "For «где я», «что дальше» or «продолжим», run python3 \"$where\" \"$dir\" and follow pipeline/references/where-am-i.md. Offer the next stage or saved step first. On continuation, enter the selected iteration and reread its state. Format updates are an optional note after the stage offer and require no reply."
+  echo "dev-pipeline: the pipeline always runs from a parent chat, every stage in its own fresh chat (pipeline/references/parent-session.md): at an iteration's start or continuation list the stages left from the current point once and create chats for the ones the user picks; only without chat tools run the stages here. Dispatch executor packets to named custom subagents. Read executor-catalog/references/codex-runtime.md before dispatch. After compaction, resume from progress files and resume.md."
+fi
 if [ "$src" != compact ] && [ "$src" != resume ] && [ -f "$fmt" ] && command -v python3 >/dev/null 2>&1; then
   python3 "$fmt" hook "$dir" </dev/null 2>/dev/null
-fi
-
-# Codex stages stay in the current chat; executor roles are subagents.
-if [ -f "$dir/documentation/.dev-pipeline.json" ] || [ -d "$dir/documentation/plans" ]; then
-  echo "dev-pipeline: the pipeline always runs from a parent chat, every stage in its own fresh chat (pipeline/references/parent-session.md): at an iteration's start or continuation list the stages left from the current point once and create chats for the ones the user picks; only without chat tools run the stages here. Dispatch executor packets to named custom subagents. Read executor-catalog/references/codex-runtime.md before dispatch. After compaction, resume from progress files and resume.md."
 fi
 
 plans="$dir/documentation/plans"
@@ -74,9 +77,6 @@ if [ -n "$stage" ]; then
   echo "Last stage by its files: $stage — progress in documentation/plans/$v/$last."
 fi
 echo "$why Before continuing pipeline work, read the dev-pipeline:pipeline skill and the current stage's skill again; take the state from the files on disk, not from memory."
-where="$root/pipeline/scripts/where_am_i.py"
-[ -f "$where" ] || where="$root/skills/pipeline/scripts/where_am_i.py"   # the Codex layout
-echo "For «где я», «что дальше» or before resuming a stage, run python3 \"$where\" \"$dir\" and take the state from its output (pipeline → Where am I)."
 link="$root/pipeline/scripts/progress_link.py"
 [ -f "$link" ] || link="$root/skills/pipeline/scripts/progress_link.py"   # the Codex layout
 push="$root/pipeline/scripts/push_branch.py"

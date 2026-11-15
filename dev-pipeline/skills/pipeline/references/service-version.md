@@ -63,9 +63,8 @@ and 3 below are skipped when the branch already has documents.
 3. **Who runs the design.** A product with screens is asked once, right
    after the number (`references/design-owner.md`); the script's `Design:`
    line says whether to ask. The stages that follow build on the answer.
-4. **Code changes the plugin still wants** — when the script names them,
-   say so in one line: `upgrade-code` makes them now, or `plan` makes them
-   the iteration's first unit.
+4. **Optional format updates.** On pickup, reread the iteration's state and offer its next step.
+   A pending-update line may follow that offer as a note. Only an explicit request starts an upgrade.
 
 Every stamp of the iteration writes that number.
 

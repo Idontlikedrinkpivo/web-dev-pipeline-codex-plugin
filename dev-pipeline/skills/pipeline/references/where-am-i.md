@@ -24,7 +24,11 @@ project's root and answer from its output. It prints, in this order:
    (below); still none there → unknown, say so rather than guessing. **An iteration branch the script names** («Итерация …
    открыта по ветке») is the open iteration — a fresh clone, or work
    another person pushed: entering it with the printed `open_iteration.py`
-   command comes first, and no version number is asked.
+   command comes first on a request to continue with a clean tree and one open iteration.
+   Rerun `where_am_i.py` there in the same turn and offer the saved step or ready stages.
+   For a status-only question, inspect that ref's committed reports and history with `git ls-tree`,
+   `git show` and `git log` without switching. If local edits complicate a switch, give the
+   next step visible on the ref and ask about the checkout only when needed.
 3. **A resume note** — `resume.md` in the open folder means a long run
    (`work`, the UI test run, the security audit) stopped mid-way. Read it
    before anything else and check its claims against git, the tree and
@@ -85,6 +89,10 @@ one option for each ready stage; several may be selected together. Missing input
 including «идёт в соседнем чате» or «написан, этап не закрыт». With nothing ready here,
 say where the input is being made, finish, and offer only waiting or stopping.
 The default chain table never overrides this block. See [What to offer at a close](offer-at-close.md).
+
+A missing plugin stamp or pending format updates never change this choice. After the stage offer
+you may append one optional maintenance note for the iteration branch. It needs no answer.
+Run an upgrade only if the user asks for it.
 
 Ask it as one transition, per `pipeline` → "Asking before a transition".
 Do not list every remaining stage.

@@ -33,7 +33,8 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
-from state_paths import checkout_root, contained_path, portable_plans
+from state_paths import checkout_root, contained_path
+from project_scope import plans_folder, project_root
 
 PLANS_RX = re.compile(r"^/?documentation/plans/?(\*\*?)?\s*$")   # the old line: the whole folder ignored
 LOCAL = ("# dev-pipeline: файлы итерации — в git, кроме файлов этой машины",
@@ -191,14 +192,16 @@ def main() -> None:
         notes.append("created a git repository (branch main)")
         top = git(root, "rev-parse", "--show-toplevel")
     try:
-        root = checkout_root(root)
-        folder = portable_plans(root, version)
+        given = root
+        checkout = checkout_root(given)
+        root = project_root(given)
+        folder = plans_folder(root, version)
         summary = contained_path(root, folder / "summary.md")
         marker = contained_path(root, folder / "iteration.json")
         if marker.exists():
             iteration_metadata(marker, version)
         plans = folder.parent
-        existing = [portable_plans(root, p.name) for p in plans.iterdir()
+        existing = [plans_folder(root, p.name) for p in plans.iterdir()
                     if re.fullmatch(r"\d+\.\d+\.\d+", p.name)] if plans.is_dir() else []
         others = sorted((p.name for p in existing if p.is_dir() and p.name != version
                          and not contained_path(root, p / "summary.md").exists()), key=vkey)
@@ -285,7 +288,13 @@ def main() -> None:
     # Switching branches can replace a directory with a symlink. Validate again
     # before the first portable-state write on the selected iteration branch.
     try:
-        folder = portable_plans(root, version)
+        contained_path(checkout, given)
+        root = project_root(given)
+        if checkout_root(root) != checkout:
+            fail("project moved outside the selected checkout")
+        folder = plans_folder(root, version)
+        if (folder / "summary.md").exists():
+            fail(f"iteration {version} is closed on the selected branch")
     except ValueError as exc:
         fail(str(exc))
     folder.mkdir(parents=True, exist_ok=True)
@@ -331,7 +340,7 @@ def small_open(args: list[str]) -> None:
     explicit = positionals.pop(0) if positionals and re.fullmatch(r"\d+\.\d+\.\d+", positionals[0]) else None
     if len(positionals) > 1 or any(a.startswith("--") for a in positionals):
         fail("usage: open_iteration.py [VERSION] [ROOT] --small")
-    root = checkout_root(Path(positionals[0] if positionals else "."))
+    root = project_root(Path(positionals[0] if positionals else "."))
     current = out(root, "symbolic-ref", "-q", "--short", "HEAD")
     active = re.fullmatch(r"iteration/(\d+\.\d+\.\d+)", current)
     version = explicit or (active[1] if active else None)
@@ -352,7 +361,7 @@ def small_open(args: list[str]) -> None:
             fail("ambiguous release lineage; supply an explicit version", 2)
         major, minor, patch = vkey(base)
         version = f"{major}.{minor}.{patch + 1}"
-    folder = portable_plans(root, version)
+    folder = plans_folder(root, version)
     marker = contained_path(root, folder / "iteration.json")
     if (folder / "summary.md").exists():
         fail("iteration already closed", 2)
@@ -376,7 +385,7 @@ def small_open(args: list[str]) -> None:
             fail("existing branch has no validated metadata; inspect/reuse it explicitly", 2)
         git(root, "switch", "-q", "-c", branch, check=True)
     # Check containment again after switching branches.
-    folder = portable_plans(root, version)
+    folder = plans_folder(root, version)
     folder.mkdir(parents=True, exist_ok=True)
     marker = contained_path(root, folder / "iteration.json")
     data = {"schema_version": 1, "mode": "small", "version": version,

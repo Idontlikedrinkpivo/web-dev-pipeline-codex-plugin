@@ -40,6 +40,8 @@ check plan work ui audit deploy ops ci close. Standard library only.
 """
 from __future__ import annotations
 
+from dataclasses import replace
+import hashlib
 import re
 import json
 import os
@@ -47,7 +49,19 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from state_paths import StatePaths, contained_path, legacy_source, resolve_paths
+from project_scope import plans_folder, project_root
+from state_paths import StatePaths, contained_path, legacy_source, resolve_paths as checkout_paths
+
+
+def resolve_paths(given: Path | str, version: str, chat: str) -> StatePaths:
+    paths = checkout_paths(given, version, chat)
+    project = project_root(Path(given))
+    if project == paths.checkout:
+        return paths
+    namespace = hashlib.sha256(project.relative_to(paths.checkout).as_posix().encode()).hexdigest()
+    local = contained_path(paths.gitdir, paths.local.parent / 'projects' / namespace / paths.local.name)
+    return replace(paths, checkout=project, plans=plans_folder(project, version), local=local)
+
 
 try:
     import where_am_i as w  # the document registry and its stamps

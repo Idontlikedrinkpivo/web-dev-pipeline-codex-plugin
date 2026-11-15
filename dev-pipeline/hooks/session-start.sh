@@ -16,6 +16,11 @@ fmt="$root/upgrade-docs/scripts/project_format.py"
 [ -f "$fmt" ] || fmt="$root/skills/upgrade-docs/scripts/project_format.py"   # the Codex layout
 where="$root/pipeline/scripts/where_am_i.py"
 [ -f "$where" ] || where="$root/skills/pipeline/scripts/where_am_i.py"
+scope="$(dirname "$where")/project_scope.py"
+if [ -f "$scope" ] && git -C "$dir" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+  project=$(python3 "$scope" "$dir") || exit 0
+  dir=$project
+fi
 # A fresh clone on the default branch may have no local pipeline files.
 if [ -f "$dir/documentation/.dev-pipeline.json" ] || [ -d "$dir/documentation/plans" ] ||
    [ -n "$(git -C "$dir" for-each-ref --count=1 --format='%(refname)' refs/heads/iteration/ refs/remotes/origin/iteration/ 2>/dev/null)" ]; then

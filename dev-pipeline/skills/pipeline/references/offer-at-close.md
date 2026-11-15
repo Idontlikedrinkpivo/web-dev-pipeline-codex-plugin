@@ -32,7 +32,9 @@ stage-close commit exists. A stamped file or a registry state alone is not proof
 Existing canonical close subjects are still read. For a new close add the trailer
 `Stage-Closed: <key> <version>` (keys: srs, db, api, arch, scaffold, design, specs,
 cases), including an empty close when nothing changed. The required artifact must
-exist in that commit and on HEAD. A later document change or dirty artifact needs
+exist in that commit and on HEAD. Adding a review date alone preserves the close.
+Report accepted decisions and downstream amendments to the same SRS version since its last review.
+A new SRS draft, other substantive edits or a dirty artifact need
 closure before it becomes an input. This is especially necessary for unversioned
 frames registers, cases and project maps; their presence alone does not close a stage.
 

@@ -44,10 +44,10 @@ def closed(root: Path, key: str, version: str | None = None) -> bool:
             return False
         folder = root / 'documentation/plans' / version
         report = folder / 'docs-consistency.md'
-        return (w.git_ok(root, 'cat-file', '-e', f'HEAD:{report.relative_to(root)}')
+        return (w.git_ok(root, 'cat-file', '-e', f'HEAD:./{report.relative_to(root)}')
                 and w.read(report).startswith('Verdict: PASS') and w.consistency(root, folder)[1] is None)
     paths = artifacts(root, key)
-    if not all(w.git_ok(root, 'cat-file', '-e', f'HEAD:{p}') for p in paths):
+    if not all(w.git_ok(root, 'cat-file', '-e', f'HEAD:./{p}') for p in paths):
         return False
     scopes = list(paths)
     scopes += {'srs': ['documentation/requirements/srs/areas'],
@@ -69,13 +69,36 @@ def closed(root: Path, key: str, version: str | None = None) -> bool:
         explicit = re.search(rf'^Stage-Closed: {key} (\d+\.\d+\.\d+)\s*$', body, re.M)
         legacy = (subject.startswith(('docs: ', 'chore: ', 'chore(scaffold): ')) and re.search(CLOSE_WORDS[key], subject)
                   and (w.VERSION_RX.search(subject) or key == 'scaffold') and not w.NOT_CLOSE.search(subject))
-        if explicit or legacy or w.ALL_CLOSE.search(subject):
+        if (explicit or legacy or w.ALL_CLOSE.search(subject)) and w.project_close(root, sha):
             close_sha = sha
             break
-    if not close_sha or not all(w.git_ok(root, 'cat-file', '-e', f'{close_sha}:{p}') for p in paths):
+    if not close_sha or not all(w.git_ok(root, 'cat-file', '-e', f'{close_sha}:./{p}') for p in paths):
         return False
-    # Changes since the close need their own closure, even if the old version text remains.
-    return not w.git(root, 'diff', '--name-only', close_sha, 'HEAD', '--', *scopes)
+    # Preserve the recorded close across review stamps and approved SRS amendments.
+    changed = w.git(root, 'diff', '--name-only', '--relative', close_sha, 'HEAD', '--', *scopes)
+    if not changed:
+        return True
+    if key == 'srs':
+        # Accepted cross-stage decisions can amend a closed SRS. Keep its gate history
+        # visible; a fresh SRS draft or other edits still need their own close.
+        stamped = w.front(w.git(root, 'show', f'{close_sha}:./{paths[0]}')).get('version')
+        if not stamped or w.front(w.read(root / paths[0])).get('version') != stamped:
+            return False
+        subjects = w.git(root, 'log', '--format=%s', f'{close_sha}..HEAD', '--', *scopes).splitlines()
+        return bool(subjects) and all(
+            subject.startswith('docs: решение изменено') or
+            ('этап не закрыт' in subject and any(re.search(CLOSE_WORDS[k], subject)
+                                                 for k in ('db', 'api', 'arch')))
+            for subject in subjects)
+    if key in ('api', 'db') and changed.splitlines() == paths and len(paths) == 1:
+        # Older projects recorded a successful review in a separate metadata commit.
+        patch = w.git(root, 'diff', '--no-ext-diff', '--no-color', '-U0', close_sha, 'HEAD', '--', *paths)
+        edits = [line for line in patch.splitlines() if line.startswith(('+', '-'))
+                 and not line.startswith(('+++ ', '--- '))]
+        field = '  x-reviewed' if key == 'api' else 'reviewed'
+        return bool(edits) and any(line.startswith('+') for line in edits) and all(
+            re.fullmatch(rf"[+-]{field}: ['\"]?\d{{4}}-\d{{2}}-\d{{2}}['\"]?", line) for line in edits)
+    return False
 
 
 def skips(root: Path) -> dict[str, str]:

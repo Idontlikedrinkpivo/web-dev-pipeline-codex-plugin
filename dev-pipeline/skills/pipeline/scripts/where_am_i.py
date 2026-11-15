@@ -22,7 +22,8 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
-from state_paths import checkout_root, contained_path, plans_root
+from project_scope import plans_folder, project_root, ref_folder
+from state_paths import checkout_root, contained_path
 
 sys.path.insert(0, str(HERE.parents[1] / "doc-versioning" / "scripts"))
 import open_questions as oq
@@ -50,6 +51,27 @@ def git(root: Path, *args: str) -> str:
     except (OSError, subprocess.TimeoutExpired):
         return ""
     return r.stdout.strip() if r.returncode == 0 else ""
+
+
+def project_log(root: Path, *args: str) -> str:
+    # A sibling project's close commit can use the same stage name and version.
+    scope = ('--', '.') if git(root, 'rev-parse', '--show-prefix') else ()
+    return git(root, 'log', *args, *scope)
+
+
+def project_close(root: Path, sha: str) -> bool:
+    """A scoped close may be empty when the checkout identifies one project."""
+    prefix = git(root, 'rev-parse', '--show-prefix')
+    if not prefix:
+        return True
+    files = git(root, 'diff-tree', '--root', '-m', '-r', '--no-commit-id', '--name-only',
+                '-z', sha)
+    if files:
+        return any(name.startswith(prefix) for name in files.split('\0'))
+    try:
+        return project_root(checkout_root(root)) == root
+    except ValueError:
+        return False
 
 
 def plan_units(root: Path, rng: str) -> list[str]:
@@ -200,7 +222,7 @@ def srs_gates(root: Path) -> tuple:
     log = git(root, "log", "--format=%H\t%s", "-n", "3000")
     for line in log.splitlines():
         sha, _, subj = line.partition("\t")
-        if re.match(r"docs: SRS \d", subj):
+        if re.match(r"docs: SRS \d", subj) and project_close(root, sha):
             grill = re.search(r"grill:\s*([^·]+)", subj)
             review = re.search(r"review:\s*([^·]+)", subj)
             after = git(root, "log", "--oneline", f"{sha}..HEAD", "--", "documentation/requirements/srs/")
@@ -296,7 +318,8 @@ def close_commit(root: Path, doc: Doc, span: str = "HEAD") -> tuple[str, str]:
         sha, _, subj = line.partition("\t")
         if ALL_CLOSE.search(subj) or (subj.startswith("docs: ") and re.search(key, subj)
                                       and VERSION_RX.search(subj) and not NOT_CLOSE.search(subj)):
-            return sha, subj
+            if project_close(root, sha):
+                return sha, subj
     return "", ""
 
 
@@ -407,7 +430,7 @@ def question_points(root: Path, version: str | None, opens: list[str]) -> list[s
                     r'^(?:Финальное ревью:|Состояние:.*финальное ревью).*\bPASS\b', read(folder / 'progress.md'), re.M):
                 continue
             late = {15: 'deploy', 16: 'ops'}.get(stage)
-            if late and re.search(rf'^Stage-Closed: {late} {re.escape(version)}\s*$', git(root, 'log', '--format=%B'), re.M):
+            if late and re.search(rf'^Stage-Closed: {late} {re.escape(version)}\s*$', project_log(root, '--format=%B'), re.M):
                 continue
         point = f'вопросы для этапа «{name}»: {len(rows)} — решить на нём'
         at = next((i for i, line in enumerate(result) if f'этап {stage} ' in line
@@ -419,8 +442,8 @@ def question_points(root: Path, version: str | None, opens: list[str]) -> list[s
 def main() -> None:
     given = Path(sys.argv[1] if len(sys.argv) > 1 else ".")
     try:
-        root = checkout_root(given)
-        plans = plans_root(root)
+        root = project_root(given)
+        plans = plans_folder(root)
         open_, closed = iterations(plans)
     except ValueError as exc:
         sys.exit(f"where_am_i: {exc}")
@@ -446,18 +469,19 @@ def main() -> None:
                   "вопросом).")
             return
         v, ref = by_branch[0]
-        print(f"  войти: python3 \"{HERE / 'open_iteration.py'}\" {v} — переключит на ветку и создаст папку; номер "
-              "версии не спрашивать")
         if branch != ref:
-            print("  При продолжении перейдите на ветку и повторите where_am_i.py: предложите шаг по её отчётам.")
-            resume_ref = f"{ref}:documentation/plans/{v}/resume.md"
+            print(f"  Для продолжения перейдите на существующую ветку iteration/{v} (git switch iteration/{v}) "
+                  "и повторите where_am_i.py из выбранного проекта. Сводка не требует создания папок или коммита.")
+            prefix = ref_folder(checkout_root(root), root, ref)
+            documents = prefix / "documentation"
+            resume_ref = f"{ref}:{documents}/plans/{v}/resume.md"
             if git_ok(root, "cat-file", "-e", resume_ref):
                 print(f"  На ветке есть точка продолжения. Для сводки прочитайте её без переключения: git show {resume_ref}")
             else:
                 print(f"  Для сводки без переключения проверьте документы и отчёты: git ls-tree -r --name-only {ref} "
-                      f"documentation/ и git show {ref}:<путь>. Закрытие этапа сверяйте по git log {ref}.")
+                      f"{documents}/ и git show {ref}:<путь>. Закрытие этапа сверяйте по git log {ref}.")
             return
-        opens.append(f"восстановить папку итерации {v}: open_iteration.py {v}")
+        print("  Папки отчётов пока нет. Готовность этапов ниже определена по документам и истории ветки.")
     elif closed:
         print(f"Итерации: открытых нет; закрыты {', '.join(closed)} — следующая откроется первым этапом "
               "(open_iteration.py)")
@@ -490,6 +514,7 @@ def main() -> None:
             if unfinished:
                 opens.append(f"{stage} не закончен ({name}: {tail})")
 
+    repeat_grill = []
     docs = registry(root)
     by_path = {d.rel: d for d in docs}
     open_stages: dict = {}
@@ -505,7 +530,7 @@ def main() -> None:
         if d.gate == "grill":
             g, u = meta.get("grilled"), meta.get("updated")
             said = re.search(r"^docs: бизнес-требования · допрос:\s*(.+)$",
-                             git(root, "log", "--format=%s", "-n", "3000"), re.M)
+                             project_log(root, "--format=%s", "-n", "3000"), re.M)
             if not g and said and not said.group(1).strip().startswith("не запускался"):
                 bits.append(f"допрос: {said.group(1).strip()}")      # the commit says it: «пропущен»
             elif not g:
@@ -513,7 +538,7 @@ def main() -> None:
                 opens.append("допрос бизнес-требований (grill-me) не запускался")
             elif u and u > g:
                 bits.append(f"допрос {g}, документ изменён {u} — допрос не по текущему тексту")
-                opens.append("бизнес-требования изменены после допроса")
+                repeat_grill.append("по желанию — повторить допрос изменённых бизнес-требований")
             else:
                 bits.append(f"допрос {g}")
         elif d.gate == "srs":
@@ -616,7 +641,7 @@ def main() -> None:
             if r['state'] in ('ready', 'here'):
                 opens.append(f"этап {r['number']} {r['label']}: " +
                              ('можно начать' if r['state'] == 'ready' else 'дописать и закрыть этап'))
-    opens = question_points(root, it_version, opens)
+    opens = question_points(root, it_version, opens + repeat_grill)
     print("Открытые пункты (по порядку):" if opens else "Открытых пунктов по файлам нет — следующий этап по готовности; занятые этапы не предлагать.")
     for o in dict.fromkeys(opens):
         print(f"  - {o}")

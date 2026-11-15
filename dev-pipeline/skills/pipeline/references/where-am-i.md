@@ -23,8 +23,7 @@ project's root and answer from its output. It prints, in this order:
    units already landed; what stages 10–14 left is in the folder on the iteration branch — enter it first
    (below); still none there → unknown, say so rather than guessing. **An iteration branch the script names** («Итерация …
    открыта по ветке») is the open iteration — a fresh clone, or work
-   another person pushed: entering it with the printed `open_iteration.py`
-   command comes first on a request to continue with a clean tree and one open iteration.
+   another person pushed: switching to the existing branch comes first on a request to continue with a clean tree and one open iteration.
    Rerun `where_am_i.py` there in the same turn and offer the saved step or ready stages.
    For a status-only question, inspect that ref's committed reports and history with `git ls-tree`,
    `git show` and `git log` without switching. If local edits complicate a switch, give the
@@ -85,7 +84,10 @@ project's root and answer from its output. It prints, in this order:
 The earliest local unfinished point wins: a resume note, local unfinished progress,
 then a local unclosed/stale document. A stage active in a neighbouring chat is named,
 never offered as a second local continuation. For branch successors use «Готовность этапов»:
-one option for each ready stage; several may be selected together. Missing inputs are named,
+one option per ready stage, labelled [Бэкенд] or [Дизайн] at the fork. Both may be selected.
+With ready branches, an outdated business-requirements grill is a separate optional choice after them.
+A prior SRS close and the number of later amendments are reported separately. Give independent branches
+equal weight unless the user has selected a role. Missing inputs are named,
 including «идёт в соседнем чате» or «написан, этап не закрыт». With nothing ready here,
 say where the input is being made, finish, and offer only waiting or stopping.
 The default chain table never overrides this block. See [What to offer at a close](offer-at-close.md).

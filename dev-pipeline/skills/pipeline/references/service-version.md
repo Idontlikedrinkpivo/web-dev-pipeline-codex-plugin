@@ -33,8 +33,9 @@ later stage reuses it — it opens nothing. **No folder here but an iteration
 branch** — the current branch `iteration/<version>`, or one on `origin` not
 merged into `main`, whose version has no tag `v<version>` — is open as well:
 a fresh clone, or work another person pushed (`references/team.md`).
-`scripts/where_am_i.py` names it; `open_iteration.py <version>` only
-switches to it and creates the folder. No number is proposed, and steps 1
+`scripts/where_am_i.py` names it. To report readiness, follow `continue` and read the
+selected branch. When a stage needs to write iteration files, use `open_iteration.py <version>`
+from the project directory the reader identified. No number is proposed, and steps 1
 and 3 below are skipped when the branch already has documents.
 
 1. **The number.** Greenfield (no manifest version, no tag, no documents):
@@ -51,9 +52,8 @@ and 3 below are skipped when the branch already has documents.
    `python3 "<pipeline skill folder>/scripts/open_iteration.py" <version>`
    from the project's root. It updates `main` from `origin` when there is a
    remote, creates or switches to `iteration/<version>`, creates
-   `documentation/plans/<version>/`, puts `documentation/plans/` into
-   `.gitignore` (untracking it in its own commit), and prints what to say
-   next. Exit 2 is a question for the user, never something to work
+   `documentation/plans/<version>/` in the selected project and keeps portable reports in Git.
+   It updates the project's `.gitignore` for machine-local files and prints the next step. Exit 2 is a question for the user, never something to work
    around: the message names the options — an earlier iteration branch
    not merged into `main` (merge it first, start from `main` anyway with
    `--allow-unmerged`, or start on top of it with `--base`), or another

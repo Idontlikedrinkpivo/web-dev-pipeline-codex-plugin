@@ -12,16 +12,15 @@ disable-model-invocation: true
 A new session remembers nothing of the last one; the project's files do. This command reads them and puts the user
 back at the right stage.
 
-1. Run `python3 "<folder of this SKILL.md>/../pipeline/scripts/where_am_i.py"` from the project's root. Its output is the
-   evidence — never what an earlier session seemed to say. When it names an iteration open only by its branch
-   («Итерация … открыта по ветке» — a fresh clone, or a colleague's pushed work), run the `open_iteration.py` command
-   it prints and the script again: switching to that branch — its `plans/` folder comes with it — is part of
-   reading where the project is, and the documents live on that branch. The only commit it can make is the
-   `.gitignore` lines for this machine's files in `plans/` when that branch still lacks them; its output says so.
-2. Read the output by `pipeline` → `references/where-am-i.md` (`<folder of this SKILL.md>/../pipeline/references/where-am-i.md`):
-   it owns which open point comes first.
-3. Answer in plain Russian: where the project is, what is done, what is stale or waiting, and the next step — asked as
-   `pipeline` → «Asking before a transition» asks it (run, skip, or stop). Start nothing before the answer.
+1. Run `python3 "<folder of this SKILL.md>/../pipeline/scripts/where_am_i.py" <checkout or project folder>`.
+   Use the printed project directory for every document, question and subsequent stage. If several projects or
+   iterations match, ask which one. On pickup from another branch with a clean tree, switch to the existing
+   iteration branch and rerun the reader. A status-only request reads the named ref. Reporting readiness needs
+   no `open_iteration.py`, new plans folder, ignore-rule edit or commit.
+2. Read the output by `pipeline/references/where-am-i.md`. Report what closed, what changed since review,
+   what is waiting and which questions belong to the next stages.
+3. Offer each dependency-ready branch (backend and design can both be picked), then any optional repeat gate
+   and stopping. Give equal branches equal weight unless the user chose a role. Wait for the stage selection.
 4. In a parent session (`pipeline` → `references/parent-session.md`), offer all dependency-ready stages,
    regardless of the author of earlier documents. Open only the explicitly selected stages in this workflow.
    `subsessions.py plan` stores proposals; `authorize <stage>...` records the selected subset; `show` and resume

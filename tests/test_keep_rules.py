@@ -103,6 +103,8 @@ class KeepRulesTests(unittest.TestCase):
                                 capture_output=True, text=True)
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn('in this stage (work,', result.stdout)
+        self.assertIn('consume its completed verdict once', result.stdout)
+        self.assertIn('continue the authorized plan in this turn', result.stdout)
         syntax = subprocess.run(['sh', '-n', str(HOOK)], capture_output=True)
         self.assertEqual(syntax.returncode, 0)
 

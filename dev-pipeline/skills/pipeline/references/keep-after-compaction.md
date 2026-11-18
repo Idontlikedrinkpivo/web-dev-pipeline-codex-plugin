@@ -101,6 +101,9 @@ stage skill, its heading the skill's folder name; a stage with no section gets Â
 
 ## work
 
+- If review was open, recover its unit/round from `resume.md` and the reviewer handle from local runtime.
+  Wait for that reviewer or consume its completed verdict once, then run the next authorized plan step in this turn.
+
 - `progress.md` changes with Edit or `progress_set.py` â€” never from the shell; the line `progress_link.py` prints
   goes to the chat as printed.
 - After each safe boundary `context_size.py "$PWD" --next <next unit's grade>`: exit 2 saves a checkpoint and

@@ -21,7 +21,13 @@ content before transfer. Missing local files on the recipient are not success.
 
 **The resume note.** On start read `documentation/plans/<version>/resume.md`
 when a run left one (`pipeline` → `references/pause-and-resume.md` → Picking
-up). Refresh it after every commit and every stop, and delete it when the run
+up). Before dispatching a review, save its unit, round, reviewed diff/range and
+expected next action there. Record the returned reviewer handle in checkout-local
+runtime as soon as dispatch succeeds. On compaction reconcile that same review:
+wait for an active reviewer, consume its verified result once if already complete,
+then follow its verdict and dispatch the next authorized step in this turn. If
+delivery is uncertain, reconcile ownership before retrying. Refresh the note
+after findings, fix/re-review dispatches, every commit and every stop, and delete it when the run
 closes (Step 7): a note left behind sends the next session after a run that
 is over.
 

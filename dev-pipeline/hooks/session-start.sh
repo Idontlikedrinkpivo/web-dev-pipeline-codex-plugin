@@ -67,7 +67,7 @@ stage=""
 [ -n "$last" ] && stage=$(stage_of "$last")
 
 case "$src" in
-  compact) why="The context was just compacted: the rules of the skills read earlier are not in the summary." ;;
+  compact) why="The context was just compacted. For an in-flight work review, check resume.md and this chat's local runtime, wait for the existing reviewer or consume its completed verdict once, then continue the authorized plan in this turn." ;;
   clear) why="The context was just cleared." ;;
   resume) why="This session was resumed." ;;
   *) why="A new session in a project with an open iteration." ;;

@@ -2,7 +2,7 @@
 name: pipeline
 description: >-
   Stage order from idea to release: gates, next step, iteration close, changed decisions into documents. Use for «где
-  я», «что дальше», «продолжим», «закрой итерацию», «итог», «сводка», «что осталось до релиза», «поменяли правило —
+  я», «что дальше», «продолжим», «включи автосжатие в проекте», «закрой итерацию», «итог», «сводка», «что осталось до релиза», «поменяли правило —
   обнови документы».
 ---
 
@@ -35,6 +35,12 @@ names a parent runs its named stage. Read `references/parent-session.md` before
 creation: proposals and authorization are distinct in `scripts/subsessions.py`;
 resume never opens unselected chats. Without that choice or the needed tool,
 continue the stages in the current chat using Codex runtime mappings.
+
+When setting up the first long run in a project, offer the optional project-local
+auto-compaction threshold alongside the stage choices (see
+[context.md](references/context.md#project-auto-compaction)). Continue with the chosen
+stages if the user leaves the setting alone.
+For a direct request to enable it, apply the selected project's setting using that procedure.
 
 ## Two kinds of transition
 

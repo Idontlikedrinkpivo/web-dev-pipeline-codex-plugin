@@ -257,7 +257,11 @@ mode write first.
 
 **Acceptance scope and fingerprint.** A selective run takes the union of changed
 screens/operations, added/changed cases and prior failures, with a reason per
-case. Uncertain mapping expands scope. Record base/head, scope/result, code-tree
+case. Run `scripts/acceptance_scope.py select <project> --base <iteration base commit or release tag>
+--out documentation/plans/<version>/ui-acceptance.json` with Python. By default it reads TC headings,
+screen and frame links, operationIds, requirement IDs, the iteration plan and previous failures.
+The selected map gives the reason for each TC. Projects with a maintained mapping can pass
+`--mapping <file>`. Uncertain mapping expands scope. Record base/head, scope/result, code-tree
 hash and case-set hashes including the complete universe. Code/case changes
 invalidate affected subset and full results. Before a tag require one current
 full suite against the final fingerprint; combining stale subsets is not a full

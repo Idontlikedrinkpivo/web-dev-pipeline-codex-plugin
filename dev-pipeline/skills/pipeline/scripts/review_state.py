@@ -47,17 +47,22 @@ def report_only_descendant(root: Path, tested: str, *, version: str | None,
             return False, 'reviewed SHA missing or malformed'
         head = _git(root, 'rev-parse', '--verify', 'HEAD^{commit}').strip()
         _git(root, 'merge-base', '--is-ancestor', tested, head)
+        prefix = _git(root, 'rev-parse', '--show-prefix').rstrip('\n')
+        checkout = Path(_git(root, 'rev-parse', '--show-toplevel').rstrip('\n'))
         def allowed(path: str) -> bool:
+            if not path.startswith(prefix):
+                return False
+            path = path[len(prefix):]
             return report_path(path, version) and not any(path == p or path.startswith(p.rstrip('/') + '/') for p in protected)
         if not allow_dirty:
-            dirty = set(_git(root, 'diff', '--name-only', '-z', 'HEAD', '--').split('\0'))
-            dirty.update(_git(root, 'ls-files', '--others', '--exclude-standard', '-z').split('\0'))
+            dirty = set(_git(checkout, 'diff', '--name-only', '-z', 'HEAD', '--').split('\0'))
+            dirty.update(_git(checkout, 'ls-files', '--others', '--exclude-standard', '-z').split('\0'))
             if any(path and not allowed(path) for path in dirty):
                 return False, 'uncommitted code/cases/scope after review'
         if head == tested:
             return True, 'exact reviewed HEAD'
         for commit in _git(root, 'rev-list', tested + '..' + head).splitlines():
-            paths = set(_git(root, 'diff-tree', '--root', '-r', '-m', '--no-renames',
+            paths = set(_git(checkout, 'diff-tree', '--root', '-r', '-m', '--no-renames',
                              '--no-commit-id', '--name-only', '-z', commit).split('\0')) - {''}
             if not paths or any(not allowed(path) for path in paths):
                 return False, 'HEAD includes a non-report or reviewed-scope commit'

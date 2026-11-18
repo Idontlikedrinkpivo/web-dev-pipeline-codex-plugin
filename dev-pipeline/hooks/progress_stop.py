@@ -14,7 +14,8 @@ import shlex
 import sys
 from pathlib import Path
 
-from guard import checkout_root, edit_chunks, is_progress
+from guard import edit_chunks, is_progress
+from project_scope import project_root, active_project
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "skills/reflect/scripts"))
 from sessions import literal_calls
@@ -173,8 +174,8 @@ def main() -> None:
     data = json.load(sys.stdin)
     if not isinstance(data, dict) or data.get("stop_hook_active") is True:
         return
-    root = checkout_root(data.get("cwd") or ".")
-    if not (root / "documentation/.dev-pipeline.json").is_file():
+    root = project_root(Path(data.get("cwd") or "."))
+    if not active_project(root):
         return
     records = []
     try:

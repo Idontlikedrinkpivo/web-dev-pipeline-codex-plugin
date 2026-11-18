@@ -101,7 +101,10 @@ rules (check them — the session may have run an older version).
 6. **Write.** Append one section to
    `${CODEX_HOME:-~/.codex}/dev-pipeline-feedback/<project folder's basename>.md` (create the
    folder and the file when missing; never rewrite earlier sections). Shape
-   below. Nothing is written into the project and nothing is committed.
+   below. For a finding discovered after publication, append `### Дополнение к <exact original section title>`
+   at the end of the same file, followed by the seven finding fields. Check existing additions for the same
+   evidence before appending. The addition carries no usage totals, «Окно» line or `reflect-window` block.
+   The next run continues from the last completed window. Nothing is written into the project.
 7. **Report** in one line: the file as a clickable link, how many findings,
    how many sessions read, the run's total from the measure. With none, write the section anyway, saying so —
    the maintainer sees the iteration was reviewed.

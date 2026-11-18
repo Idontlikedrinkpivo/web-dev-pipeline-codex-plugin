@@ -23,7 +23,7 @@ Refused:
   (executor-catalog → worker-prompt RULES).
 - Edit / apply_patch update inserting a progress bar of 20+ cells — use progress_set.py.
 
-Acts only in a project with documentation/.dev-pipeline.json. Never fails the tool call on its own error. Each
+Acts in a pipeline project with a plugin stamp or plans directory. Never fails the tool call on its own error. Each
 refusal is also logged outside the project (~/.claude/dev-pipeline-feedback/.guard/<project>.jsonl), and reflect
 reports them (reflect/scripts/guard_report.py).
 `decide()` is pure, so `claude/tools/guard_replay.py` can run it over past sessions.
@@ -40,7 +40,8 @@ from datetime import datetime
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "skills" / "pipeline" / "scripts"))
-from state_paths import checkout_root, contained_path, plans_root
+from state_paths import checkout_root, contained_path
+from project_scope import active_project, project_root, plans_folder
 
 RUNNER = re.compile(r"\b(?:npm (?:run )?(?:test|lint|typecheck)|npx (?:vitest|jest|tsc|eslint|playwright test)|"
                     r"pnpm (?:run )?(?:test|lint|typecheck)|yarn (?:test|lint|typecheck)|pytest|"
@@ -305,8 +306,8 @@ def git(cwd: str, *args: str) -> str:
 
 def open_iteration(project: str) -> str | None:
     try:
-        root = checkout_root(project)
-        plans = plans_root(root)
+        root = Path(project)
+        plans = plans_folder(root)
         if not plans.exists():
             return None
         if not plans.is_dir():
@@ -337,6 +338,8 @@ def main() -> None:
     except Exception:
         return
     tool, inp = data.get("tool_name", ""), data.get("tool_input") or {}
+    if tool == "exec_command" and isinstance(inp, dict):
+        tool, inp = "Bash", {**inp, "command": inp.get("cmd", "")}
     # Codex runs a command in its own workdir; Claude Code names the project in CLAUDE_PROJECT_DIR
     cwd = (inp.get("workdir") if isinstance(inp, dict) else None) or data.get("cwd") or os.getcwd()
     try:
@@ -347,16 +350,16 @@ def main() -> None:
         git(cwd, "rev-parse", "--path-format=absolute", "--git-common-dir") or "-")
     worktrees = git(cwd, "worktree", "list", "--porcelain").splitlines() if is_worktree else []
     main_root = worktrees[0][len("worktree "):] if worktrees and worktrees[0].startswith("worktree ") else None
-    project = top
+    project = project_root(Path(cwd))
     # Older worktrees may lack the project marker. Use that one activation file
     # from main, never main's plans; branch and iteration always belong to cwd.
-    marker = os.path.join(project, "documentation", ".dev-pipeline.json")
     log_project = project
-    if not os.path.isfile(marker) and main_root:
-        marker = os.path.join(main_root, "documentation", ".dev-pipeline.json")
-        log_project = main_root
-    if not os.path.isfile(marker):
-        return
+    if not active_project(project):
+        if not main_root:
+            return
+        log_project = Path(main_root) / project.relative_to(top)
+        if not (log_project / 'documentation/.dev-pipeline.json').is_file():
+            return
     branch = ""
     if tool == "Bash" and re.search(r"\b(?:merge|fetch|update-ref|push|branch)\b", str(inp.get("command", ""))):
         cmd = str(inp.get("command", ""))

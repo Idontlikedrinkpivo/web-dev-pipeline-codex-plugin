@@ -20,6 +20,9 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / 'pipeline' / 'scripts'))
 from review_state import report_only_descendant
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import case_impact
+
 
 def git(root: Path, *args: str) -> str:
     result = subprocess.run(["git", "-C", str(root), *args], capture_output=True)
@@ -48,7 +51,7 @@ def file_hash(path: Path) -> str | None:
 
 def mapping_data(root: Path, mapping: str | None) -> dict:
     if not mapping:
-        return {"cases": [], "changes": {}, "prior_failures": [], "unavailable": "mapping unavailable"}
+        return case_impact.discover(root)
     data = json.loads(contained(root, mapping).read_text(encoding="utf-8"))
     if not isinstance(data, dict) or not isinstance(data.get("cases"), list) or not isinstance(data.get("changes", {}), dict):
         raise ValueError("invalid case mapping")
@@ -80,22 +83,70 @@ def fingerprints(root: Path, mapping: str | None) -> tuple[dict, dict]:
     return {"code_tree": digest(code), "case_set": digest(universe)}, data
 
 
-def select(root: Path, base: str, mapping: str | None) -> dict:
+def select(root: Path, base: str, mapping: str | None, *, previous_failures=None) -> dict:
     base_sha, head = git(root, "rev-parse", base + "^{commit}").strip(), git(root, "rev-parse", "HEAD").strip()
     hashes, data = fingerprints(root, mapping)
-    changed = set(git(root, "diff", "--name-only", "-z", base_sha).split("\0")) - {""}
+    changed = set(git(root, "diff", "--relative", "--name-only", "-z", base_sha, "--", ".").split("\0")) - {""}
     changed.update(set(git(root, "ls-files", "-z", "--others", "--exclude-standard").split("\0")) - {""})
     selected, unmapped = {}, []
     def include(case_id, reason):
         selected.setdefault(case_id, []).append(reason)
-    for case in data["cases"]:
-        if case["path"] in changed:
+    branch = git(root, 'rev-parse', '--abbrev-ref', 'HEAD').strip()
+    iteration = re.fullmatch(r'iteration/(\d+\.\d+\.\d+)', branch)
+    folder = root / 'documentation/plans' / iteration[1] if iteration else None
+    plan = contained(root, folder / 'plan.md') if folder else None
+    units = list(case_impact.plan_units(plan.read_text(), data['cases'])) if not mapping and plan and plan.is_file() else []
+    report = contained(root, folder / 'test-run.md') if folder else None
+    if previous_failures is None:
+        previous_failures = case_impact.failures(report.read_text()) if not mapping and report and report.is_file() else []
+    cases = data['cases']
+    case_paths = {c['path'] for c in cases}
+    for case in cases:
+        if mapping and case["path"] in changed:
             include(case["id"], "added/changed case")
-        if case["id"] in data.get("prior_failures", []):
+        if case["id"] in set(previous_failures) | set(data.get("prior_failures", [])):
             include(case["id"], "previous failure")
+        for uid, ids, _ in units:
+            overlap = ids.intersection(case['screens'] + case['operations'] + case['requirements'])
+            if overlap:
+                include(case['id'], f"plan {uid}: {', '.join(sorted(overlap))}")
     for path in sorted(changed):
-        if path.startswith("documentation/plans/") or path == mapping or path in {c["path"] for c in data["cases"]}:
+        if path.startswith(("documentation/plans/", "documentation/_web-docs/")) or path == mapping:
             continue
+        document = (path.startswith(('documentation/api/', 'documentation/requirements/srs/'))
+                    or '/screen-specs/' in path or path.endswith('/frames-register.md'))
+        if not mapping and (document or path in case_paths):
+            obj = f'{base_sha}:./{path}'
+            before = git(root, 'show', obj) if subprocess.run(['git', '-C', str(root), 'cat-file', '-e', obj],
+                                                               capture_output=True).returncode == 0 else ''
+            file = contained(root, path)
+            after = file.read_text(errors='replace') if file.is_file() else ''
+            if path in case_paths:
+                if before.partition('## TC-')[0] != after.partition('## TC-')[0]:
+                    unmapped.append(path)  # shared prerequisites or setup changed
+                old = dict(case_impact.blocks(before))
+                for cid, body in case_impact.blocks(after):
+                    if old.get(cid) != body:
+                        include(cid, "added/changed case")
+                continue
+            dimension, ids = case_impact.identifiers(path, before, after)
+            covered = set()
+            for c in cases:
+                overlap = ids.intersection(c.get(dimension, []))
+                if overlap:
+                    include(c['id'], f"{path}: {', '.join(sorted(overlap))}")
+                    covered.update(overlap)
+            if not ids or covered != ids:
+                unmapped.append(path)
+            continue
+        if path in case_paths:
+            continue
+        if not mapping:
+            file_units = [ids for _, ids, files in units if path in files]
+            traced = {identifier for c in cases for field in ('screens', 'operations', 'requirements')
+                      for identifier in c[field]}
+            if file_units and all(ids and ids <= traced for ids in file_units):
+                continue  # selection above already includes each case linked to these units
         matched = False
         for dimension in ("screens", "operations"):
             rules = data.get("changes", {}).get(dimension, {})
@@ -117,12 +168,10 @@ def select(root: Path, base: str, mapping: str | None) -> dict:
     if unmapped or data.get("unavailable"):
         for case in data["cases"]:
             include(case["id"], "conservative full set: uncertain mapping")
-    branch = git(root, 'rev-parse', '--abbrev-ref', 'HEAD').strip()
-    iteration = re.fullmatch(r'iteration/(\d+\.\d+\.\d+)', branch)
     return {"schema_version": 1, "base": base_sha, "head": head, "mapping": mapping,
             "version": iteration[1] if iteration else None,
             "fingerprints": hashes, "universe": sorted(c["id"] for c in data["cases"]),
-            "selected": selected, "unmapped": unmapped,
+            "previous_failures": previous_failures, "selected": selected, "unmapped": unmapped,
             "blocked": data.get("unavailable"), "applicability": {"ui": True, "reason": None}, "runs": []}
 
 
@@ -136,7 +185,7 @@ def current(root: Path, manifest: dict, *, allow_dirty: bool = False) -> tuple[b
         current_head, reason = report_only_descendant(root, manifest['head'], version=manifest.get('version'), allow_dirty=allow_dirty)
         if not current_head:
             return False, reason
-        expected = select(root, manifest["base"], manifest["mapping"])
+        expected = select(root, manifest["base"], manifest["mapping"], previous_failures=manifest.get("previous_failures"))
         if manifest.get("universe") != expected["universe"] or manifest.get("selected") != expected["selected"]:
             return False, "acceptance coverage/selection differs from current case universe"
         if manifest.get("blocked") != data.get("unavailable"):

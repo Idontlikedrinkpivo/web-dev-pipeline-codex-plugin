@@ -63,6 +63,13 @@ class WindowTests(RepoTest):
         self.assertEqual(sessions.read_windows('', self.root.name, '1.0.1', self.start)[0], self.start)
         self.assertIn('migration', sessions.read_windows('Окно: 2026-11-05 10:00 — 2026-11-05 10:01', self.root.name, '1.0.1', self.start)[2][0])
 
+    def test_late_addition_preserves_published_window(self):
+        end = self.start + timedelta(minutes=2)
+        original = self.blocks([self.record(self.start, end)])
+        addition = '\n### Дополнение к разбору итерации 1.0.1\n- **Что случилось:** поздняя находка\n'
+        read = lambda text: sessions.read_windows(text, self.root.name, '1.0.1', self.start)
+        self.assertEqual(read(original + addition), read(original))
+
     def test_window_cli_sources_boundary_cursor_and_exact_filters(self):
         logs = self.home / 'sessions'
         logs.mkdir()

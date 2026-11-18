@@ -32,12 +32,21 @@ elif isinstance(ti, str):
     texts = [ti]
 for t in texts:
     found += re.findall(r"^\*\*\* (?:(?:Add|Update|Delete) File|Move to): (.+?)\s*$", t, re.M)
+project = root
+if os.path.isdir(root) and os.path.isfile(os.path.join(sys.argv[2], "project_scope.py")):
+    sys.path.insert(0, sys.argv[2])
+    from pathlib import Path
+    from project_scope import project_root
+    try:
+        project = str(project_root(Path(root)))
+    except ValueError:
+        pass
 for p in found:
     full = os.path.realpath(p if os.path.isabs(p) else os.path.join(root, p))
-    rel = os.path.relpath(full, root).replace(os.sep, "/")
+    rel = os.path.relpath(full, project).replace(os.sep, "/")
     if re.fullmatch(r"documentation/plans/[0-9][0-9.]*/(progress[a-z0-9-]*|test-run|security-audit)\.md", rel):
-        print(rel)
-' "$dir" 2>/dev/null | sort -u | while read -r rel; do
-  python3 "$script" "$dir/$rel" >/dev/null 2>&1 || true
+        print(full)
+' "$dir" "$(dirname "$script")" 2>/dev/null | sort -u | while IFS= read -r full; do
+  python3 "$script" "$full" >/dev/null 2>&1 || true
 done
 exit 0

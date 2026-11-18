@@ -1208,5 +1208,23 @@
       }
     },
     "fix": "Добавить preflight и отдельный скан после сборки: trivy_images.py, все образы, vuln+secret без фильтра секретов. Сохранить strict manifest validator Codex; build/ и scan/ в комплекте. Принятый риск только CRITICAL, с digest/CVE/пакетом/целью/согласовавшим/датами. Никакой автоматической публикации registry."
+  },
+  {
+    "id": "srs-browsers-row",
+    "version": "1.3.8",
+    "title": "Поддерживаемые браузеры в старом SRS",
+    "what": "В разделе нефункциональных требований SRS указывают поддерживаемые браузеры. По этой строке фронтенд выбирает цель сборки, а тестировщик — набор браузеров для проверки.",
+    "applies": {
+      "exists": "documentation/requirements/srs/srs.md"
+    },
+    "behind": {
+      "not": {
+        "grep": {
+          "path": "documentation/requirements/srs/srs.md",
+          "pattern": "(?i)совместимость браузеров|поддерживаемые браузеры|поддерживаются браузеры"
+        }
+      }
+    },
+    "fix": "В §4 SRS добавить строку «Совместимость браузеров» по srs-writer/references/srs-template.md и frontend/references/browser-support.md. Для проекта без веб-интерфейса указать «Не применимо». Если есть архитектурный документ, согласовать его решение по этому НФТ."
   }
 ]

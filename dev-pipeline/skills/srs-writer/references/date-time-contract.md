@@ -22,6 +22,15 @@ what happens if zone rules change. Do not invent recurrence for a one-off event.
 Define whose «today»/«end of day» applies and whether boundaries are inclusive. The same policy must drive
 validation, queries and displayed values. Only ask about clock-change cases relevant to the product.
 
+## Screen specs for an older SRS
+
+When the SRS omits the kind, read the referenced OpenAPI field and its description.
+A string with `format: date` is a calendar date. Treat a timestamp as an instant when the
+contract establishes that meaning. For local scheduled time, cite the explicitly linked
+zone field or the documented location-to-zone relation. A nearby zone property or a bare
+`date-time` cannot settle the display zone. Record a gap against the SRS for conflicting
+or ambiguous meanings, or against the API when a required zone is unavailable.
+
 ## Downstream ownership
 
 - **DB:** preserve `db-schema-design`'s `date` for calendar days and `timestamptz` for instants. Persist the

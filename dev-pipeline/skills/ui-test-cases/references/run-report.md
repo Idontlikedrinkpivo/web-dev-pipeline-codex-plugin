@@ -211,13 +211,13 @@ page shape: `references/progress-files.md` → The page).
 
 The close gate reads `documentation/plans/<version>/ui-acceptance.json`.
 The read-only gate is `scripts/acceptance_scope.py check ROOT --manifest FILE`.
-Before an authorized run use `select ROOT --base REF --mapping FILE --out FILE`;
+Before an authorized run use `select ROOT --base REF [--mapping FILE] --out FILE`;
 after observation use `record ROOT --manifest FILE --scope selected|full
 --status pass|blocked|not-run --evidence TEXT`. A pass also requires `--tool NAME
---stand URL` (or a reasoned `--no-ui-reason REASON` exemption). Mapping contains cases
+--stand URL` (or a reasoned `--no-ui-reason REASON` exemption). An explicit mapping contains cases
 (`id`, `path`, `screens`, `operations`), changed path-to-screen/operation mappings
-and prior_failures IDs. Missing mapping conservatively selects full scope with a
-blocked reason. Record genuine UI non-applicability using `--scope full --status
+and prior_failures IDs. Without a mapping file the selector reads the canonical case documents,
+Git changes, current plan and last run. Unmapped changes select the full set. An unknown case universe blocks a pass. Record genuine UI non-applicability using `--scope full --status
 pass --no-ui-reason REASON`; this is a reasoned exemption, not browser evidence.
 
 For each selection record base/head, changed screens/operations, added/changed

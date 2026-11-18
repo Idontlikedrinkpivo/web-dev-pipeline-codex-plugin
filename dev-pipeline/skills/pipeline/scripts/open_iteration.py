@@ -26,6 +26,7 @@ from __future__ import annotations
 
 import json
 import re
+import shutil
 import subprocess
 import sys
 from datetime import datetime, timezone
@@ -166,6 +167,19 @@ def code_changes(root: Path) -> str | None:
         return None
 
 
+def compaction_at_open(project: Path) -> None:
+    # The opener also runs on Python 3.9; the optional TOML reader needs 3.11+.
+    python = sys.executable if sys.version_info >= (3, 11) else shutil.which("python3.12") or shutil.which("python3.11")
+    if python:
+        result = subprocess.run([python, str(HERE / "project_compaction.py"), str(project), "--iteration-offer"],
+                                text=True, capture_output=True)
+        if result.returncode == 0:
+            if result.stdout.strip():
+                print(result.stdout.strip())
+            return
+    print("Could not verify the project compaction setting. Check .codex/config.toml before offering a threshold.")
+
+
 def main() -> None:
     args = sys.argv[1:]
     if "--small" in args:
@@ -229,6 +243,7 @@ def main() -> None:
     picked_up = not folder.is_dir() and (has_ref(root, f"refs/heads/{branch}") or has_ref(root, f"refs/remotes/origin/{branch}"))
     main_ref = main_branch(root, remote) or (current if unborn else None)
 
+    created_branch = False
     if current == branch:
         notes.append(f"already on {branch}")
     elif has_ref(root, f"refs/heads/{branch}"):
@@ -284,6 +299,7 @@ def main() -> None:
             fail(f"could not create {branch} from {start}: {(r.stderr or r.stdout).strip()} — the working tree has "
                  "changes that conflict with it; ask the user how to handle them (never stash on your own).")
         notes.append(f"created {branch} from {start} and switched to it")
+        created_branch = True
 
     # Switching branches can replace a directory with a symlink. Validate again
     # before the first portable-state write on the selected iteration branch.
@@ -297,6 +313,7 @@ def main() -> None:
             fail(f"iteration {version} is closed on the selected branch")
     except ValueError as exc:
         fail(str(exc))
+    new_iteration = created_branch and not folder.is_dir()
     folder.mkdir(parents=True, exist_ok=True)
     marker = contained_path(root, folder / "iteration.json")
     if not marker.exists():
@@ -311,6 +328,8 @@ def main() -> None:
     for n in notes:
         print(f"- {n}")
     print(design_line(root, picked_up))
+    if new_iteration:
+        compaction_at_open(root)
     line = code_changes(root)
     if line:
         print(line)
@@ -393,6 +412,8 @@ def small_open(args: list[str]) -> None:
             "base_head": head, "chat_id": "chat-1", "result": None}
     marker.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
     print(f"Iteration {version}: {branch}; mode=small; Plan-Unit: {version}/chat-1")
+    if not active and version not in opened:
+        compaction_at_open(root)
 
 
 if __name__ == "__main__":

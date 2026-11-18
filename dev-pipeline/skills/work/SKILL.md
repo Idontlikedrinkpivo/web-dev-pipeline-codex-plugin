@@ -13,8 +13,8 @@ A changed decision in another stage's document: under a parent, route through it
 [Под родительским чатом](../pipeline/references/decision-changes.md#под-родительским-чатом); never launch its writer here.
 
 At entry: run `open_questions.py <project> --for 'разработка'`; pass rows as `QUESTIONS TO SETTLE`.
-For a standalone first long run, include the optional [project auto-compaction setting](../pipeline/references/context.md#project-auto-compaction)
-in the setup note. Continue the plan with the current setting unless the user opts in.
+If this run opens an iteration, include the opener's optional [project auto-compaction question](../pipeline/references/context.md#project-auto-compaction)
+with the next step and continue the plan.
 At close: settle or readdress each original row and report every outcome.
 Both steps: [Вопросы, адресованные этапу](../pipeline/references/decision-changes.md#вопросы-адресованные-этапу).
 

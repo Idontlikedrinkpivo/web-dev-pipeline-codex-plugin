@@ -51,13 +51,32 @@ def project_limit(project: Path, enable: int | None = None) -> int | None:
     return enable
 
 
+def iteration_offer(project: Path) -> str | None:
+    """Codex loads project config layers from the checkout down to its working directory."""
+    project = project.resolve(strict=True)
+    checkout = checkout_root(project)
+    for folder in (project, *project.parents):
+        if project_limit(folder) is not None:
+            return None
+        if folder == checkout:
+            break
+    return "Включить для новых чатов этого проекта автосжатие на 300 000 токенов?"
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("project", type=Path, help="the exact directory opened in Codex")
-    parser.add_argument("--enable", type=int, metavar="TOKENS", help="set the local threshold after opt-in")
+    mode = parser.add_mutually_exclusive_group()
+    mode.add_argument("--enable", type=int, metavar="TOKENS", help="set the local threshold after opt-in")
+    mode.add_argument("--iteration-offer", action="store_true", help="print the optional opening question if unset")
     args = parser.parse_args()
     try:
-        value = project_limit(args.project, args.enable)
+        if args.iteration_offer:
+            question = iteration_offer(args.project)
+            if question:
+                print(question)
+        else:
+            value = project_limit(args.project, args.enable)
+            print(f"{KEY} = {value}" if value is not None else "No project-local threshold")
     except (OSError, ValueError) as exc:
         parser.exit(1, f"{exc}\n")
-    print(f"{KEY} = {value}" if value is not None else "No project-local threshold")

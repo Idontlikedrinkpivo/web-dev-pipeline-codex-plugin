@@ -18,11 +18,12 @@ short; it does not need the stage's transcript.
 
 ### Project auto-compaction
 
-Before the first long run, inspect the exact project directory opened in Codex with
-`python3.12 <skills-root>/pipeline/scripts/project_compaction.py "<project>"` (Python 3.11+).
-If unset, offer once during setup to lower the native threshold for new chats in this
-trusted project to 300,000 tokens (or the user's chosen value). Leave an already
-lower limit in place. On explicit opt-in run the same command with `--enable 300000`
+At each new iteration, normal or small, the opener checks for a project threshold.
+Show its optional question once with the next step. Reusing the iteration or moving to
+another stage does not repeat the offer. If the setting could not be read, verify the
+project config layers first; an unknown value is not evidence that a threshold is missing.
+On explicit opt-in run
+`python3.12 <skills-root>/pipeline/scripts/project_compaction.py "<project>" --enable 300000` (Python 3.11+)
 or the chosen positive count. Record the choice with the run decisions. A missing
 answer keeps setup optional and the plan moving. The helper edits only the project's
 `.codex/config.toml`; preserve global settings and other projects. Existing chats

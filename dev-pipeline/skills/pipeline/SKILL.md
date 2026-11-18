@@ -36,10 +36,9 @@ creation: proposals and authorization are distinct in `scripts/subsessions.py`;
 resume never opens unselected chats. Without that choice or the needed tool,
 continue the stages in the current chat using Codex runtime mappings.
 
-When setting up the first long run in a project, offer the optional project-local
-auto-compaction threshold alongside the stage choices (see
-[context.md](references/context.md#project-auto-compaction)). Continue with the chosen
-stages if the user leaves the setting alone.
+When opening a new iteration, include the optional auto-compaction question from
+`open_iteration.py` alongside the next step. Continue with the chosen stages
+if the user leaves the setting alone (see [context.md](references/context.md#project-auto-compaction)).
 For a direct request to enable it, apply the selected project's setting using that procedure.
 
 ## Two kinds of transition

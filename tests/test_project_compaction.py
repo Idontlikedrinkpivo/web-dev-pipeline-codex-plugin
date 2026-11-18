@@ -10,7 +10,7 @@ from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "dev-pipeline/skills/pipeline/scripts"))
-from project_compaction import KEY, project_limit
+from project_compaction import KEY, iteration_offer, project_limit
 
 
 class ProjectCompactionTests(unittest.TestCase):
@@ -29,6 +29,39 @@ class ProjectCompactionTests(unittest.TestCase):
         self.assertEqual(project_limit(self.project, 300000), 300000)
         self.assertEqual(tomllib.loads(self.config.read_text()), {KEY: 300000})
         self.assertFalse((self.root / ".codex").exists())
+
+    def test_nested_project_inherits_threshold_but_ignores_a_sibling(self):
+        sibling = self.root / "sibling"
+        sibling.mkdir()
+        project_limit(sibling, 42000)
+        self.assertIn("300 000", iteration_offer(self.project))
+        project_limit(self.root, 120000)
+        self.assertIsNone(iteration_offer(self.project))
+
+    def open_iteration(self, version, *flags):
+        script = ROOT / "dev-pipeline/skills/pipeline/scripts/open_iteration.py"
+        return subprocess.run([sys.executable, str(script), version, str(self.root), *flags],
+                              check=True, text=True, capture_output=True).stdout
+
+    def prepare_main(self):
+        for args in (("symbolic-ref", "HEAD", "refs/heads/main"),
+                     ("config", "user.name", "Test"), ("config", "user.email", "test@example.org"),
+                     ("commit", "--allow-empty", "-qm", "initial")):
+            subprocess.run(["git", "-C", str(self.root), *args], check=True)
+
+    def test_normal_open_offers_once_per_new_iteration_until_enabled(self):
+        self.prepare_main()
+        self.assertIn("автосжатие", self.open_iteration("1.0.0"))
+        self.assertNotIn("автосжатие", self.open_iteration("1.0.0"))
+        self.assertIn("автосжатие", self.open_iteration("1.0.1", "--allow-open", "--allow-unmerged"))
+        self.assertFalse((self.root / ".codex/config.toml").exists())
+        project_limit(self.root, 150000)
+        self.assertNotIn("автосжатие", self.open_iteration("1.0.2", "--allow-open", "--allow-unmerged"))
+
+    def test_small_open_uses_same_rule_and_reuse_is_quiet(self):
+        self.prepare_main()
+        self.assertIn("автосжатие", self.open_iteration("1.0.0", "--small"))
+        self.assertNotIn("автосжатие", self.open_iteration("1.0.0", "--small"))
 
     def test_keep_tables_comments_and_existing_choice(self):
         self.config.parent.mkdir()

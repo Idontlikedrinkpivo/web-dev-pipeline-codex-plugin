@@ -60,7 +60,7 @@ def iteration_offer(project: Path) -> str | None:
             return None
         if folder == checkout:
             break
-    return "Включить для новых чатов этого проекта автосжатие на 300 000 токенов?"
+    return "Вопрос 1 из 1. Включить для новых чатов этого проекта автосжатие на 300 000 токенов?"
 
 
 if __name__ == "__main__":

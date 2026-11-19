@@ -27,7 +27,7 @@ there, and the missing ones are written from the code as it is (`references/as-i
 ## Steps
 
 The changes are shown **one at a time**, one per message, so each is answered before the next appears; the script
-hands out one change per call.
+hands out one change per call. Start every chat question with «Вопрос N из X». Keep the script’s document or change position below the title when it also identifies the item.
 
 0. **The set.** `python3 "<folder of this SKILL.md>/scripts/project_format.py" set .` — what the code shows, each
    document of the set with «есть», «нет», «неполный», «не нужен» or «пропущен», and how many files of the

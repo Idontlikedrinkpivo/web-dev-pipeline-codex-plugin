@@ -73,7 +73,7 @@ The session is done when the frontier is empty: every branch of the design tree 
 The close is a question too, shown the same way: this block, then stop.
 
 ```
-**Гриль закрыт?**
+**Вопрос 1 из 1. Гриль закрыт?**
 
 Нерешённых вопросов не осталось: всё, что меняет документ, решено с вами.
 Подтверждение записывает согласованные правки в документ и закрывает

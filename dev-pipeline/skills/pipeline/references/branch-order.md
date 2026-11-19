@@ -38,7 +38,7 @@ order; the user may change the order at any of those questions.
 - **Start both.** Dispatch the first stage of each branch; the long work
   (writers, Figma builders) runs in the background, so neither branch
   waits on the other.
-- **Every question names its branch** — the chat line starts with
+- **Every question names its branch** — the numbered question title includes
   `[Бэкенд]` or `[Дизайн]`, and its letters carry the branch too («Б-A»,
   «Д-A») so a bare letter cannot answer the wrong one — and questions still come one at a time: a
   question of the other branch waits until this one is answered, while

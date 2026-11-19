@@ -15,8 +15,14 @@ one project the user answered «ничего не понял» four times runnin
 
 ## The shape
 
-1. **Title line** — `**Вопрос N. <что решаем, простыми словами>**`
-   (a gate or a transition may drop the number).
+1. **Title line** — `**Вопрос N из X. <что решаем, простыми словами>**`
+   for every chat question, including a gate or transition. Substitute actual
+   numbers: N is this question’s position in the current series; X is N plus
+   the remaining known questions in that series. Count the queue before asking
+   the first question. A standalone choice is «Вопрос 1 из 1». If an answer
+   adds or settles a later question, update X on the next message. Keep N
+   when clarifying the same unanswered question or resuming it after a pause.
+   Document question IDs and option counts do not determine N or X.
 2. **What a person will see, or what breaks — one sentence in plain
    words, with a concrete example**: an input and what comes out
    («файл «Отчёт.docx» скачается как «download»»), a screen and what is
@@ -40,7 +46,7 @@ one project the user answered «ничего не понял» four times runnin
 Then stop. The next question is a new message after the user answered.
 
 ```text
-**Вопрос 1. Видит ли посетитель черновики в списке записей**
+**Вопрос 1 из 3. Видит ли посетитель черновики в списке записей**
 
 Сейчас посетитель видит и записи без статуса: черновик «Отчёт за май»
 появится у него в списке, хотя автор его ещё не отправил. Правило на

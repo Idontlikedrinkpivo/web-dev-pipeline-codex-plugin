@@ -33,7 +33,7 @@ into `open-questions.md` in order to show it. That file is updated only
 after the user chooses Отложить.
 
 ```
-**Замечание N из M. {title}**
+**Вопрос N из M. {title}**
 
 Что не так: …полный текст замечания, не заголовок…
 Что изменится, если применить: …
@@ -68,7 +68,7 @@ Preview the planned action per finding (`Apply` / `Defer` / `Skip` from
 `recommended_action`), one line each, then one question:
 
 ```text
-**Применить рекомендованное?**
+**Вопрос 1 из 1. Применить рекомендованное?**
 
 <the preview: «1. Применить — …», «2. Отложить — …»>
 

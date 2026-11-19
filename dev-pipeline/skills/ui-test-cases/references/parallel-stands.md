@@ -36,7 +36,7 @@ many stands) and the run has more than one test file, ask once, before the
 run, per `grill-me` → "How a question is shown":
 
 ```text
-**Прогнать тесты на нескольких копиях приложения или на одной**
+**Вопрос 1 из 1. Прогнать тесты на нескольких копиях приложения или на одной**
 
 Тестовое приложение (стенд) пока нельзя запустить в нескольких копиях:
 <что мешает — фиксированные порты, container_name, нет scripts/e2e-stands.sh>.

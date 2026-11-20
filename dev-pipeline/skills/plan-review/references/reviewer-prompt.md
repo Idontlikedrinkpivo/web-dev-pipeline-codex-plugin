@@ -126,6 +126,9 @@ LARGE FILES     A diff or a plan over ~25,000 tokens is read in parts: the diff'
   Parallel safety — for each Параллельно: yes pair: disjoint «Файлы» AND no
     shared type, migration, registry, config, generated client, lockfile, or
     runtime resource (test database, port, dev server).
+    A shared database/port that can be isolated gets yes (своя БД) or yes (свой стенд).
+    Flag independent chains of five or more units left serial without a shared contract; check the streams,
+    hours and critical path in §4. After the UI foundation, independent screens may run in parallel.
     File disjointness alone is not sufficient; an unmarked shared contract is
     a finding. A dependency serializes a pair; justified serial ownership may
     overlap, including broad directories. Do not hard-fail ownership merely
@@ -221,6 +224,14 @@ LARGE FILES     A diff or a plan over ~25,000 tokens is read in parts: the diff'
     the error-to-status mapping, the constraint, the AC. "Rejects an invalid
     transition" is not specified; "Paid→Draft raises IllegalTransition, per
     BR-3" is.
+  Cross-unit rules — find in the design the rules several units must carry:
+    which operations retry a failed transaction and which answer 503 (the
+    OpenAPI's declared 503s against the architecture), what a status change
+    releases or clears, a check every write repeats under the lock. Each is
+    a row of §1 «Общие правила» whose owner is an existing unit and whose
+    bound units name it in «Подход»; a rule with no row or no owner is P1
+    «правило без владельца: <rule>». A unit adding a replacement for an
+    existing function, hook or route with no unit deleting the old one: P2.
 ```
 
 ## The report

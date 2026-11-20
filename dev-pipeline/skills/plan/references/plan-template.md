@@ -47,6 +47,11 @@ Version · level · reason (Step 1) · the changes, when several · architecture
 level and budget · stack · the unit spine this produced · what the scaffold
 already provides.
 
+### Общие правила
+Only when a rule spans units (`writer.md` → Step 2 → Rules that span units); otherwise no subsection.
+| Правило | Где записано | Операции и места | Владелец | Соблюдают |
+|---|---|---|---|---|
+
 ## 2. Карта юнитов
 | U | Юнит | Сложность | Исполнитель | Вложенный | Зависит от | Параллельно |
 |---|---|---|---|---|---|---|
@@ -61,7 +66,14 @@ One `### U<n>.` block per unit, per Step 4.
 Which units may run together, derived from «Зависит от» + «Параллельно». A wave
 is a claim about contention, so name the contention that keeps units apart.
 For each wave, also name which use case (UC id) first runs end-to-end after
-it, or `—`.
+it, or `—`. Independent chains of five or more units are streams (`writer.md` →
+Step 3):
+
+| Поток | Юниты | Своё (БД, стенд, бакет) | Часов по грейдам |
+|---|---|---|---|
+
+then one line: «Критический путь: <units> — <N> ч; последовательно <M> ч».
+No stream — no table.
 
 ## 5. Критерии готовности
 The plan-wide gate: lint contracts from the foundation §6 pass, the end-to-end path

@@ -95,7 +95,7 @@ The table keeps default order; a file alone never proves stage closure.
 | 6 | Repository skeleton | `repo-scaffold` | none — also writes `documentation/project-map/project-map.md` | the meeting point — see "Two branches" |
 | 7 | Mockups | `ui-design` | none — frames are not a document | readiness per `references/offer-at-close.md`; with unclosed API never offer work already owned by a neighbouring chat; restyle/redraw scope still applies |
 | 8 | Screen specs (ТЗ на экран) | `screen-spec` | `doc-review` | `ui-test-cases` (write) |
-| 9 | UI test cases | `ui-test-cases` — mode write | no reviewer — two scripts at its close: `check_trace.py`, `check_coverage.py` | the meeting point — see "Two branches" |
+| 9 | UI test cases | `ui-test-cases` — mode write | two scripts at its close (`check_trace.py`, `check_coverage.py`), then optional `doc-review` | the meeting point — see "Two branches" |
 | 10 | Document set check | `docs-consistency` | none — it is the check | `plan` |
 | 11 | Implementation plan | `plan` | `plan-review` — **automatic, do not ask**; its findings are fixed round by round until it passes | `work` |
 | 12 | Execution | `work` | `code-review-unit` per unit → `code-review-full` once — **automatic, do not ask** | `ui-test-cases` (run) when the product has screens, else `security-audit` |
@@ -194,8 +194,9 @@ stage that ran last hands over to this section; it does not end the sitting itse
      the iteration's close) — nothing differs, nothing is committed.
 2. **The site.** Rebuild the documentation site (`docs-site`) and commit it when it changed.
 3. **The summary** — `references/summary.md`; on disk only, like the rest of `plans/`. Include `open_questions.py <project> --pending` as a debt note, not a new refusal to close.
-4. **The tag** `v<version>` on the current commit — only when
-   `python3 "<folder of this SKILL.md>/scripts/close_iteration.py" .` shows steps 1–3 ✅; run it again after step 7: exit 0
+4. Read the full-run result in `test-run.md` (ui-test-cases → run-report.md) and check the current acceptance manifest.
+   **The tag** `v<version>` on the current commit — only when
+   `python3 "<folder of this SKILL.md>/scripts/close_iteration.py" .` shows steps 1–3, including the UI acceptance and full-run report, ✅; run it again after step 7: exit 0
    is the iteration closed, a ✗ names the step left. The tag is the baseline the next iteration's pins and
    diffs read against. Steps 1–4 also run when the user asks «итог», «как отработал пайплайн» or
    «сводка» after `work`. They close the version: a folder with `summary.md` is done.
@@ -311,7 +312,11 @@ from `upgrade-docs` is born complete: `docs: <документ> <version> — к
 есть`, its stamp). A document of several
 files (the schema with its migration, the API's parts) is one commit; each
 architecture document, screen spec and test-case section is its own. Gate
-fixes are committed as they land. When the project has
+fixes are committed as they land. Under a parent session the sessions
+share one tree and one git index, so a commit names its own paths —
+`git add -- <path> <path>`, then `git commit -m "…" -- <path> <path>`, each
+path its own word (zsh takes a quoted list as one path); in 2.3.0 an SRS
+commit took 35 backend files staged by another session. When the project has
 `documentation/_web-docs/`, every commit that carries documents first waits
 for the site's rebuild —
 `python3 "<folder of this SKILL.md>/../docs-site/scripts/rebuild.py" . --wait` —
@@ -334,19 +339,20 @@ changed decision is final at its own commit;
 `docs-consistency` pushes at its close, after its fixes are committed — on
 every verdict, also with nothing to fix. Every later stage — the plan, its run, the UI tests,
 the audit, the release — runs it at its close too, and so does every stop (`references/pause-and-resume.md`):
-before the push it commits the iteration's files in `plans/` (`references/service-version.md` → The iteration's files in git). Drafts stay committed on
+before the push the session commits this iteration's reports by path — the script commits nothing, and stops on anything uncommitted under `documentation/` (`references/service-version.md` → The iteration's files in git). Drafts stay committed on
 this machine until then, so people on the branch see each other's documents
 once they are final. Workflow-authorized close/handoff may commit + push owned
 iteration reports/checkpoint payload, including work; general code permission
 alone is insufficient. Main/merge/tag/release and PR publication remain separately
 authorized. Follow `references/pause-and-resume.md`. The
 script pushes `iteration/<version>` to `origin` when the project has one,
-after taking the others' commits (`git pull --rebase`); never `main`, never a
+integrating the others' commits only with a clean checkout; with local code edits it tries to send HEAD as-is. Never `main`, never a
 tag, never `--force`. Its one line goes into the message. Exit 1 (no access,
 no network) is no stop — say it with the command it prints; exit 2 (the
 others' commits conflict with these) is a question to the user before
 anything else; exit 3 (a document the push carries fails `doc_check.py`;
-nothing was pushed) — fix the lines it prints, commit, and run it again.
+nothing was pushed) — fix the lines it prints, commit, and run it again. Exit 4 lists uncommitted documents.
+Commit only the owned files by path; resume the push after the documentation is clean.
 
 For a **gate**, three options, always these letters:
 

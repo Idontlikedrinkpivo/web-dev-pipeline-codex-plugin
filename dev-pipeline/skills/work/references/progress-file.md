@@ -56,7 +56,7 @@ other unit in scope `⏳ ждёт` — the same on a resumed run and on a second
 in the same iteration. Then post the progress line before the first dispatch,
 and again after every commit and every stop (`references/run-state.md`, the
 progress line from `progress_link.py`, never a hand-written link). No unit's
-commit carries it — `push_branch.py` commits it at the run's stops and close —
+commit carries it — the reports commit before `push_branch.py` carries it, at the run's stops and close —
 and git keeps the record through the `Plan-Unit:` trailers too. A
 pre-existing progress file from another run of the same plan is overwritten,
 not appended to.
@@ -75,7 +75,8 @@ the old version. The four exceptions are in `pipeline` →
 Change it the moment a status changes, not in a batch at the commit:
 `🔄 в работе` when the unit is dispatched (with its executor), `🔍 ревью`
 when `code-review-unit` starts, `✅ готово` right after the unit's commit
-lands. The scripts update the bar, count and «обновлено» time after each change;
+lands. For a correction after that commit show `🔍 ревью: правка после коммита <sha>` until the
+new review passes and its correction is committed, then restore `✅ готово` with the new SHA. The scripts update the bar, count and «обновлено» time after each change;
 never type the time yourself (create it as «обновлено …»).
 The bar and the count line are set by
 `python3 "<folder of this SKILL.md>/../pipeline/scripts/progress_set.py" documentation/plans/<version>/progress.md <done> <total>`

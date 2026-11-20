@@ -110,8 +110,11 @@ already run (the user, 2026-11-03).
 - **Out of git — this machine's files only,** by the lines `scripts/open_iteration.py` keeps in `.gitignore`:
   `sessions.md` (session ids of this machine), the progress pages' markers and HTML (rebuilt from the `.md`),
   screenshots. Logs and agents' details files are in the git folder (`pipeline-work/`), never in the tree.
-- **Committed by `scripts/push_branch.py`** before each push — «chore: отчёты итерации <version>», nothing but
-  `documentation/plans/` in it — at every stage's close and every stop (`references/pause-and-resume.md`). No other
+- **Committed by the session** before each push — «chore: отчёты итерации <version>», by their paths, the `.md`
+  files of `documentation/plans/<version>/` only — at every stage's close and every stop
+  (`references/pause-and-resume.md`). `scripts/push_branch.py` commits nothing: it sends only what is committed,
+  and with anything under `documentation/` not committed it stops (exit 4), lists it and prints that command — in
+  2.3.0 it once committed and pushed 336 files of `plans/` on its own (older versions, archive, docx). No other
   commit stages them: a unit's commit stays that unit's, and `plan_state.py` skips these commits when it maps a run.
 - **In a linked worktree** plans are read and written in that checkout. Use
   `state_paths.resolve_paths` and [checkpoint-state.md](checkpoint-state.md);

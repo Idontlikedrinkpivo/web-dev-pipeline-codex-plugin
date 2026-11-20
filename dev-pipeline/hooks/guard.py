@@ -168,15 +168,43 @@ def writes_progress(bare: str, bodies: list[str]) -> bool:
                if re.search(r"\bpython3?\b", bare))
 
 
-def destructive(bare: str) -> bool:
-    b = unquoted(bare)
-    for m in re.finditer(r"\bgit\s+(?:-C\s+\S+\s+)?stash\b([^;&|\n]*)", b):
-        rest = m.group(1).split()
-        sub = rest[0] if rest and not rest[0].startswith("-") else "push"
-        if sub in ("push", "save") and "--" not in rest:
+def destructive(bare: str, cwd: str, current: str | None) -> bool:
+    """Grant a stream exception only for a registered checkout in this repository."""
+    directory = Path(cwd).resolve()
+    registered = None
+    for seg in CHAIN.split(bare):
+        seg = seg.strip()
+        try:
+            words = shlex.split(seg)
+        except ValueError:
+            words = []
+        if len(words) == 2 and words[0] == 'cd':
+            directory = (directory / words[1]).resolve()
+            continue
+        target = directory
+        if words[:2] == ['git', '-C'] and len(words) > 2:
+            target = (directory / words[2]).resolve()
+            seg = 'git ' + ' '.join(words[3:])
+        else:
+            seg = unquoted(seg)
+        if not re.search(r"\bgit\s+(?:-C\s+\S+\s+)?(?:stash|reset|clean|checkout|restore)\b", seg):
+            continue
+        if registered is None:
+            listed = git(cwd, 'worktree', 'list', '--porcelain')
+            registered = [Path(line[9:]).resolve() for line in listed.splitlines() if line.startswith('worktree ')][1:]
+        owned = [wt for wt in registered if str(wt) == current or wt.name.startswith('wt-')
+                 or 'pipeline-work' in wt.parts or '.codex' in wt.parts]
+        if any(target.is_relative_to(wt) for wt in owned) and '||' not in bare:
+            continue
+        for m in re.finditer(r"\bgit\s+(?:-C\s+\S+\s+)?stash\b([^|]*)", seg):
+            rest = m.group(1).split()
+            sub = rest[0] if rest and not rest[0].startswith("-") else "push"
+            if sub in ("push", "save") and "--" not in rest:
+                return True
+        if re.search(r"\bgit\s+(?:-C\s+\S+\s+)?(?:reset\s+(?:\S+\s+)*--hard\b|clean\s+(?:\S+\s+)*-\w*f"
+                     r"|checkout\s+(?:-q\s+)?(?:--\s+)?\.(?:\s|$)|restore\s+(?!.*--staged)(?:--\S+\s+)*\.(?:\s|$))", seg):
             return True
-    return bool(re.search(r"\bgit\s+(?:-C\s+\S+\s+)?(?:reset\s+(?:\S+\s+)*--hard\b|clean\s+(?:\S+\s+)*-\w*f"
-                          r"|checkout\s+(?:--\s+)?\.(?:\s|$)|restore\s+(?!.*--staged)(?:--\S+\s+)*\.(?:\s|$))", b))
+    return False
 
 
 def edit_chunks(tool: str, inp: dict | str):
@@ -231,7 +259,7 @@ def decide(tool: str, inp: dict, cwd: str, *, branch: str = "", open_iteration: 
             return deny("this command writes a progress file from the shell; the page the user watches is redrawn "
                         "only after Edit/Write or by the progress scripts. Change rows with Edit, the bar and count "
                         "with progress_set.py (pipeline → references/progress-keeping.md → How).")
-        if (not worktree_root or not main_root) and destructive(bare) and "/.claude/worktrees/" not in bare:
+        if destructive(bare, cwd, worktree_root if main_root else None):
             return deny("git stash (of everything) / reset --hard / clean -f / checkout -- . in the main working "
                         "tree wipe uncommitted work of other agents and of the user. Restore only the files you "
                         "changed, by name (`git checkout -- <file>`, `git stash push -- <paths>`), or ask the user "
@@ -248,6 +276,9 @@ def decide(tool: str, inp: dict, cwd: str, *, branch: str = "", open_iteration: 
                 continue
             path = os.path.join(cwd, path)   # a relative patch path is the worktree's; an absolute one stays
             real, wt = (os.path.realpath(p) for p in (path, worktree_root))
+            details = Path(main_root) / ".git/pipeline-work" if main_root else None
+            if details and Path(real).is_relative_to(details) and details.resolve() == details:
+                continue
             if real != wt and not real.startswith(wt + os.sep):
                 return deny(f"you work in the worktree {worktree_root}, but this edit targets {path} outside its "
                             "checkout. Use the same path inside the worktree (executor-catalog → "

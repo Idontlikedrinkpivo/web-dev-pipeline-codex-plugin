@@ -8,6 +8,14 @@ reflect reports keep finding the same rules broken right after one — a progres
 security audit not offered, a question asked in a card. Each section is the few rules a stage broke after a
 compaction, or would cost most to break; the stage's skill stays the whole truth — read it again. One section per
 stage skill, its heading the skill's folder name; a stage with no section gets «pipeline».
+The «every-stage» section is printed after the stage's own.
+
+## every-stage
+
+- Every line the user reads is in the user's language — answers, questions, and the short lines between tool calls
+  («Коммичу.», «Ошибся — правлю через Edit.», never «Committing.»), right after a compaction too (`pipeline` → Names).
+- Before the stage's close report, remove what the stage started and run `pipeline/scripts/leftovers.py`; its last
+  line goes into the report (`pipeline` → `references/handover-check.md` → The stage's leftovers).
 
 ## pipeline
 
@@ -18,7 +26,7 @@ stage skill, its heading the skill's folder name; a stage with no section gets �
   nothing was stamped (`doc-versioning` → `references/version-birth.md`).
 - The iteration closes in `scripts/close_iteration.py`'s order: audit, stamp, site, summary, tag, reflect to the
   end, servers. Never merge into main or delete `iteration/<version>` before the tag.
-- In a nested session: report to the parent «ЭТАП … ЗАКРЫТ · дальше: …» after the handover check
+- In a nested session: report to the parent «ЭТАП … ЗАКРЫТ · дальше: …» using `subsessions.py … closing <key> <next>` after the handover check
   (`references/handover-check.md`); unsure of the stage — `scripts/subsessions.py … whoami <own id>`.
 
 ## brainstorm
@@ -46,7 +54,7 @@ stage skill, its heading the skill's folder name; a stage with no section gets �
 
 - The session writes no schema: the design writer does (`design-lite` prints itself, Mid and High through
   `doc-typist`).
-- A committed migration is never edited — a change is a new numbered file. `table_docs.py --check` and
+- A released migration (main or a `v*` tag) is never edited — a change is a new numbered file; this iteration's own may be corrected. `table_docs.py --check` and
   `doc_check.py --only documentation/db/` are clean before the commit.
 - Close: `docs: схема БД <version> · review: <состояние>`.
 
@@ -82,7 +90,8 @@ stage skill, its heading the skill's folder name; a stage with no section gets �
 
 ## ui-test-cases
 
-- Write: `check_trace.py` and `check_coverage.py` run at the close; a section's row changes with Edit.
+- Write: `check_trace.py` and `check_coverage.py` run at the close, then `doc-review` is asked; its fixes go to
+  `ui-test-writer` (`TO FIX`), never by hand; a section's row changes with Edit.
 - Run: the runner uses only its own browser and closes it; `test-run.md` is the runner's; a `DEFECTS` verdict
   offers a fix plan (`plan` `MODE fix`).
 

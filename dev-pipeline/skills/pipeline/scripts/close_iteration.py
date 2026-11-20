@@ -12,7 +12,8 @@ One line per step, ✅ done or ✗ what is missing, in order:
   1 stamp     doc_state.py dirty returns zero (the latest valid stamp, including a no-row close)
   2 site      documentation/ (the site included) has nothing uncommitted
   3 summary   documentation/plans/<version>/summary.md exists
-  3a UI       current full acceptance fingerprint or an explicit no-UI applicability reason
+  3a UI       current full acceptance, documented user decline on the same fingerprint, or justified no-UI
+  3b report   test-run.md, if present, records the disposition of the full set before the tag
   4 tag       v<version> exists — and points at a commit that has steps 1–3a in it (never small mode)
   5 reflect   CODEX_HOME/dev-pipeline-feedback/<project>.md has contiguous complete exact windows of this version
               covering the final commit instant (the exclusive end must follow it)
@@ -81,6 +82,21 @@ def small_gate(root: Path, metadata: dict) -> tuple[bool, str]:
     return True, ""
 
 
+def full_run_record(folder: Path) -> tuple[str, str]:
+    path = folder / "test-run.md"
+    if not path.is_file():
+        return "absent", ""
+    text = path.read_text(encoding="utf-8")
+    heading = re.search(r"^## Полный набор перед меткой\b([^\n]*)\n?((?:(?!^## ).)*)", text, re.M | re.S)
+    if heading:
+        declined = re.search(r"^[ \t]*Пропущен[ \t]*—[ \t]*(\S[^\n]*)", heading[2], re.M | re.I)
+        if declined:
+            return "declined", declined[1].strip()
+        if re.search(r"·\s*завершён\s*$", heading[1], re.I):
+            return "complete", ""
+    return "missing", "test-run.md: завершите раздел «Полный набор перед меткой» или запишите «Пропущен — <причина>»"
+
+
 def acceptance_gate(root: Path, folder: Path) -> tuple[bool, str]:
     script = HERE.parents[1] / "ui-test-cases" / "scripts" / "acceptance_scope.py"
     spec = importlib.util.spec_from_file_location("pipeline_acceptance_scope", script)
@@ -88,7 +104,9 @@ def acceptance_gate(root: Path, folder: Path) -> tuple[bool, str]:
     spec.loader.exec_module(module)
     path = folder / "ui-acceptance.json"
     try:
-        return module.check(root, json.loads(path.read_text(encoding="utf-8")))
+        state, reason = full_run_record(folder)
+        return module.check(root, json.loads(path.read_text(encoding="utf-8")),
+                            declined_reason=reason if state == "declined" else None)
     except (OSError, ValueError, TypeError, KeyError) as exc:
         return False, f"UI acceptance unavailable: {exc}"
 
@@ -162,8 +180,13 @@ def main() -> None:
         _, after = git(root, "log", "--format=%s", f"v{version}..HEAD", "--", "documentation", ":!documentation/plans")
         if after:
             late = f"после метки ещё коммиты в документах ({len(after.splitlines())}) — метка не несёт их"
-    steps.append(("4 метка", tagged and not late and not small,
-                  "small mode prepares close; release requires normal workflow" if small else late or (f"нет метки v{version}" if not tagged else "")))
+    record, detail = full_run_record(folder)
+    full = detail if record == "missing" else ""
+    if record != "absent":
+        steps.append(("3b полный набор", not full, f"пропущен — {detail}" if record == "declined" else full))
+    tag_reason = ("small mode prepares close; release requires normal workflow" if small else
+                  full or (acceptance_reason if not accepted else "") or late or (f"нет метки v{version}" if not tagged else ""))
+    steps.append(("4 метка", tagged and not tag_reason, tag_reason))
     _, last = git(root, "log", "-1", "--format=%ct", f"v{version}" if tagged else "HEAD")
     reflected, why = sessions.reflect_coverage(root, version, datetime.fromtimestamp(int(last), timezone.utc)) if last else (False, "HEAD unavailable")
     steps.append(("5 reflect", reflected, why))

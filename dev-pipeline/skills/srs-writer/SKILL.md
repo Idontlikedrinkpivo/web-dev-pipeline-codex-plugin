@@ -27,7 +27,7 @@ A short, messy, or differently headed description is still input: write the SRS 
 
 ## Orchestrator (session)
 
-The session writes no SRS file. `srs-author` settles it and prints it
+For wording-only corrections to an existing SRS follow the narrow exception in pipeline/references/decision-changes.md → The owner. For authoring, `srs-author` settles it and prints it
 itself — it runs on the typist's model (`executor-catalog` → Nesting); its
 report says `DELEGATED none`.
 

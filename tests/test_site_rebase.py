@@ -59,24 +59,27 @@ class SiteRebase(GitFixture):
         with patch.object(self.module, 'form_problems', return_value=''):
             return self.run_push()
 
-    def test_generated_only_conflict_rebuilds_both_merged_sources_and_preserves_layers(self) -> None:
+    def test_generated_only_conflict_rebuilds_both_merged_sources_for_explicit_site_commit(self) -> None:
         self.divergence()
         late = self.repo / 'documentation/architecture/late.md'
         late.write_text('# Later commit\n\nLATE SOURCE\n', encoding='utf-8')
         self.commit(self.repo, 'documentation/architecture/late.md')
-        expected = self.dirty_layers()
+        code, output = self.run_with_valid_docs()
+        self.assertEqual(code, 4, output)
+        self.assertEqual(self.remote_oid(), self.remote_before)
+        self.git(self.repo, 'add', '-A', '--', 'documentation/_web-docs')
+        self.git(self.repo, 'commit', '-qm', 'fixture: reviewed regenerated site', '--', 'documentation/_web-docs')
         code, output = self.run_with_valid_docs()
         self.assertEqual(code, 0, output)
         search = (self.repo / 'documentation/_web-docs/assets/search-index.js').read_text(encoding='utf-8')
         self.assertIn('REMOTE SOURCE', search)
         self.assertIn('LOCAL SOURCE', search)
         self.assertIn('LATE SOURCE', search)
-        self.assertEqual(self.layers(), expected)
         self.assertEqual(self.remote_oid(), self.oid(self.repo))
         self.assertFalse((self.repo / '.git/rebase-merge').exists())
         self.assertFalse(list((self.repo / '.git/pipeline-work').rglob('push-recovery.json')))
 
-    def test_source_conflict_aborts_and_restores_exact_stash_including_old_stash(self) -> None:
+    def test_source_conflict_keeps_dirty_layers_and_existing_stash(self) -> None:
         self.divergence(source_conflict=True)
         (self.repo / 'other.bin').write_bytes(b'old stash')
         self.git(self.repo, 'stash', 'push', '-qm', 'foreign stash')
@@ -90,15 +93,13 @@ class SiteRebase(GitFixture):
         self.assertIn(old_stash.strip(), self.git(self.repo, 'stash', 'list', '--format=%H'))
         self.assertFalse((self.repo / '.git/rebase-merge').exists())
 
-    def test_build_failure_aborts_no_push_and_recovers_dirty_layers(self) -> None:
+    def test_build_failure_aborts_without_push(self) -> None:
         self.divergence()
-        expected = self.dirty_layers()
         with patch.object(self.module, 'rebuild_site', return_value=(1, 'injected renderer failure')):
             code, output = self.run_with_valid_docs()
         self.assertEqual(code, 2, output)
         self.assertEqual(self.oid(self.repo), self.before_rebase)
         self.assertEqual(self.remote_oid(), self.remote_before)
-        self.assertEqual(self.layers(), expected)
 
     def api_fixture(self, tool: bool = True) -> None:
         exclude = self.repo / '.git/info/exclude'
@@ -128,6 +129,11 @@ class SiteRebase(GitFixture):
         self.api_fixture()
         self.divergence()
         code, output = self.run_with_valid_docs()
+        self.assertEqual(code, 4, output)
+        self.assertEqual(self.remote_oid(), self.remote_before)
+        self.git(self.repo, 'add', '-A', '--', 'documentation/_web-docs')
+        self.git(self.repo, 'commit', '-qm', 'fixture: reviewed regenerated site', '--', 'documentation/_web-docs')
+        code, output = self.run_with_valid_docs()
         self.assertEqual(code, 0, output)
         bundled = json.loads((self.repo / 'documentation/_web-docs/api/openapi.json').read_bytes())
         self.assertEqual(bundled['info']['title'], 'Merged API')
@@ -139,29 +145,24 @@ class SiteRebase(GitFixture):
     def test_missing_local_api_tool_aborts_and_cleans_only_own_build_scratch(self) -> None:
         self.api_fixture(tool=False)
         self.divergence()
-        expected = self.dirty_layers()
         code, output = self.run_with_valid_docs()
         self.assertEqual(code, 2, output)
         self.assertIn('offline API build requires', output)
         self.assertEqual(self.oid(self.repo), self.before_rebase)
         self.assertEqual(self.remote_oid(), self.remote_before)
-        self.assertEqual(self.layers(), expected)
         self.assertFalse((self.repo / 'documentation/._web-docs.building').exists())
 
     def test_checkpoint_restore_refusal_retains_journal_and_never_pushes(self) -> None:
         self.divergence(source_conflict=True)
-        expected = self.dirty_layers()
         with patch.object(self.module.checkpoint, 'restore',
                           side_effect=self.module.checkpoint.CheckpointError('restore-incomplete', 'injected restore failure')):
             code, output = self.run_with_valid_docs()
         self.assertEqual(code, 2, output)
         self.assertEqual(self.journal()['status'], 'restore-verification-failed')
         self.assertEqual(self.remote_oid(), self.remote_before)
-        self.assertEqual(self.layers(), expected)
 
-    def test_final_build_failure_retains_changed_head_exact_stash_and_journal(self) -> None:
+    def test_final_build_failure_retains_changed_head_snapshot_and_journal(self) -> None:
         self.divergence()
-        self.dirty_layers()
         real = self.module.rebuild_site
         calls = 0
         def build(root):
@@ -174,11 +175,10 @@ class SiteRebase(GitFixture):
         self.assertEqual(self.journal()['status'], 'rebase-finalize-failed')
         self.assertNotEqual(self.oid(self.repo), self.before_rebase)
         self.assertEqual(self.remote_oid(), self.remote_before)
-        self.git(self.repo, 'cat-file', '-e', self.journal()['stash'])
+        self.assertTrue(Path(self.journal()['snapshot']).is_dir())
 
-    def test_abort_failure_keeps_rebase_stash_snapshot_and_explicit_recovery_state(self) -> None:
+    def test_abort_failure_keeps_rebase_snapshot_and_explicit_recovery_state(self) -> None:
         self.divergence(source_conflict=True)
-        self.dirty_layers()
         real = self.module.git
         def git(root, *args):
             return (1, 'injected abort error') if args[:2] == ('rebase', '--abort') else real(root, *args)
@@ -188,34 +188,23 @@ class SiteRebase(GitFixture):
         journal = self.journal()
         self.assertEqual(journal['status'], 'abort-failed')
         self.assertTrue((self.repo / '.git/rebase-merge').exists())
-        self.git(self.repo, 'cat-file', '-e', journal['stash'])
         self.assertTrue(Path(journal['snapshot']).is_dir())
         self.assertIn('recovery', output)
         self.assertEqual(self.remote_oid(), self.remote_before)
 
-    def test_stash_apply_failure_is_not_retried_or_pushed(self) -> None:
+    def test_dirty_diverged_tree_never_stashes_and_keeps_existing_recovery(self) -> None:
         self.divergence()
-        self.dirty_layers()
-        real = self.module.git
-        calls = []
-        def git(root, *args):
-            calls.append(args)
-            if args[:2] == ('stash', 'apply'):
-                # Real apply may have already changed bytes before reporting failure.
-                real(root, *args)
-                return 1, 'injected partial restore failure'
-            return real(root, *args)
-        with patch.object(self.module, 'git', side_effect=git):
+        before = self.dirty_layers()
+        with patch.object(self.module, 'integrate', side_effect=AssertionError('unexpected rebase')):
             code, output = self.run_with_valid_docs()
-            before = self.layers()
-            again, second_output = self.run_with_valid_docs()
         self.assertEqual(code, 2, output)
-        self.assertNotEqual(again, 0, second_output)
-        self.assertEqual(sum(args[:2] == ('stash', 'apply') for args in calls), 1)
-        self.assertFalse(any(args[0] == 'push' for args in calls))
         self.assertEqual(self.layers(), before)
-        self.assertEqual(self.journal()['status'], 'stash-restore-failed')
         self.assertEqual(self.remote_oid(), self.remote_before)
+        journal = self.repo / '.git/pipeline-work/push-recovery.json'
+        journal.write_text('{"status":"stash-restore-failed"}')
+        self.assertEqual(self.run_with_valid_docs()[0], 2)
+        self.assertEqual(journal.read_text(), '{"status":"stash-restore-failed"}')
+        self.assertEqual(self.layers(), before)
 
     def test_existing_rebase_is_never_aborted_or_modified(self) -> None:
         self.divergence(source_conflict=True)

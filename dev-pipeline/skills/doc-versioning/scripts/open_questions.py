@@ -84,6 +84,8 @@ def read_file(root: Path, path: Path) -> list[Question]:
         elif columns and not all(re.fullmatch(r'[:\- ]+', c) for c in parts):
             text = parts[columns[0]] if len(parts) > columns[0] else ''
             classification = parts[columns[1]] if len(parts) > columns[1] else ''
+            classification = next((cell for i, cell in enumerate(parts)
+                                   if i != columns[0] and re.match(r'^Решено(?:$|[ :])', cell)), classification)
             rows.append(Question(rel, n, text, classification))
     return rows
 

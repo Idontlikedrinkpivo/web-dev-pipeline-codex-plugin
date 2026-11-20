@@ -14,14 +14,37 @@ is the session's own; this check is a second reader that did not write the stage
 
 ## How
 
-1. The conversation, as a digest, by this session's title (its first message names it):
-   `python3 "<folder of this SKILL.md>/../reflect/scripts/sessions.py" mine "$PWD" "<the session's title>" "$(git rev-parse --path-format=absolute --git-common-dir)/pipeline-work/handover-<stage>.md"`.
-   A non-zero exit — the session's transcript not found — skip the check and say so in one line.
-2. Dispatch `handover-checker` (`executor-catalog` → Dispatch contract, `subagent_type:
-   "handover-checker"`, no `model`) with the packet below.
+1. Resolve the chat-owned output directory with `subsessions.py <project> <version> handover-dir` (DIR below). Export a fresh digest for the current CODEX_THREAD_ID:
+   `python3 "<folder of this SKILL.md>/../reflect/scripts/sessions.py" mine "$PWD" "$CODEX_THREAD_ID" "$DIR/handover-<key>.md"`, `<key>` the stage's key (`scripts/subsessions.py` → Stage keys).
+   Inspect the digest; if the user answered no question, use `--nothing-asked` at step 4. A missing transcript — the session's transcript not found — skip the check; step 4 says so with `--no-transcript`.
+2. Dispatch `handover-checker` (`executor-catalog` → Dispatch contract, `agent_type:
+   "handover-checker"`, no `model`) with the packet below, and save its report as it came, beside the
+   digest: `handover-<key>-report.md`.
 3. Each finding: write the decision where it belongs — its document by `references/decision-changes.md`, or a row
    of the document's `open-questions.md` when it is a question still open — and commit it. Then close. `ALL ON
    DISK` — close.
+4. The close message is printed, not typed: `python3 "<folder of this SKILL.md>/scripts/subsessions.py" <project>
+   <version> closing <key> <the stages next | «ждёт: …» | «остановиться»>` — it refuses with no digest, no
+   report, or a MISSING report with no commit after it, then runs the stage's leftovers check (below) and prints
+   the line to send the parent as it is. `--nothing-asked` for a stage that asked the user nothing. A screen-spec
+   stage once sent «ЭТАП … ЗАКРЫТ» with no check although the user had answered three questions in it
+   (ai-initiatives 2.3.0).
+
+## The stage's leftovers
+
+Every stage, nested or not, before its close report — «ЭТАП … ЗАКРЫТ», `work`'s run report, a UI run's verdict:
+
+1. Remove what the stage started — the note's «Запущено» (`references/pause-and-resume.md` → The note): stand
+   copies (`scripts/e2e-stands.sh down`, or `docker compose -p <copy> down -v`), stream containers (`docker rm -f
+   <project>-s<k>-pg`), worktrees (`git worktree remove`), buckets, temporary databases (`DROP DATABASE` of the
+   `tmp_test_` ones on the stand's server). Only its own: the main stand the next stage waits for, another live
+   stage's worktree, the user's `dev` stay — and nothing is pruned wholesale.
+2. Check: `python3 "<folder of this SKILL.md>/../pipeline/scripts/leftovers.py" .` lists the project's containers and volumes beside
+   the main stand, the worktrees beside the main one, and temporary databases on its postgres. What it lists is
+   removed if the stage's, or named with whose it is.
+3. Its last line goes into the close report — «стенды удалены: …», or what is left and why. A stage that skips
+   this leaves the next one a slower machine: 79 dead test databases held 3.5 GB of the Docker VM, and stream
+   containers outlived their streams (ai-initiatives 2.3.0).
 
 ## The packet
 

@@ -353,7 +353,15 @@ def cmd_list(cwd: str, since: str | None, also: list[str], until: str | None = N
 
 
 def cmd_mine(cwd: str, marker: str, out: str, also: list[str] | None = None) -> None:
-    for p, _ in reversed(project_rollouts(cwd, also, include_agents=False)):
+    sources = project_rollouts(cwd, also, include_agents=False)
+    identity = marker.removeprefix("local_").lower()
+    if re.fullmatch(r"[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}", identity):
+        for p, metadata in reversed(sources):
+            if str(metadata.get("id", "")).removeprefix("local_").lower() == identity:
+                cmd_digest(str(p), out)
+                return
+        sys.exit(f"no rollout for chat {marker} in {cwd}")
+    for p, _ in reversed(sources):
         first = next((m["text"] for m in messages(p) if m["role"] == "user"), "")
         if marker in first:
             cmd_digest(str(p), out)

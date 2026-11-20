@@ -109,6 +109,19 @@ class CostTests(RepoTest):
         self.assertEqual(compare.value({'total': 0}, 'total'), 0)
         self.assertEqual(compare.ratio([10], [0]), 0)
 
+    def test_estimated_model_cost_and_unpriced_usage(self):
+        session = measure.Agent(measure.SESSION, measure.SESSION)
+        measure.add_counts(session, 1_000_000, 0, 0, 1_000_000, 0, 'gpt-6.1-sol', '')
+        output = io.StringIO()
+        with contextlib.redirect_stdout(output):
+            measure.report([], str(self.root), None, session, [], 1, [])
+        self.assertIn('2.1000', output.getvalue())
+        self.assertEqual(session.read_units, 50_000)
+        measure.add_counts(session, 1, 0, 0, 0, 0, 'unpriced-fixture', '')
+        with contextlib.redirect_stdout(output):
+            measure.report([], str(self.root), None, session, [], 1, [])
+        self.assertIn('Без оценки стоимости: unpriced-fixture', output.getvalue())
+
     def test_compare_rejects_unequal_windows_baselines_and_legacy(self):
         base = {'schema_version': 2, 'complete': True, 'window': {'start': 'a', 'end': 'b'},
                 'baseline': 'same tasks', 'unit_kind': 'conditional-token-units'}

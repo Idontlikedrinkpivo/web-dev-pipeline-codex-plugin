@@ -19,7 +19,9 @@ checkout-local `runtime.json`. Delete resume.md only when the run really closes.
 1. Stop the writers/checks for a real handoff and verify their actual status with
    available agent/process tools. Unknown ownership/status blocks transfer; a
    report alone does not prove children or shell jobs stopped. Name any service
-   intentionally kept running in local runtime state.
+   intentionally kept running in local runtime state. Keep the «Запущено» list of stage-owned stands, worktrees,
+   stream databases, volumes and buckets. At a stop remove finished resources and run `leftovers.py`;
+   record each intentionally retained resource, owner and reason.
 2. Capture owned paths using `checkpoint.py capture` under the accepted schema.
    Keep source bytes, modes and index unchanged. A local-only pause has a complete
    local snapshot; legacy local patches remain local evidence only. Do not reset,
@@ -27,7 +29,7 @@ checkout-local `runtime.json`. Delete resume.md only when the run really closes.
 3. A transferable pause needs the complete owned portable checkpoint payload,
    reports and manifest committed to the iteration branch, plus verified remote
    reachability of that exact commit. Workflow permission for this close/handoff
-   may authorize commit + push via `push_branch.py`; a general request to code
+   may authorize an explicit path-limited commit followed by `push_branch.py`; a general request to code
    alone does not. No permission/tool/remote proof means local-only or explicitly
    incomplete transfer, never «готово и отправлено». Stage only iteration reports
    and explicitly owned checkpoint payload; foreign edits remain untouched.

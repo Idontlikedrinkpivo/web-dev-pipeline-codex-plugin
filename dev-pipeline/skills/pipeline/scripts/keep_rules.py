@@ -116,6 +116,8 @@ def main() -> None:
                 print('Legacy transcript unavailable.')
     print(f'dev-pipeline: not to lose in this stage ({stage}, pipeline → references/keep-after-compaction.md):')
     print(known.get(stage, 'Read pipeline and recover the saved stage.'))
+    if "every-stage" in known:   # the rules every stage keeps, printed after its own
+        print(known["every-stage"])
 
 
 if __name__ == "__main__":

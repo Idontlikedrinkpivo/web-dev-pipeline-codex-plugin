@@ -18,6 +18,7 @@ SKILL           <SKILLS ROOT>/ui-test-cases/SKILL.md — follow Mode run;
 CASES           documentation/ui/test-cases/ — README.md (roles, data,
                 shared texts) and one file per section
                 (documentation/ui/<product>/test-cases/ with several UI products)
+SCOPE           ui-acceptance.json: selected IDs (including cross-cutting) or the full universe before the tag.
 UI SPEC         documentation/ui/screen-specs/   FIGMA FILE  <fileKey> | none
 VERIFY          .agents/skills/verify/SKILL.md — launch, ready, doctor,
                  roles, evidence, cleanup and the stand's traps; follow it
@@ -27,9 +28,10 @@ STANDS          <N stands, each: its addresses, its checkout or worktree, and
 E2E FOLDER      <existing folder> | e2e/
 REPORT PATH     documentation/plans/<version>/test-run.md (the open version
                 folder, the one without summary.md) — already created by
-                the session with every case ⏳ ждёт; you keep it live
+                the session with every in-scope case ⏳ ждёт; you keep it live
 
 RULES
+- A large file — over 200 KB by `wc -c` (a big screen spec, an SRS area, a diff) — is never one Read: `grep -n "^#"` for its headings, then Read with offset/limit part by part to its last line. «Read in full» means every line, not one call.
 - Launch, check and clean up the stand as VERIFY says; run its doctor
   before the first case and after any surprising failure. A stand fault
   VERIFY does not list yet goes into its Traps before your report (the only
@@ -106,7 +108,7 @@ RULES
   Name per-browser results/evidence in its comment; a failed target stays failed, an unavailable required target
   leaves the row blocked unless another target already failed. Never overwrite a browser failure with a later pass.
 - Two passes (ui-test-cases → Mode run → Two passes). Pass 1: write and
-  run every case in its required browser projects (one aggregated case × mode row) — ✅ прошёл /
+  run every in-scope case in its required browser projects (one aggregated case × mode row) — ✅ прошёл /
   ❌ не прошёл (seen vs expected) / ⛔ заблокирован (a missing stub that can
   be added) / ⏭ не автоматизирован (needs a failure that would break the
   shared stand, an app restart with other settings, or a state the stand

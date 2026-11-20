@@ -76,8 +76,7 @@ first. Drizzle's placement in them:
     writes a second migration history from `schema.ts`. Apply them with the command `repo-scaffold`
     wired. Drizzle's `migrate()` reads only drizzle-kit's own folder format, which plain numbered
     files are not, so the default is a plain SQL runner; point `migrationsFolder` there only after
-    checking the installed version reads such files. Never edit a committed file — a change is the
-    next file.
+    checking the installed version reads such files. Correct unreleased SQL in place. A change to SQL already on main or in a release tag gets the next file.
 11. **A query applies a business rule only by its owner's constant.** A filter by status or role
     imports the list from the domain module (the domain model's «Кто ещё применяет»), never a
     literal in SQL; an adapter writes what the domain decided and never re-derives the rule, an
@@ -111,7 +110,7 @@ of fetching docs. Outside `work`, read the file and check each point you rely on
 
 ## The reviewer checks
 
-1. **No `drizzle-kit generate`, no `meta/` journal, no edited committed migration file**; a schema change arrives as
+1. **No `drizzle-kit generate`, no `meta/` journal, no edited released migration file** (main or a `v*` tag has it); a schema change arrives as
    the next SQL file from `db-schema-design`, and `schema.ts` follows it.
 2. **A paged read is keyset**: sort columns plus the id, the compound predicate, `limit + 1`, never `.offset(`.
 3. **One query per read** — no query per item in a loop.

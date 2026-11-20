@@ -110,6 +110,24 @@ class AcceptanceTests(RepoTest):
         self.write('src/view.py', 'changed again\n')
         self.assertFalse(close.acceptance_gate(self.root, folder)[0])
 
+    def test_explicit_decline_requires_matching_current_full_not_run_and_stays_visible(self):
+        folder = self.root / 'documentation/plans/1.0.1'
+        folder.mkdir(parents=True)
+        manifest = self.select()
+        scope.record(self.root, manifest, 'full', 'not-run', 'решение владельца')
+        (folder / 'ui-acceptance.json').write_text(json.dumps(manifest))
+        report = folder / 'test-run.md'
+        header = '## Полный набор перед меткой\nПропущен — '
+        report.write_text(header + 'другая причина\n')
+        self.assertFalse(close.acceptance_gate(self.root, folder)[0])
+        report.write_text(header + 'решение владельца\n')
+        ok, why = close.acceptance_gate(self.root, folder)
+        self.assertTrue(ok, why)
+        self.assertIn('пропущен', why)
+        self.assertFalse(scope.check(self.root, manifest)[0])
+        self.write('src/api.py', 'changed after decline\n')
+        self.assertFalse(close.acceptance_gate(self.root, folder)[0])
+
     def test_real_report_commit_preserves_tested_sha_but_source_history_does_not(self):
         manifest = self.passed()
         tested = manifest['head']

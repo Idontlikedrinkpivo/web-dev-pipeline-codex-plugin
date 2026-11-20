@@ -22,6 +22,7 @@ from review_state import report_only_descendant
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import case_impact
+import code_reach
 
 
 def git(root: Path, *args: str) -> str:
@@ -56,12 +57,19 @@ def mapping_data(root: Path, mapping: str | None) -> dict:
     if not isinstance(data, dict) or not isinstance(data.get("cases"), list) or not isinstance(data.get("changes", {}), dict):
         raise ValueError("invalid case mapping")
     ids = set()
+    marked_by_file = {}
     for case in data["cases"]:
         if not isinstance(case, dict) or not isinstance(case.get("id"), str) or not case["id"] or case["id"] in ids:
             raise ValueError("invalid/duplicate case id")
         ids.add(case["id"])
         if not contained(root, case["path"]).is_file():
             raise ValueError("case file unavailable: " + str(case["path"]))
+        if case["path"] not in marked_by_file:
+            content = contained(root, case["path"]).read_text(errors="replace")
+            marked_by_file[case["path"]] = {cid for cid, body in case_impact.blocks(content)
+                                            if case_impact.CROSS_CUTTING.search(body)}
+        if case["id"] in marked_by_file[case["path"]]:
+            case["cross_cutting"] = True
         for key in ("screens", "operations"):
             if not isinstance(case.get(key, []), list) or any(not isinstance(x, str) for x in case.get(key, [])):
                 raise ValueError("invalid case screen/operation mapping")
@@ -83,7 +91,7 @@ def fingerprints(root: Path, mapping: str | None) -> tuple[dict, dict]:
     return {"code_tree": digest(code), "case_set": digest(universe)}, data
 
 
-def select(root: Path, base: str, mapping: str | None, *, previous_failures=None) -> dict:
+def select(root: Path, base: str, mapping: str | None, *, previous_failures=None, code_only=False) -> dict:
     base_sha, head = git(root, "rev-parse", base + "^{commit}").strip(), git(root, "rev-parse", "HEAD").strip()
     hashes, data = fingerprints(root, mapping)
     changed = set(git(root, "diff", "--relative", "--name-only", "-z", base_sha, "--", ".").split("\0")) - {""}
@@ -101,6 +109,36 @@ def select(root: Path, base: str, mapping: str | None, *, previous_failures=None
         previous_failures = case_impact.failures(report.read_text()) if not mapping and report and report.is_file() else []
     cases = data['cases']
     case_paths = {c['path'] for c in cases}
+    app_changes = sorted(p for p in changed if not p.startswith("documentation/"))
+    if code_only:
+        units = [u for u in units if u[2].intersection(app_changes)]
+    screens, shell, other = code_reach.split(root, app_changes)
+    traced_code = set()
+    for screen, paths in screens.items():
+        for case in cases:
+            if screen in case.get("screens", []):
+                traced_code.update(paths)
+                include(case["id"], f"код экрана {screen}: {', '.join(paths)}")
+    named_ops = {op for case in cases for op in case.get("operations", [])}
+    op_names = re.compile(r"[A-Za-z_][\w.-]*")
+    for path in app_changes:
+        if not named_ops or not path.endswith(code_reach.CODE) or code_reach.is_test(path):
+            continue
+        diff = git(root, "diff", "--no-ext-diff", "--no-textconv", "-U0", base_sha, "--", path)
+        lines = (line[1:] for line in diff.splitlines() if line.startswith(("+", "-"))
+                 and not line.startswith(("+++", "---")))
+        touched = named_ops.intersection(op_names.findall("\n".join(lines)))
+        for case in cases:
+            hits = touched.intersection(case.get("operations", []))
+            if hits:
+                include(case["id"], f"операция в коде: {', '.join(sorted(hits))}")
+                traced_code.add(path)
+    smoke = [case for case in cases if case.get("cross_cutting")]
+    if smoke:
+        traced_code.update(shell)
+        traced_code.update(other)
+    for case in smoke:
+        include(case["id"], "сквозной")
     for case in cases:
         if mapping and case["path"] in changed:
             include(case["id"], "added/changed case")
@@ -115,6 +153,8 @@ def select(root: Path, base: str, mapping: str | None, *, previous_failures=None
             continue
         document = (path.startswith(('documentation/api/', 'documentation/requirements/srs/'))
                     or '/screen-specs/' in path or path.endswith('/frames-register.md'))
+        if code_only and path.startswith("documentation/") and path not in case_paths:
+            continue
         if not mapping and (document or path in case_paths):
             obj = f'{base_sha}:./{path}'
             before = git(root, 'show', obj) if subprocess.run(['git', '-C', str(root), 'cat-file', '-e', obj],
@@ -147,7 +187,7 @@ def select(root: Path, base: str, mapping: str | None, *, previous_failures=None
                       for identifier in c[field]}
             if file_units and all(ids and ids <= traced for ids in file_units):
                 continue  # selection above already includes each case linked to these units
-        matched = False
+        matched = path in traced_code
         for dimension in ("screens", "operations"):
             rules = data.get("changes", {}).get(dimension, {})
             if not isinstance(rules, dict):
@@ -171,6 +211,7 @@ def select(root: Path, base: str, mapping: str | None, *, previous_failures=None
     return {"schema_version": 1, "base": base_sha, "head": head, "mapping": mapping,
             "version": iteration[1] if iteration else None,
             "fingerprints": hashes, "universe": sorted(c["id"] for c in data["cases"]),
+            "code_only": code_only, "shell": shell, "outside_screens": other,
             "previous_failures": previous_failures, "selected": selected, "unmapped": unmapped,
             "blocked": data.get("unavailable"), "applicability": {"ui": True, "reason": None}, "runs": []}
 
@@ -185,7 +226,8 @@ def current(root: Path, manifest: dict, *, allow_dirty: bool = False) -> tuple[b
         current_head, reason = report_only_descendant(root, manifest['head'], version=manifest.get('version'), allow_dirty=allow_dirty)
         if not current_head:
             return False, reason
-        expected = select(root, manifest["base"], manifest["mapping"], previous_failures=manifest.get("previous_failures"))
+        expected = select(root, manifest["base"], manifest["mapping"], previous_failures=manifest.get("previous_failures"),
+                          code_only=manifest.get("code_only", False))
         if manifest.get("universe") != expected["universe"] or manifest.get("selected") != expected["selected"]:
             return False, "acceptance coverage/selection differs from current case universe"
         if manifest.get("blocked") != data.get("unavailable"):
@@ -216,7 +258,7 @@ def record(root: Path, manifest: dict, scope: str, status: str, evidence: str,
     return manifest
 
 
-def check(root: Path, manifest: dict) -> tuple[bool, str]:
+def check(root: Path, manifest: dict, *, declined_reason: str | None = None) -> tuple[bool, str]:
     ok, reason = current(root, manifest)
     if not ok:
         return False, reason
@@ -226,9 +268,13 @@ def check(root: Path, manifest: dict) -> tuple[bool, str]:
     for run in reversed(manifest.get("runs", [])):
         if run.get("scope") != "full":
             continue
-        passed = (run.get("status") == "pass" and run.get("fingerprints") == manifest["fingerprints"]
-                  and run.get("head") == manifest["head"] and run.get("cases") == manifest.get("universe")
-                  and bool(str(run.get("evidence") or "").strip()))
+        matches = (run.get("fingerprints") == manifest["fingerprints"] and run.get("head") == manifest["head"]
+                   and run.get("cases") == manifest.get("universe") and bool(str(run.get("evidence") or "").strip()))
+        if declined_reason:
+            if matches and run.get("status") == "not-run" and run.get("evidence") == declined_reason:
+                return True, f"полный набор пропущен по решению пользователя — {declined_reason}"
+            return False, "причина пропуска в test-run.md должна совпадать с текущей записью full/not-run"
+        passed = matches and run.get("status") == "pass"
         if applicability.get("ui") is True:
             passed = passed and bool(run.get("tool") and run.get("stand") and manifest.get("universe") and not manifest.get("blocked"))
         elif applicability.get("ui") is not False:
@@ -243,6 +289,7 @@ def main() -> None:
     parser.add_argument("root", type=Path)
     parser.add_argument("--base", default="HEAD")
     parser.add_argument("--mapping")
+    parser.add_argument("--code-only", action="store_true", help="select a defect rerun from changed code")
     parser.add_argument("--out")
     parser.add_argument("--manifest")
     parser.add_argument("--scope", choices=["selected", "full"])
@@ -256,7 +303,7 @@ def main() -> None:
     try:
         target = contained(root, args.out if args.command == "select" else args.manifest)
         if args.command == "select":
-            manifest = select(root, args.base, args.mapping)
+            manifest = select(root, args.base, args.mapping, code_only=args.code_only)
         else:
             manifest = json.loads(target.read_text(encoding="utf-8"))
             if args.command == "check":

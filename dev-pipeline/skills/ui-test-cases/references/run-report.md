@@ -207,6 +207,13 @@ shell (`python`, `sed`, `cat >`): the plugin's hook rebuilds the report's
 so a shell write leaves that page stale, and the guard hook refuses it (`pipeline` → `references/progress-keeping.md` → How;
 page shape: `references/progress-files.md` → The page).
 
+## Полный набор перед меткой
+
+After a full run record `## Полный набор перед меткой · завершён` with the fingerprint and evidence.
+When the user explicitly declines the full run, record `Пропущен — <причина>` under the heading and
+use `record ROOT --manifest FILE --scope full --status not-run --evidence "<причина>"` with the same reason.
+The close report shows the skip on the current fingerprint. A selected run is recorded as selected.
+
 ## Acceptance evidence
 
 The close gate reads `documentation/plans/<version>/ui-acceptance.json`.
@@ -224,7 +231,7 @@ For each selection record base/head, changed screens/operations, added/changed
 cases and previous failures, with inclusion reasons. Uncertain mapping expands
 the union. Save code-tree and case-set hashes including the complete case
 universe, scope and result. Code/case changes invalidate affected subset and full
-results. One current full suite on the final fingerprint is required before tag;
+results. The tag needs a current full suite on the final fingerprint unless the user explicitly declines as above;
 stale subset results cannot be combined into that evidence. Non-applicable UI
 has a reason; missing mapping/tool/live stand is BLOCKED/not-run, never PASS.
 The gate only validates evidence and does not launch a browser without authority.

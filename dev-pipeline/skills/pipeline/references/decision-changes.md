@@ -50,6 +50,23 @@ still writing is that stage's own work.
 The session does not edit a contract document by hand: the writer keeps
 the template's shape and the ids that other documents cite.
 
+**One exception — a wording of the SRS** (the user's choice, 2026-11-20). A
+sentence that only reads better — a typo, a clearer word, a label's text —
+with no id added or removed and nothing changing that a test or another
+document checks (a number, a role, a status, a condition, an error): the
+owning Codex chat uses apply_patch, and before its commit:
+
+1. `git diff -- <file>` shows exactly that change and nothing else;
+2. `python3 "<folder of this SKILL.md>/../doc-versioning/scripts/doc_check.py" . --only <the SRS>` passes;
+3. with `documentation/_web-docs/`, the site is rebuilt
+   (`docs-site/scripts/rebuild.py . --wait`) and committed with the edit.
+
+Its report line reads «правка формулировки, без писателя». Anything more —
+a requirement, a criterion, a limit, a new id — goes to `srs-author`. In
+2.3.0 a session made seven such edits by hand to save the writer's ~100
+thousand tokens, unchecked: one did not land and was found after its
+commit, once the site was not rebuilt (ai-initiatives).
+
 ## Под родительским чатом
 
 When an iteration uses a parent and one chat per stage, only the owner's stage chat edits
@@ -68,8 +85,9 @@ the parent sees both branches and warns affected owners; owner handover and refl
    If there is no owner chat, name the parent handling it; never invent a successful delivery.
 2. The parent finds the owner in the iteration registry, ensures one active writer, marks it «идёт»,
    and sends `РЕШЕНИЕ ИЗМЕНЕНО · <было> → <стало> · решил <кто> · от <этап>`.
-   If the owner has no chat (fresh clone or work done by another person), the parent uses the
-   owner's writer itself. A different stage chat never substitutes for the owner.
+   If no live owner chat exists, run `subsessions.py <project> <version> add <stage>`. Reuse the open
+   corrections row or propose its new «: правки» chat; the historical close stands. On a stage message ask the
+   user to open it. Create only on a user turn with explicit authorization, then send the decision to its owner.
 3. The owner applies the ordinary steps below to its document: writer, check, commit and push
    under existing publication permissions, without a version bump. The checked owner-close commit
    carries `Stage-Closed: <key> <iteration-version>` per offer-at-close.md, so the new input is ready.

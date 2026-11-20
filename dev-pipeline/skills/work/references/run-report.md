@@ -4,6 +4,7 @@ Read at Step 1, when the file is started, and at Step 7, before the report is fi
 one run. A second run in the same iteration (units appended to the plan) adds its own section, «прогон 2», under
 its own BASE; the first run's section stays above it.
 
+The session commits the report by its exact path before sending the branch.
 Portable path: `documentation/plans/<version>/work-run.md`. Keep physical host,
 thread, process and dispatch IDs/log paths in local runtime only. A legacy local
 report must be verified and exported before handoff; a missing file is incomplete
@@ -48,6 +49,7 @@ it wrote `none`.
 
 A filled excerpt, for calibration — match its density, not its domain:
 
+The session commits the report by its exact path before sending the branch.
 Portable path: `documentation/plans/<version>/work-run.md`. Keep physical host,
 thread, process and dispatch IDs/log paths in local runtime only. A legacy local
 report must be verified and exported before handoff; a missing file is incomplete

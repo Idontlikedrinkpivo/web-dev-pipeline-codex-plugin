@@ -2,21 +2,21 @@
 
 Exit 0 confirms the exact full origin ref (or skips a non-iteration branch),
 1 means reports/remote/build preconditions failed, 2 means rebase/recovery needs
-attention, and 3 retains the document-form refusal. Only the current iteration
+attention, and 3 retains the document-form refusal. Exit 4 lists uncommitted documentation. Only the current iteration
 ref is pushed, without force or tags. Recovery uses a local-only U2 checkpoint
-and a pinned exact stash object, never Git's implicit autostash.
+before integrating a clean checkout. Uncommitted code stays in place.
 """
 from __future__ import annotations
 
 from contextlib import contextmanager
-from dataclasses import dataclass
+import shlex
 import json
 import os
 import re
 import subprocess
 import sys
 from pathlib import Path
-from typing import Iterator, Literal
+from typing import Iterator
 
 import checkpoint
 from state_paths import checkout_root, contained_path, resolve_paths
@@ -86,66 +86,35 @@ def names(root: str, *args: str) -> tuple[str, ...]:
     return tuple(name for name in out.split('\0') if name)
 
 
-def portable_report(name: str, version: str) -> bool:
-    prefix = f'documentation/plans/{version}/'
-    if not name.startswith(prefix):
+def pending_docs(root: str, branch: str, given: Path) -> bool:
+    """Refuse before remote work. Print a path-limited suggestion without touching the index."""
+    from project_scope import project_root
+    dirty = set()
+    for command in (('diff', '--cached', '--name-only', '--no-renames'),
+                    ('diff', '--name-only', '--no-renames'),
+                    ('ls-files', '--others', '--exclude-standard')):
+        dirty.update(path for path in names(root, *command, '-z')
+                     if 'documentation' in Path(path).parts[:-1])
+    if not dirty:
         return False
-    tail = name[len(prefix):]
-    # Immutable U2 payload patches/blobs are portable; legacy snapshots are not.
-    if tail.startswith('checkpoints/'):
-        return bool(re.fullmatch(r'checkpoints/[A-Za-z0-9][A-Za-z0-9_.-]{0,127}/'
-                                 r'(?:manifest\.json|staged\.patch|unstaged\.patch|blobs/[0-9a-f]{64})', tail))
-    path = Path(tail)
-    return (not any(part.startswith('.') for part in path.parts)
-            and path.name not in ('sessions.md', 'runtime.json')
-            and path.suffix.lower() not in ('.html', '.png', '.jpg', '.jpeg', '.webm', '.patch')
-            and not path.name.startswith(('snapshot', 'local-snapshot')))
-
-
-def dirty_reports(root: str, branch: str) -> tuple[str, ...]:
+    print('push: незакоммиченные изменения в документации, отправка остановлена:')
+    for path in sorted(dirty):
+        print('  ' + shlex.quote(path))
     version = branch.split('/', 1)[1]
-    scope = f'documentation/plans/{version}'
-    result: set[str] = set()
-    for args in (('diff', '--cached', '--name-only', '--no-renames', '-z', '--', scope),
-                 ('diff', '--name-only', '--no-renames', '-z', '--', scope),
-                 ('ls-files', '--others', '--exclude-standard', '-z', '--', scope)):
-        result.update(name for name in names(root, *args) if portable_report(name, version))
-    return tuple(sorted(result))
-
-
-@dataclass(frozen=True, slots=True)
-class ReportSave:
-    status: Literal['clean', 'committed', 'failed']
-    message: str
-
-
-def report_preflight(root: str, branch: str) -> tuple[str, ...]:
-    reports = dirty_reports(root, branch)
-    if reports and names(root, 'diff', '--cached', '--name-only', '--no-renames', '-z'):
-        raise PushError('unsaved iteration reports: index is occupied; preserve staged work and commit it first')
-    return reports
-
-
-def commit_reports(root: str, branch: str) -> ReportSave:
-    """Stage exact current portable report paths; failures stop before remote work."""
     try:
-        reports = report_preflight(root, branch)
-        if not reports:
-            return ReportSave('clean', 'iteration reports already saved')
-        code, out = git(root, 'add', '--', *reports)
-        if code:
-            return ReportSave('failed', 'report add failed: ' + out.strip())
-        staged = set(names(root, 'diff', '--cached', '--name-only', '--no-renames', '-z'))
-        if staged != set(reports):
-            return ReportSave('failed', 'report index changed; preserve it and inspect before retrying')
-        code, out = git(root, 'commit', '-q', '-m', f'chore: отчёты итерации {branch.split("/", 1)[1]}')
-        if code:
-            return ReportSave('failed', 'report commit failed; staged reports retained: ' + out.strip())
-        if dirty_reports(root, branch):
-            return ReportSave('failed', 'mandatory reports changed during commit; nothing sent')
-        return ReportSave('committed', 'iteration reports committed')
-    except PushError as exc:
-        return ReportSave('failed', str(exc))
+        project = project_root(given)
+    except ValueError:
+        # Multiple projects share this branch. Refuse the push without guessing an owner.
+        return True
+    folder = project.relative_to(root) / 'documentation' / 'plans' / version
+    reports = [path for path in sorted(dirty) if Path(path).parent == folder
+               and path.endswith('.md') and Path(path).name != 'sessions.md']
+    if reports:
+        paths = shlex.join(reports)
+        print('Проверьте свои отчёты и укажите их пути в обеих командах:')
+        print('git --literal-pathspecs add -- ' + paths)
+        print('git --literal-pathspecs commit -m ' + shlex.quote('chore: отчёты итерации ' + version) + ' -- ' + paths)
+    return True
 
 
 def remote_head(root: str, branch: str) -> str | None:
@@ -252,14 +221,9 @@ def rebase(root: str, target: str) -> tuple[int, str]:
                 built, report = rebuild_site(root)
                 if built:
                     return built, 'final merged site rebuild failed: ' + report
-                added, report = git(root, 'add', '-A', '--', 'documentation/_web-docs')
-                if added:
-                    return added, report
-                pending, report = git(root, 'diff', '--cached', '--quiet')
-                if pending == 1:
-                    return git(root, 'commit', '-q', '-m', 'chore: regenerate merged documentation site')
-                if pending:
-                    return pending, report
+                # If later replayed commits changed the generated site, the caller
+                # lists the dirty documents. Their owner commits them explicitly.
+                return 0, 'site rebuilt from final tree'
             return code, out
         clashes = names(root, 'diff', '--name-only', '--diff-filter=U', '-z')
         if not clashes or not all(name.startswith('documentation/_web-docs/') for name in clashes):
@@ -276,36 +240,23 @@ def rebase(root: str, target: str) -> tuple[int, str]:
     return 1, 'rebase exceeded the generated-conflict continuation limit'
 
 
-def restore_stash(root: str, version: str, chat_key: str, journal: Path,
+def verify_recovery(root: str, version: str, chat_key: str, journal: Path,
                   recovery: dict, manifest: dict) -> bool:
-    """An uncertain apply is terminal. Retain the exact object and refuse retry."""
-    stash = recovery.get('stash')
-    if stash:
-        write_recovery(journal, recovery, 'stash-restore-started')
-        code, out = git(root, 'stash', 'apply', '--index', stash)
-        if code:
-            write_recovery(journal, recovery, 'stash-restore-failed')
-            print('push: recovery incomplete; exact stash and checkpoint retained: ' + out.strip())
-            return False
+    """Verify the snapshot after a replay or an abort, before releasing its journal."""
     try:
         # Let U2 capture/compare the full raw inventory instead of duplicating it.
         actual = recovery_capture(root, version, chat_key)
-        if actual['inventory'] != manifest['inventory']:
+        expected_site = recovery.get('regenerated_site', [])
+        restored = [item for item in actual['inventory'] if item['path'] not in expected_site]
+        if restored != manifest['inventory']:
             raise PushError('restored index/worktree inventory differs from the saved snapshot')
         if full_head(root) == recovery['head']:
             checkpoint.restore(root, version, chat_key, recovery['checkpoint_id'])
     except (PushError, checkpoint.CheckpointError, OSError, UnicodeError) as exc:
         write_recovery(journal, recovery, 'restore-verification-failed')
-        print(f'push: recovery incomplete; preserve stash/checkpoint/journal: {exc}')
+        print(f'push: recovery incomplete; preserve checkpoint and journal: {exc}')
         return False
     write_recovery(journal, recovery, 'restored')
-    if stash:
-        # The private ref pins this exact object; never drop somebody else's stash.
-        code, out = git(root, 'update-ref', '-d', recovery['stash_ref'], stash)
-        if code:
-            write_recovery(journal, recovery, 'stash-release-failed')
-            print('push: recovery object release failed: ' + out.strip())
-            return False
     journal.unlink()
     return True
 
@@ -315,39 +266,18 @@ def integrate(root: str, branch: str, remote: str, chat_key: str, manifest: dict
     version = branch.split('/', 1)[1]
     paths = resolve_paths(root, version, chat_key)
     recovery = {'head': full_head(root), 'branch': branch, 'checkpoint_id': manifest['checkpoint_id'],
-                'snapshot': str(paths.local / 'checkpoints' / manifest['checkpoint_id']),
-                'stash': None, 'stash_ref': 'refs/dev-pipeline/recovery/' + manifest['checkpoint_id']}
-    write_recovery(journal, recovery, 'captured')
+                'snapshot': str(paths.local / 'checkpoints' / manifest['checkpoint_id'])}
     code, out = git(root, 'status', '--porcelain=v1', '-z')
-    if code:
-        raise PushError('cannot inspect local work before stash: ' + out.strip())
-    if out:
-        before_stash = git(root, 'rev-parse', '--verify', 'refs/stash')[1].strip()
-        write_recovery(journal, recovery, 'stash-started')
-        code, out = git(root, 'stash', 'push', '--include-untracked', '-m', 'dev-pipeline ' + manifest['checkpoint_id'])
-        if code:
-            write_recovery(journal, recovery, 'stash-save-failed')
-            raise PushError('stash save failed; inspect recovery journal: ' + out.strip())
-        code, oid = git(root, 'rev-parse', '--verify', 'refs/stash')
-        if code or not OID.fullmatch(oid.strip()) or oid.strip() == before_stash:
-            write_recovery(journal, recovery, 'stash-identification-failed')
-            raise PushError('cannot identify exact saved stash; preserve recovery state')
-        recovery['stash'] = oid.strip()
-        write_recovery(journal, recovery, 'stash-saved')
-        code, out = git(root, 'update-ref', recovery['stash_ref'], recovery['stash'])
-        if code:
-            raise PushError('cannot pin stash object; inspect recovery journal: ' + out.strip())
-        code, remaining = git(root, 'status', '--porcelain=v1', '-z')
-        if code or remaining:
-            write_recovery(journal, recovery, 'stash-cleanup-incomplete')
-            raise PushError('stash did not clear captured work; preserve recovery objects, nothing sent')
+    if code or out:
+        raise PushError('checkout changed before integration; local edits retained')
+    write_recovery(journal, recovery, 'captured')
     code, out = git(root, 'fetch', '--no-tags', 'origin', 'refs/heads/' + branch)
     if code:
-        recovered = restore_stash(root, version, chat_key, journal, recovery, manifest)
+        recovered = verify_recovery(root, version, chat_key, journal, recovery, manifest)
         raise PushError('fetch failed' + ('; local changes restored: ' if recovered else '; recovery incomplete: ') + out.strip())
     fetched, fetched_oid = git(root, 'rev-parse', '--verify', 'FETCH_HEAD')
     if fetched or fetched_oid.strip() != remote:
-        restore_stash(root, version, chat_key, journal, recovery, manifest)
+        verify_recovery(root, version, chat_key, journal, recovery, manifest)
         raise PushError('remote moved between lookup and fetch; nothing sent')
     write_recovery(journal, recovery, 'rebase-started')
     code, out = rebase(root, remote)
@@ -356,48 +286,53 @@ def integrate(root: str, branch: str, remote: str, chat_key: str, manifest: dict
             aborted, abort_output = git(root, 'rebase', '--abort')
             if aborted or git_operation(root):
                 write_recovery(journal, recovery, 'abort-failed')
-                print('push: recovery incomplete; rebase abort failed; preserve metadata, stash and snapshot: ' + abort_output.strip())
+                print('push: recovery incomplete; rebase abort failed; preserve metadata and snapshot: ' + abort_output.strip())
                 return False
         if full_head(root) != recovery['head']:
             write_recovery(journal, recovery, 'rebase-finalize-failed')
             print('push: recovery incomplete; rebase changed HEAD before finalization failed; '
-                  'preserve current tree, exact stash and snapshot: ' + out.strip())
+                  'preserve current tree, checkpoint and snapshot: ' + out.strip())
             return False
-        restored = restore_stash(root, version, chat_key, journal, recovery, manifest)
+        restored = verify_recovery(root, version, chat_key, journal, recovery, manifest)
         print('push: rebase stopped; nothing sent; ' + ('local changes restored. ' if restored else 'recovery incomplete. ') + out.strip())
         return False
-    return restore_stash(root, version, chat_key, journal, recovery, manifest)
+    if out == 'site rebuilt from final tree':
+        recovery['regenerated_site'] = list(names(root, 'ls-files', '--modified', '--others', '--exclude-standard',
+                                                  '-z', '--', 'documentation/_web-docs'))
+    return verify_recovery(root, version, chat_key, journal, recovery, manifest)
 
 
-def handoff(root: str, branch: str, version: str, chat_key: str) -> int:
+def handoff(root: str, branch: str, version: str, chat_key: str, given: Path) -> int:
     paths = resolve_paths(root, version, chat_key)
     journal = contained_path(paths.gitdir, paths.gitdir / 'pipeline-work/push-recovery.json')
     if journal.exists():
-        print(f'push: unresolved recovery journal; inspect {journal}; nothing sent, stash not reapplied')
+        print(f'push: unresolved recovery journal; inspect {journal}; nothing sent')
         return 2
     if git_operation(root):
         print('push: existing Git operation; nothing sent and no rebase aborted')
         return 2
     if (paths.gitdir / 'index.lock').exists():
         raise PushError('Git index is locked; preserve its owner and retry later')
-    reports = report_preflight(root, branch)
+    if pending_docs(root, branch, given):
+        return 4
     if git(root, 'remote', 'get-url', 'origin')[0]:
         raise PushError('origin is missing; handoff not performed')
     remote = remote_head(root, branch)
-    if not reports and remote == full_head(root):
+    if remote == full_head(root):
         print(f'push: already synchronized — {remote} in origin/{branch}')
         return 0
-    manifest = recovery_capture(root, version, chat_key)
-    saved = commit_reports(root, branch)
-    if saved.status == 'failed':
-        raise PushError(saved.message)
-    if saved.status == 'committed':
-        manifest = recovery_capture(root, version, chat_key)
-    if remote is not None:
-        if not integrate(root, branch, remote, chat_key, manifest, journal):
+    if remote is not None and git(root, 'merge-base', '--is-ancestor', remote, 'HEAD')[0]:
+        code, dirty = git(root, 'status', '--porcelain=v1', '-z')
+        if code:
+            raise PushError('cannot inspect checkout before integration')
+        if dirty:
+            # No fast-forward proof locally (the remote commit may be new to this clone).
+            # Let an ordinary push decide, without ever stashing another writer's files.
+            print('push: незакоммиченный код сохранён на месте; отправляю только HEAD без ребейза')
+        elif not integrate(root, branch, remote, chat_key, recovery_capture(root, version, chat_key), journal):
             return 2
-    if dirty_reports(root, branch):
-        raise PushError('mandatory reports remain unsaved; nothing sent')
+    if pending_docs(root, branch, given):
+        return 4
     head = full_head(root)
     bad = form_problems(root, remote)
     if bad:
@@ -406,6 +341,9 @@ def handoff(root: str, branch: str, version: str, chat_key: str) -> int:
     if remote != head:
         code, out = git(root, 'push', '--porcelain', '--no-follow-tags', '-u', 'origin',
                         f'HEAD:refs/heads/{branch}')
+        if code and ('non-fast-forward' in out or 'fetch first' in out):
+            print('push: ветки разошлись; рабочие файлы на месте, ничего не отправлено')
+            return 2
         if code:
             raise PushError('not sent: ' + out.strip())
     confirmed = remote_head(root, branch)
@@ -419,7 +357,8 @@ def handoff(root: str, branch: str, version: str, chat_key: str) -> int:
 def main() -> int:
     try:
         reject_repository_overrides()
-        root = str(checkout_root(sys.argv[1] if len(sys.argv) > 1 else '.'))
+        given = Path(sys.argv[1] if len(sys.argv) > 1 else '.')
+        root = str(checkout_root(given))
         if git_operation(root):
             print('push: existing Git operation; nothing sent and no rebase aborted')
             return 2
@@ -434,7 +373,7 @@ def main() -> int:
         chat_key = os.environ.get('CODEX_THREAD_ID') or 'push-branch'
         paths = resolve_paths(root, version, chat_key)
         with push_lock(paths.gitdir):
-            return handoff(root, branch, version, chat_key)
+            return handoff(root, branch, version, chat_key, given)
     except (PushError, checkpoint.CheckpointError, OSError, UnicodeError, ValueError) as exc:
         print(f'push: nothing confirmed — {exc}')
         return 1

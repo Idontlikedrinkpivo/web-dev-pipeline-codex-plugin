@@ -149,51 +149,51 @@ class PushReports(GitFixture):
         self.assertEqual(self.remote_oid(), self.initial)
         self.assertEqual(self.oid(self.repo), self.initial)
 
-    def test_report_commit_hook_failure_stops_before_fetch_and_preserves_staged_report(self) -> None:
-        (self.plans / 'progress.md').write_text('dirty report\n', encoding='utf-8')
-        hook = self.repo / '.git/hooks/pre-commit'
-        hook.write_text('#!/bin/sh\nexit 1\n', encoding='utf-8')
-        hook.chmod(0o755)
-        calls = []
-        real = self.module.git
-        def git(root, *args):
-            calls.append(args)
-            return real(root, *args)
-        with patch.object(self.module, 'git', side_effect=git):
-            code, output = self.run_push()
-        self.assertNotEqual(code, 0, output)
-        self.assertFalse(any(args[0] in ('fetch', 'push', 'rebase') for args in calls))
-        self.assertEqual(self.git(self.repo, 'show', ':documentation/plans/1.3.0/progress.md'), b'dirty report\n')
-        self.assertEqual(self.remote_oid(), self.initial)
-
-    def test_add_failure_is_not_report_success(self) -> None:
-        (self.plans / 'progress.md').write_text('dirty report\n', encoding='utf-8')
-        real = self.module.git
-        calls = []
-        def git(root, *args):
-            calls.append(args)
-            return (1, 'injected add error') if args[0] == 'add' else real(root, *args)
-        with patch.object(self.module, 'git', side_effect=git):
-            code, output = self.run_push()
-        self.assertNotEqual(code, 0, output)
-        self.assertFalse(any(args[0] in ('fetch', 'push', 'rebase') for args in calls))
-        self.assertEqual(self.remote_oid(), self.initial)
-
-    def test_only_current_portable_reports_are_committed(self) -> None:
-        (self.plans / 'progress.md').write_text('portable update\n', encoding='utf-8')
+    def test_uncommitted_docs_exit_four_without_staging_or_contacting_origin(self) -> None:
+        (self.plans / 'progress.md').write_text('unfinished report')
         old = self.repo / 'documentation/plans/1.2.0'
         old.mkdir()
-        (old / 'progress.md').write_text('foreign iteration\n', encoding='utf-8')
-        for name in ('sessions.md', 'progress.html', 'snapshot.patch', '.progress-server', 'runtime.json'):
-            (self.plans / name).write_text('local only\n', encoding='utf-8')
+        (old / 'report.md').write_text('old iteration')
+        (self.plans / 'report.docx').write_bytes(b'attachment')
+        (self.plans / 'report with spaces.md').write_text('new')
+        self.git(self.repo, 'add', '--', str(old))
+        before = self.index_bytes()
+        with patch.object(self.module, 'remote_head', side_effect=AssertionError('remote contacted')):
+            code, output = self.run_push()
+        self.assertEqual(code, 4, output)
+        self.assertEqual(self.index_bytes(), before)
+        self.assertEqual(self.oid(self.repo), self.initial)
+        self.assertEqual(self.remote_oid(), self.initial)
+        actions = output.split('Проверьте свои отчёты')[1]
+        for name in ('progress.md', 'report with spaces.md'):
+            self.assertEqual(actions.count(name), 2)
+        for name in ('report.docx', '1.2.0'):
+            self.assertIn(name, output)
+            self.assertNotIn(name, actions)
+
+    def test_nested_project_lists_sibling_dirt_but_suggests_only_its_own_reports(self) -> None:
+        for owner in ('one', 'two'):
+            folder = self.repo / owner / 'documentation/plans/1.3.0'
+            folder.mkdir(parents=True)
+            (folder / 'progress.md').write_text(owner)
+        result = subprocess.run([sys.executable, str(SCRIPTS / 'push_branch.py'), str(self.repo / 'one')],
+                                capture_output=True, text=True)
+        self.assertEqual(result.returncode, 4, result.stdout)
+        paths, actions = result.stdout.split('Проверьте свои отчёты')
+        self.assertIn('two/documentation/', paths)
+        self.assertIn('one/documentation/', actions)
+        self.assertNotIn('two/documentation/', actions)
+        self.assertEqual(self.remote_oid(), self.initial)
+
+    def test_explicit_report_commit_sends_only_head_with_dirty_source(self) -> None:
+        (self.plans / 'progress.md').write_text('ready')
+        self.commit(self.repo, 'documentation/plans/1.3.0/progress.md')
+        head = self.oid(self.repo)
+        (self.repo / 'other.bin').write_bytes(b'local change')
         code, output = self.run_push()
         self.assertEqual(code, 0, output)
-        tracked = self.git(self.repo, 'ls-tree', '-r', '--name-only', 'HEAD').decode().splitlines()
-        self.assertNotIn('documentation/plans/1.2.0/progress.md', tracked)
-        for name in ('sessions.md', 'progress.html', 'snapshot.patch', '.progress-server', 'runtime.json'):
-            self.assertNotIn('documentation/plans/1.3.0/' + name, tracked)
-        self.assertEqual(self.remote_oid(), self.oid(self.repo))
-        self.assertEqual(self.git(self.repo, 'show', 'HEAD:documentation/plans/1.3.0/progress.md'), b'portable update\n')
+        self.assertEqual(self.remote_oid(), head)
+        self.assertEqual((self.repo / 'other.bin').read_bytes(), b'local change')
 
     def test_new_branch_push_confirms_full_oid_then_reports_already_synchronized(self) -> None:
         self.git(self.origin, 'update-ref', '-d', 'refs/heads/' + BRANCH)
@@ -209,16 +209,6 @@ class PushReports(GitFixture):
         self.git(self.repo, 'remote', 'remove', 'origin')
         code, output = self.run_push()
         self.assertNotEqual(code, 0, output)
-
-    def test_report_changed_by_successful_hook_is_not_sent(self) -> None:
-        (self.plans / 'progress.md').write_text('first report\n', encoding='utf-8')
-        hook = self.repo / '.git/hooks/post-commit'
-        hook.write_text('#!/bin/sh\nprintf "changed by hook\\n" > documentation/plans/1.3.0/progress.md\n', encoding='utf-8')
-        hook.chmod(0o755)
-        code, output = self.run_push()
-        self.assertNotEqual(code, 0, output)
-        self.assertEqual(self.remote_oid(), self.initial)
-        self.assertEqual((self.plans / 'progress.md').read_bytes(), b'changed by hook\n')
 
     def test_real_origin_race_does_not_confirm_another_oid(self) -> None:
         peer = self.peer()

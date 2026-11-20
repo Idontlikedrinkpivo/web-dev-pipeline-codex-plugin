@@ -1226,5 +1226,23 @@
       }
     },
     "fix": "В §4 SRS добавить строку «Совместимость браузеров» по srs-writer/references/srs-template.md и frontend/references/browser-support.md. Для проекта без веб-интерфейса указать «Не применимо». Если есть архитектурный документ, согласовать его решение по этому НФТ."
+  },
+  {
+    "id": "test-cases-cross-cutting",
+    "version": "1.3.12",
+    "title": "Сквозные кейсы в наборе тест-кейсов",
+    "what": "Часть кейсов помечается «Сквозной: да» — вход каждой ролью, главный сценарий роли, открытие каждого экрана. Они идут в каждый прогон, чтобы поломка общего кода (каркас, общие компоненты, сервер) была видна сразу, а не только в полном прогоне перед меткой.",
+    "applies": {
+      "exists": "documentation/ui/**/test-cases/README.md"
+    },
+    "behind": {
+      "not": {
+        "grep": {
+          "path": "documentation/ui/**/test-cases/*.md",
+          "pattern": "^\\*\\*Сквозной:\\*\\*\\s*да"
+        }
+      }
+    },
+    "fix": "ui-test-cases → SKILL.md (Mode write, «A few cases are cross-cutting») и references/writer-prompt.md: один вызов ui-test-writer, MODE increment, с поручением расставить «**Сквозной:** да» под «Проверяет» — по кейсу на вход каждой ролью, на главный сценарий каждой роли и на открытие каждого экрана с данными, из уже написанных кейсов; затем check_trace.py и check_coverage.py."
   }
 ]

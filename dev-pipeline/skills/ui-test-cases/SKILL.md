@@ -147,6 +147,11 @@ runner needs goes into one «Трассировка» line under it.
   10:00–11:00»), so the runner can seed it and a person can set it up.
 - **«Проверяет» opens the case**: the requirement ids it proves (AC, BR,
   NFR, or the spec row), so an analyst traces it in a glance.
+- **A few cases are cross-cutting** — `**Сквозной:** да` under «Проверяет»:
+  each role's way in, each role's main scenario (the UC main flow), and one
+  case per screen that opens it with data. They run in every scoped run (Mode
+  run → Scope), so a break in shared code no trace names shows at once; keep
+  them short and few — about one in ten.
 - **The trace line is mandatory and exact**, in one fixed syntax a script
   can check: `кадр <nodeId>[, <nodeId>]` · the state row · per step
   `шаг N → эл. M[, эл. K] (<nodeId>)` · `` `operationId` → <status> ``
@@ -239,8 +244,18 @@ fixes something (`pipeline` → `references/convergence.md`). A line no round
 can fix — the case needs an element, a frame or an operation the documents
 do not have — is a spec gap in `README.md` and a row in `open-questions.md`,
 named at the close. Only with both scripts at exit 0, or every remaining
-line written down this way, is the set final: its commit, then the push
-(`pipeline` → Commit each document).
+line written down this way, is the set written: its commit.
+
+**Then the review, asked.** The scripts prove the mechanics; whether a case
+proves its criterion, whether a test can walk it, and whether a state, a
+limit or a role went without a case is `doc-review` on the set (type
+`test-cases`, `doc-review` → `references/test-cases.md`). Ask it per
+`pipeline` → "Asking before a transition", saying its scope — the whole set
+on the first review, the changed sections after. Every fix it applies goes
+back to `ui-test-writer` (`MODE increment`, the findings in `TO FIX`) and
+through both scripts again; nothing in the set is edited by hand. A skipped
+review is named in the report and blocks nothing. Then the push (`pipeline`
+→ Commit each document) and the next stage.
 
 ## Changed mockups
 
@@ -256,10 +271,14 @@ user chose to go on without it). Cases must exist; without them, offer
 mode write first.
 
 **Acceptance scope and fingerprint.** A selective run takes the union of changed
-screens/operations, added/changed cases and prior failures, with a reason per
+screens/operations, all `**Сквозной:** да` cases, added/changed cases and prior failures, with a reason per
 case. Run `scripts/acceptance_scope.py select <project> --base <iteration base commit or release tag>
 --out documentation/plans/<version>/ui-acceptance.json` with Python. By default it reads TC headings,
 screen and frame links, operationIds, requirement IDs, the iteration plan and previous failures.
+Frontend imports connect changed shared components to their screens. The manifest lists shell and outside-screen code
+separately; server imports are not followed. For a defect rerun pass `--code-only` to select: skip document
+restamps, keep changed cases, prior failures and plan units whose code changed. For the printable per-case list use
+`scripts/affected_cases.py <project> --since <base> --plan <plan> --failed <test-run.md> [--code-only]`.
 The selected map gives the reason for each TC. Projects with a maintained mapping can pass
 `--mapping <file>`. Uncertain mapping expands scope. Record base/head, scope/result, code-tree
 hash and case-set hashes including the complete universe. Code/case changes
@@ -267,8 +286,6 @@ invalidate affected subset and full results. Before a tag require one current
 full suite against the final fingerprint; combining stale subsets is not a full
 run. UI non-applicability requires a reason. Missing mapping/tool/live stand is
 blocked/not-run, never PASS. Gate validation does not authorize a browser run.
-
-**The app must start locally.**
 
 **The app must start locally.** Read the project's verify skill
 (`.agents/skills/verify/`) and run its doctor first; with none, write and
@@ -388,13 +405,14 @@ new text before the verdict.
 
 The session commits the suite, `test(e2e): пользовательские тесты
 <version>`, so CI and the next run start from it. The report is in the
-version folder, committed with it at the close (`pipeline/scripts/push_branch.py`).
+version folder, committed with it at the close (the reports commit before `pipeline/scripts/push_branch.py`).
 A failing test for a real defect stays in the suite: it is the check the
 fix plan must turn green.
 
 ## Before you finish
 
-- write: `check_trace.py` and `check_coverage.py` exit 0, or each line
+- write: the review was asked, and its applied fixes went through the
+  writer; `check_trace.py` and `check_coverage.py` exit 0, or each line
   they still print is a spec gap with its `open-questions.md` row; every
   AC has a `TC-` or a «Без интерфейса» line; every state row,
   user-causable response outcome and «Поля ввода» rule has a case; steps name actions, not widgets; expected texts are
@@ -411,6 +429,11 @@ fix plan must turn green.
 - `references/runner-prompt.md` — packet for `ui-test-runner`.
 - `references/run-report.md` — the run report `test-run.md`: bars,
   sections per run and repeat, example, statuses, verdict. Read before creating it.
+- `scripts/spec_coverage.py` — the spec rows (states, response outcomes) no
+  case names: hints for the review's design lens, never failures.
+- `scripts/code_reach.py` — the screens a code change reaches through the
+  frontend's imports, the app shell and the code outside the screens; used by
+  `affected_cases.py`.
 - `references/parallel-stands.md` — several identical stands for a long
   run: what makes a stand copyable, how many the machine holds, the split.
 - `playwright-cli` — `references/test-config.md` (the stand-ready

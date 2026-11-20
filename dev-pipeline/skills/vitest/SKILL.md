@@ -61,7 +61,10 @@ see.
 11. **The test database is named, never defaulted**: the database helper reads `TEST_DATABASE_URL` and throws
    when it is unset, when its database name has no «test», or, outside CI (`CI` unset), when it equals `DATABASE_URL`
    — locally it is a database of its own, not the one a running stand serves; a fallback address
-   once sent these tests to a running stand and wiped its data. **No database reachable here**: shared rule 6.
+   once sent these tests to a running stand and wiped its data. A test that creates a database of its own names it
+   `tmp_test_<uuid>`, and the `globalSetup` drops every `tmp_test_` database with no open connection before the run:
+   an `afterAll` that never ran (a hook timeout, a stopped run) left 79 such databases holding 3.5 GB of the Docker
+   VM (ai-initiatives 2.3.0). **No database reachable here**: shared rule 6.
 12. Coverage has one threshold, in `coverage.thresholds` of the Vitest config (the foundation §6 number, otherwise 80% of lines); the full suite measures it in CI (`repo-scaffold/references/quality-gates.md`, the Coverage gate), a unit's focused run does not.
 
 A whole-application browser flow (log in, open a page, type, click, see the result) is Playwright, not Vitest:

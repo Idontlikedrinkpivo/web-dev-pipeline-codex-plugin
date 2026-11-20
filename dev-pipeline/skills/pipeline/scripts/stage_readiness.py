@@ -69,6 +69,16 @@ def closed(root: Path, key: str, version: str | None = None) -> bool:
         explicit = re.search(rf'^Stage-Closed: {key} (\d+\.\d+\.\d+)\s*$', body, re.M)
         legacy = (subject.startswith(('docs: ', 'chore: ', 'chore(scaffold): ')) and re.search(CLOSE_WORDS[key], subject)
                   and (w.VERSION_RX.search(subject) or key == 'scaffold') and not w.NOT_CLOSE.search(subject))
+        if legacy and key in ('srs', 'db', 'api', 'arch', 'specs'):
+            name = re.match(r"docs: (.+?)\s\d+\.\d+\.\d+\b(.*)", subject)
+            touched = w.git(root, 'diff-tree', '--root', '-m', '-r', '--no-commit-id', '--name-only', '-z', sha)
+            prefix = w.git(root, 'rev-parse', '--show-prefix')
+            own_file = any(prefix + p in touched.split('\0') for p in paths)
+            # Older Codex projects used a bare document name/version plus its file.
+            # This establishes stage history only; it does not invent a review stamp.
+            legacy = bool(name and re.search(CLOSE_WORDS[key], name[1]) and
+                          (('review:' in name[2] and (not touched or own_file))
+                           or (not name[2] and own_file and re.fullmatch(CLOSE_WORDS[key], name[1]))))
         if (explicit or legacy or w.ALL_CLOSE.search(subject)) and w.project_close(root, sha):
             close_sha = sha
             break

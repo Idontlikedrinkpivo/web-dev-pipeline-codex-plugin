@@ -89,7 +89,7 @@ rules (check them — the session may have run an older version).
    plus `--progress documentation/plans/<version>/progress.md` for each iteration of the window — at the close
    the file is still there, and the script keeps its numbers outside the project for a later run after the
    cleanup — and `--units <previous tag>..HEAD` — what the iteration's sessions and agents spent, from Codex
-   CODEX_HOME/sessions and archived_sessions logs: by group and by agent, the models, the context each agent reached, «Принятие задач» (units
+   CODEX_HOME/sessions and archived_sessions logs: by group and by agent, per-model estimated standard API cost for measured usage at known rates, the context each agent reached, «Принятие задач» (units
    accepted at the first review, units sent back, the cost of one accepted unit, plus first/fixed/redone counts by executor-derived difficulty), and the flags it raises. Its output goes into the section unchanged,
    under «### Расход»: the maintainer tunes unit size, reviews and packets from these numbers, and a paraphrase
    loses them. A flag becomes a finding only when a skill caused it (a stage pasting whole documents, a

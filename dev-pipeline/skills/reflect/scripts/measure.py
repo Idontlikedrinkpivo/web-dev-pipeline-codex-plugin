@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""What a project's pipeline runs cost, and who spent it — from Claude Code's own session logs, for `reflect`.
+"""What a project's pipeline runs cost, and who spent it — from session usage logs, for `reflect`.
 
 usage:
   measure.py <project-dir> [--since YYYY-MM-DD[THH:MM]] [--also <old-project-dir> ...]
@@ -11,7 +11,7 @@ acceptance, including by_grade) for compare.py, which compares several runs of t
 --progress (one per iteration whose progress file is still there) and --units (the iterations' git range, e.g.
 v2.1.2..HEAD) add «Принятие задач»: how many plan units passed their review the first time, how many went back,
 and what one accepted unit cost — executors and code review together, divided by the units accepted. From the
-progress file's Ревью column (`COMMIT` alone is the first time; `RETURN_…`, `FIX_THEN_COMMIT`, `×2`, `→` mean
+progress file's Ревью column (`COMMIT` alone is the first time; `RETURN_…`, `FIX_THEN_COMMIT`, `×2`, «раунд» mean
 rounds). Difficulty comes from Исполнитель, with first/fixed/redone counts per grade.
 Each progress file read is also saved outside the project — ${CODEX_HOME:-~/.codex}/dev-pipeline-feedback/.acceptance/
 <project>/<version>.txt — because reflect runs at the iteration's close before the cleanup removes the file; a
@@ -26,8 +26,7 @@ reached; the flags worth a look. Read-only.
 
 A call is one model request — a unique message id, counted once even when a resumed session repeats it or the log
 writes it as several lines. Spend is in normalized units, relative to one input token, so runs and roles compare:
-output ×5, cache write ×1.25 (×2 for the one-hour cache), cache read ×0.1. These are ratios, not money: a model's
-own price is not applied — the models table says which model spent what. Python 3.9+, standard library only.
+Output, writes and cached reads are weighted separately. Known Codex models also show estimated API cost. Python 3.9+, standard library only.
 """
 from __future__ import annotations
 
@@ -40,6 +39,17 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 W_IN, W_WRITE, W_WRITE_1H, W_READ, W_OUT = 1.0, 1.25, 2.0, 0.1, 5.0
+# Standard short-context USD per million uncached input tokens and cached-read ratio.
+# https://developers.openai.com/api/docs/pricing (short-context estimate, no tier surcharges).
+MODEL_RATES = {"gpt-6.2-astra": (8., .05), "gpt-6.2-sol": (2., .05),
+               "gpt-6.1-sol": (2., .05), "gpt-6.1-terra": (1., .05),
+               "gpt-6-astra": (10., .1), "gpt-6-luna": (.1, .1)}
+
+
+def w_read(model: str) -> float:
+    return MODEL_RATES.get(model, (None, W_READ))[1]
+
+
 IDLE = 300            # a gap longer than this between two calls of the session is a pause, not work
 SMALL, BIG = 100_000, 250_000   # an executor that peaked below SMALL paid its cold start for little work; above BIG,
 #                                 every call re-reads a context that big (cache reads grow with the square of the work)
@@ -74,6 +84,7 @@ class Agent:
         self.kind, self.label = kind, label
         self.calls = 0
         self.tokens = defaultdict(int)          # in, write, write1h, read, out
+        self.read_units = 0.0                   # cache reads at each model's weight
         self.units = 0.0
         self.peak = 0
         self.first_ctx = 0
@@ -96,12 +107,13 @@ def add_call(a: Agent, usage: dict, model: str, ts: str) -> float:
 
 def add_counts(a: Agent, tin: int, w5: int, w1h: int, read: int, out: int, model: str, ts: str) -> float:
     """One model call: uncached input, cache writes (5-minute, one-hour), cache reads, output."""
-    units = W_IN * tin + W_WRITE * w5 + W_WRITE_1H * w1h + W_READ * read + W_OUT * out
+    units = W_IN * tin + W_WRITE * w5 + W_WRITE_1H * w1h + w_read(model) * read + W_OUT * out
     ctx = tin + w5 + w1h + read
     a.calls += 1
     for k, v in (("in", tin), ("write", w5), ("write1h", w1h), ("read", read), ("out", out)):
         a.tokens[k] += v
     a.units += units
+    a.read_units += w_read(model) * read
     a.peak = max(a.peak, ctx)
     a.first_ctx = a.first_ctx or ctx
     a.models[model or "?"] += units
@@ -206,11 +218,11 @@ def acceptance(progress: list, rng: str, cwd: str, *, by_grade: dict | None = No
             if len(cells) < 5 or not re.fullmatch(r"U\d+", cells[0]) or "✅" not in cells[3]:
                 continue
             accepted += 1
-            review = cells[-1]
+            review = cells[4]
             # Review evidence belongs to its column, not the goal or executor's escalation annotation.
             role = re.search(r"(?<![\w-])(?:mechanical-worker|impl-lite|impl-medium|impl-hard|impl-ui)(?![\w-])", cells[2])
             grade = GRADES.get(role.group() if role else "", "не указана")
-            if re.search(r"RETURN|→|×\s*(?:[2-9]\d*|1\d+)|возвращ|эскалац|переделан", review, re.I):
+            if re.search(r"RETURN|раунд|×\s*(?:[2-9]\d*|1\d+)|возвращ|эскалац|переделан", review, re.I):
                 outcome = "redone"
                 back += 1
             elif re.search(r"FIX_THEN_COMMIT|исправлено после", review, re.I):
@@ -318,8 +330,8 @@ def report(args: list, cwd: str, since: str | None, session, agents: list, activ
           f"всего: **{fmt(total if complete else None)}** единиц · работа сессии: ~{active_minutes(beats) // 60} ч {active_minutes(beats) % 60} мин")
     print(f"Telemetry: {'complete' if complete else 'incomplete/unknown'}; known subtotal: {fmt(total)}; guardian billing: unknown")
     print()
-    print("Единицы — токены, приведённые к цене входного токена: вывод ×5, запись в кэш ×1,25 (часовой ×2), чтение "
-          "кэша ×0,1. Это пропорции для сравнения ролей и прогонов, а не деньги: цена модели не учтена.")
+    print("Единицы учитывают цену чтения кэша каждой модели. Доллары — оценка по стандартным тарифам API "
+          "для короткого контекста, без надбавок за режим обслуживания.")
 
     by_group: dict = defaultdict(lambda: [0.0, 0, 0])
     unknown_groups = {group_of(a.kind) for a in every if a.unknown_usage}
@@ -351,17 +363,28 @@ def report(args: list, cwd: str, since: str | None, session, agents: list, activ
         for m, u in a.models.items():
             models[m] += u
     print("\n#### По моделям\n")
-    print("| Модель | Доля | Единиц |")
-    print("|---|---|---|")
+    print("| Модель | Доля | Единиц | Долларов |")
+    print("|---|---|---|---|")
+    usd_total, unpriced = 0.0, []
     for m, u in sorted(models.items(), key=lambda kv: -kv[1]):
-        if u >= 0.5 and not m.startswith("<"):  # «<synthetic>» is Claude Code's own placeholder, not a model
-            print(f"| {m} | {u / total if total else 0:.0%} | {fmt(u)} |")
+        rate = MODEL_RATES.get(m)
+        cost = u * rate[0] / 1e6 if rate else None
+        if cost is None:
+            unpriced.append(m)
+        else:
+            usd_total += cost
+        dollars = f"{cost:.4f}" if cost is not None else "—"
+        print(f"| {m} | {u / total if total else 0:.0%} | {fmt(u)} | {dollars} |")
+    if any(m in MODEL_RATES for m in models):
+        print(f"По известным тарифам и измеренным вызовам: ~${usd_total:.4f}.")
+    if unpriced:
+        print("Без оценки стоимости: " + ", ".join(sorted(unpriced)))
 
     toks = defaultdict(int)
     for a in every:
         for k, v in a.tokens.items():
             toks[k] += v
-    parts = {"чтение кэша": W_READ * toks["read"], "запись в кэш": W_WRITE * toks["write"] + W_WRITE_1H * toks["write1h"],
+    parts = {"чтение кэша": sum(a.read_units for a in every), "запись в кэш": W_WRITE * toks["write"] + W_WRITE_1H * toks["write1h"],
              "вывод": W_OUT * toks["out"], "вход без кэша": W_IN * toks["in"]}
     print("\n#### Из чего сложились единицы\n")
     print(" · ".join(f"{k}: {v / total if total else 0:.0%}" for k, v in sorted(parts.items(), key=lambda kv: -kv[1])))
@@ -427,6 +450,8 @@ def report(args: list, cwd: str, since: str | None, session, agents: list, activ
         observed_acceptance = [a.review_acceptance for a in agents if a.review_acceptance is not None]
         Path(args[args.index("--json") + 1]).write_text(json.dumps({
             "schema_version": 2, "unit_kind": "conditional-token-units", "currency": None,
+            "estimated_standard_api_usd": usd_total if models and not unpriced and complete else None,
+            "unpriced_models": unpriced,
             "billing": {"guardian": None, "reason": "billing not observable in rollout telemetry"},
             "window": {"start": since, "end": args[args.index("--until") + 1] if "--until" in args else None},
             "baseline": args[args.index("--baseline") + 1] if "--baseline" in args else None,

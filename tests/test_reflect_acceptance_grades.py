@@ -78,7 +78,7 @@ class AcceptanceGradesTests(unittest.TestCase):
         self.assertEqual(grades['не указана']['accepted'], 2)
 
     def test_review_precedence_and_multi_digit_rounds(self):
-        reviews = ['COMMIT', 'FIX_THEN_COMMIT', 'исправлено после ревью',
+        reviews = ['COMMIT: граница → ошибка', 'FIX_THEN_COMMIT', 'исправлено после ревью',
                    'RETURN_TO_EXECUTOR → FIX_THEN_COMMIT', 'COMMIT ×10', 'COMMIT ×20',
                    'возвращено, COMMIT', 'эскалация, COMMIT', 'переделано, COMMIT', 'COMMIT ×1']
         self.write([('impl-medium', '✅ готово', review) for review in reviews])

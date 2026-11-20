@@ -105,6 +105,10 @@ class HandoffAcceptanceTests(unittest.TestCase):
         for name in REPORTS:
             self.write(repo, PLANS + '/' + name, '# Portable fixture\n' + next_action + '\n')
 
+        paths = [PLANS + '/' + name for name in REPORTS]
+        self.git(repo, 'add', '--', *paths)
+        self.git(repo, 'commit', '-qm', 'fixture: reviewed handoff reports', '--', *paths)
+
     def recipient(self, name: str, expected_files: tuple[str, ...], stage: str) -> Path:
         repo = self.clone(name)
         for path in (*expected_files, *(PLANS + '/' + report for report in REPORTS)):
@@ -188,6 +192,10 @@ class HandoffAcceptanceTests(unittest.TestCase):
         self.document(designer, REGISTER, 'M-1 | S-1 | DESIGN-SOURCE-UNIQUE')
         self.write(designer, SITE, 'designer generated site\n')
         self.commit(designer, 'fixture parallel mockup register')
+        pending = self.push(designer, expected=4)
+        self.assertIn('documentation/_web-docs/', pending.stdout)
+        self.git(designer, 'add', '-A', '--', 'documentation/_web-docs')
+        self.git(designer, 'commit', '-qm', 'fixture: reviewed combined site', '--', 'documentation/_web-docs')
         self.push(designer)
         combined = self.clone('combined')
         self.assertIn('TECHNICAL-SOURCE-UNIQUE', (combined / ARCH).read_text(encoding='utf-8'))

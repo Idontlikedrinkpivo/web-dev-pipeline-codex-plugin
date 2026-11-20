@@ -21,6 +21,11 @@ OUTPUT PATH     documentation/ui/test-cases/ — README.md and one file per
                 UI products); an old single test-cases.md was already moved
                 in and committed by the session
 MODE            greenfield | increment (keep every TC- id; new cases take the next number)
+TO FIX          <increment only: the lines check_trace.py / check_coverage.py
+                printed, or the review findings the user applied
+                (doc-review → references/test-cases.md), each with its section
+                and the suggested case or change — change only these and what
+                they force; or: none>
 PROGRESS FILE   documentation/plans/<version>/progress-test-cases.md
 
 INPUTS (read in full)
@@ -37,6 +42,7 @@ ANSWERS
    as BLOCKED, with the question — or: none>
 
 RULES
+- A large file — over 200 KB by `wc -c` (a big screen spec, an SRS area, a diff) — is never one Read: `grep -n "^#"` for its headings, then Read with offset/limit part by part to its last line. «Read in full» means every line, not one call.
 - Progress comes first in every section: before the section's first edit,
   set its row in PROGRESS FILE to `🔄 в работе` with the Edit tool; right
   after its last edit, `✅ готово` with the case count — the page computes
@@ -59,7 +65,12 @@ RULES
   «Трассировка» line — source ids, frame nodeId, state row, `шаг N → эл. M`
   for every step that touches an element, operationId with status or mock,
   ARIA expectations. A «Проверяет» line with the requirement ids opens each
-  case. Steps go through controls the spec names when another path exists;
+  case. Under it, `**Сквозной:** да` on the cross-cutting cases: one per
+  role that signs in, one per role's main scenario (its UC main flow), one
+  per screen that opens it with data — about one case in ten, the shortest
+  that walks it; reuse a case you write anyway rather than add one. An
+  increment keeps the marks and adds them for a new screen or role; a set
+  with none gets them. Steps go through controls the spec names when another path exists;
   expected texts carry real values computed from the preconditions, never
   `{дата}` or «по кадру». A text the spec marks missing (`текст — нет в «Тексты»` or `текст —
   нет на кадре`):

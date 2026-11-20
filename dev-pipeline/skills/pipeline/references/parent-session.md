@@ -143,7 +143,11 @@ For each stage packet include:
 Чужой документ здесь не правь и его писателя не запускай: родителю отправь «РЕШЕНИЕ · <было> → <стало> · решил <кто> · владелец: <этап> · жду», а как владелец после записи ответь «РЕШЕНИЕ ЗАПИСАНО · <документ> · коммит <sha> · задеты: <документы других закрытых этапов, повторяющие старое решение, или «нет»>».
 Результат: статус DONE/BLOCKED/STOPPED, изменённые файлы, проверки,
 решения пользователя, следующий этап и точка продолжения.
-Перед завершением запиши все решения в файлы и выполни проверки этапа.
+После сжатия сверь свой CODEX_THREAD_ID через subsessions.py … whoami. Продолжи с сохранённой точки.
+Общие файлы для других чатов клади в documentation/plans/<version>/. Коммить только свои пути отдельными аргументами.
+Если вопрос решён по документам, назови решение и его источник одной фразой.
+Перед закрытием сверь решения по references/handover-check.md, убери ресурсы этапа из «Запущено».
+Родителю передай строку команды subsessions.py … closing <ключ> <дальше>.
 Если плагин дал сбой, сразу запиши его в этот чат с наблюдаемым результатом.
 Если требуется ответ пользователя, не выдавай этап за завершённый.
 ```
@@ -189,7 +193,7 @@ short status/report packets, files as the source of truth, no copied transcripts
 
 ## Stage-close report and dependency queue
 
-Read [What to offer at a close](offer-at-close.md). A stage sends
+Read [What to offer at a close](offer-at-close.md). Send the verified line printed by `subsessions.py … closing`, including handover and leftovers. Its routing prefix is
 `ЭТАП <этап> ЗАКРЫТ · дальше: <этапы, которые можно начать>` or
 `ЭТАП <этап> ЗАКРЫТ · ждёт: <этап> после <этап>`.
 Verify the close commit, recompute readiness, start all selected ready stages; a waiting
@@ -200,7 +204,7 @@ line starts nothing. Keep `после API` on screen specs while API is unclosed
 
 | Message | Parent action |
 |---|---|
-| `РЕШЕНИЕ · <было> → <стало> · решил <кто> · владелец: <этап> · жду` | Find the owner's chat, serialize writers, mark «идёт», forward `РЕШЕНИЕ ИЗМЕНЕНО · <было> → <стало> · решил <кто> · от <этап>`. With no owner chat, apply here through its writer. |
+| `РЕШЕНИЕ · <было> → <стало> · решил <кто> · владелец: <этап> · жду` | Find the owner's chat, serialize writers, mark «идёт», forward `РЕШЕНИЕ ИЗМЕНЕНО · <было> → <стало> · решил <кто> · от <этап>`. With no live owner, propose a corrections chat using `subsessions.py … add <stage>`; open it on an authorized user turn. |
 | `РЕШЕНИЕ ЗАПИСАНО · <документ> · коммит <sha> · задеты: <документы других закрытых этапов, повторяющие старое решение, или «нет»>` | Verify the commit, mark owner «закрыт», route affected closed documents to their owners, then tell the waiting chat `продолжай: <документ> обновлён, коммит <sha>`. |
 
 Stage responsibility: never edit another stage's document here or start its writer.

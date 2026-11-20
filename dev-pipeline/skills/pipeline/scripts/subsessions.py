@@ -12,8 +12,10 @@ the source is preserved and an existing local copy is never overwritten.
     python3 subsessions.py <project dir> <version> mark <row | session id> <state>
     python3 subsessions.py <project dir> <version> when <row | session id> <stage | clear>
     python3 subsessions.py <project dir> <version> parent <session id>
+    python3 subsessions.py <project dir> <version> add <stage key>
     python3 subsessions.py <project dir> <version> show
     python3 subsessions.py <project dir> <version> whoami <session id>
+    python3 subsessions.py <project dir> <version> closing <stage key> <дальше…> [--nothing-asked | --no-transcript] [--keep=<why>]
 
 plan    the stages kept for this iteration (keys below, any order) become rows in chain order, each with its title —
         «<version> · <its place in the chain, two digits> <word>», «1.0.0 · 02 SRS», so a sidebar sorted by name or
@@ -32,8 +34,20 @@ set     an authorized row's session id, once opened (state → ждёт).
 mark    a row's state: ждёт · идёт · закрыт · передан (handed over, to be cleared and started again) · убран.
 when    set an explicit dependency (stage key); clear removes it only after its input closes.
 parent  the parent's own session id, so a parent after a compaction or a new one on «продолжим» finds the list.
+add     a row «<version> · NN <word>: правки» for a stage whose document a changed decision touches when that stage
+        has no live session (closed and archived, a fresh clone, never in the list): «Когда» is «по решению», the
+        stage's own row keeps its state. The parent opens it in a user turn and sends it «РЕШЕНИЕ ИЗМЕНЕНО» —
+        never runs that document's writer itself (pipeline → references/decision-changes.md → Under a parent
+        session). A «правки» row of the stage not yet closed is reused, not added twice.
 show    the table, then: the stage in work, the next one to start, the rows not opened yet — the input of «продолжим».
 whoami  the row of a nested session by its own id: its stage and its skill — for a session after a compaction or a clear.
+closing the message «ЭТАП <stage> ЗАКРЫТ · дальше: …» a nested session sends its parent — printed only when the
+        handover check ran: the digest `handover-<key>.md` in the current chat directory (command `handover-dir`) and the checker's report saved
+        beside it as `handover-<key>-report.md` (with MISSING, a commit later than the report — the decisions
+        written down); `--nothing-asked` for a stage that asked the user nothing, `--no-transcript` when sessions.py
+        found no transcript — each said in the message. <дальше…> is the stages, or «ждёт: …», «остановиться». Then runs
+        leftovers.py: anything left refuses, unless `--keep=<why>` names why it stays. A screen-spec stage closed
+        with no check at all (ai-initiatives 2.3.0) is what this refuses (pipeline → references/handover-check.md).
 
 Stage keys, in chain order (pipeline → SKILL.md, the chain table): brd srs db api arch scaffold design specs cases
 check plan work ui audit deploy ops ci close. Standard library only.
@@ -45,6 +59,7 @@ import hashlib
 import re
 import json
 import os
+import subprocess
 import sys
 from pathlib import Path
 
@@ -89,6 +104,7 @@ STAGES = {
     "ci": ("CI", "ci-pipeline", False),
     "close": ("закрытие", "pipeline — End of the pipeline", False),
 }
+FIX = "по решению"   # «Когда» of a «правки» row: opened for a changed decision, not by the chain
 STATES = ("не открыта", "ждёт", "идёт", "закрыт", "передан", "убран")
 HEAD = "| # | Подсессия | Этап | Навык | Когда | Id | Состояние |"
 ROW = re.compile(r"^\|\s*(\d+)\s*\|(.*)\|(.*)\|(.*)\|(.*)\|(.*)\|(.*)\|\s*$")
@@ -116,12 +132,16 @@ def parse(text: str) -> tuple[str, list[dict]]:
     authorized = json.loads(selections[0]) if selections else []
     if not isinstance(authorized, list) or any(not isinstance(key, str) or key not in STAGES for key in authorized):
         raise ValueError('invalid authorized stage selection')
+    fixes = next((json.loads(line.removeprefix("Authorized corrections: ")) for line in lines
+                  if line.startswith("Authorized corrections: ")), [])
+    if not isinstance(fixes, list) or any(key not in STAGES for key in fixes):
+        raise ValueError("invalid authorized corrections")
     for line in lines:
         m = ROW.match(line)
         if m:
             _, title, stage, skill, when, sid, state = (c.strip() for c in m.groups())
             rows.append(dict(title=title, stage=stage, skill=skill, when=when, id=sid.strip("`"), state=state,
-                             authorized=stage in authorized))
+                             authorized=stage in (fixes if when == FIX else authorized)))
     return parent, rows
 
 
@@ -137,7 +157,9 @@ def write(path: Path, version: str, parent: str, rows: list[dict]) -> None:
              "(pipeline → references/parent-session.md). В git не хранится.", "",
              f"Родительская сессия: {parent or '—'}",
              'Authorized stages: ' + json.dumps([key for key in STAGES if any(
-                 r['stage'] == key and r.get('authorized') for r in rows)]),
+                 r['stage'] == key and r['when'] != FIX and r.get('authorized') for r in rows)]),
+             'Authorized corrections: ' + json.dumps([r['stage'] for r in rows if r['when'] == FIX
+                 and r.get('authorized') and r.get('state') not in ('закрыт', 'убран')]),
              "", HEAD, "|---|---|---|---|---|---|---|"]
     for i, r in enumerate(rows, 1):
         sid = f"`{r['id']}`" if r.get("id") else ""
@@ -159,6 +181,8 @@ def sync_dependencies(root: Path, version: str, rows: list[dict]) -> list[dict]:
     done = stamped(root, version)
     released = []
     for row in rows:
+        if row['when'] == FIX:
+            continue
         if row['stage'] == 'specs' and any(r['stage'] == 'api' for r in rows) and 'api' not in done:
             row['when'] = 'после API'
         dependency = next((key for key in STAGES if row['when'] == 'после ' + STAGES[key][0]), None)
@@ -182,8 +206,9 @@ def show(rows: list[dict]) -> None:
     unopened = [r for r in rows if r.get("state") in ("не открыта", "", None)
                 and r["when"] == "по очереди" and r.get('authorized')]
     waiting = [r for r in rows if r['when'].startswith('после ') and r.get('state') not in ('закрыт', 'убран')]
+    fixes = [r for r in rows if r['when'] == FIX and not r.get('id') and r.get('authorized')]
     later = [r for r in rows if r.get("state") in ("не открыта", "", None)
-             and r['when'] != 'по очереди' and not r['when'].startswith('после ')]
+             and r['when'] not in ('по очереди', FIX) and not r['when'].startswith('после ')]
     print()
     print("в работе: " + (", ".join(f"«{r['title']}» ({r['id']})" for r in busy) or "ничего"))
     print("дальше: " + (f"«{nxt['title']}» ({nxt['id']}) — отправить «начинай»" if nxt else "очередных нет"))
@@ -195,6 +220,9 @@ def show(rows: list[dict]) -> None:
         print('предложены, не разрешены — не открывать: ' + ' '.join(proposed))
     for row in waiting:
         print(f"ждёт входа: {row['title']} — «начинай» {row['when']}")
+    if fixes:
+        print("правки закрытых этапов — открыть в ход пользователя и отправить «РЕШЕНИЕ ИЗМЕНЕНО»: " + "; ".join(
+            f"{rows.index(r) + 1}. «{r['title']}»" for r in fixes))
     if later:   # a part from a list made before 1.2.256: a stage now goes on in its own session after a clear
         print("старые строки частей — не открывать, этап продолжается в своей подсессии (mark … убран): " + "; ".join(
             f"{rows.index(r) + 1}. «{r['title']}»" for r in later))
@@ -216,13 +244,17 @@ def migrate_legacy(paths: StatePaths, source: str, target: Path) -> None:
         return
 
 
+def session_id(value: str | None) -> str:
+    return (value or "").strip().strip("`").removeprefix("local_").lower()
+
+
 def owner_of(paths: StatePaths, child: str) -> tuple[str, dict] | None:
     """Read-only self lookup in identity-proven owner registries of this checkout.
 
     The unique parent header must reproduce the registry's exact hashed namespace
     through the resolver. A child row alone is never proof of an owning parent.
     """
-    if child != paths.chat_key or not paths.local.parent.exists():
+    if session_id(child) != session_id(paths.chat_key) or not paths.local.parent.exists():
         return None
     matches = []
     for folder in sorted(paths.local.parent.iterdir()):
@@ -236,7 +268,7 @@ def owner_of(paths: StatePaths, child: str) -> tuple[str, dict] | None:
                 continue
         except ValueError:
             continue  # invalid/unproven namespaces cannot establish ownership
-        hits = [row for row in rows if row.get("id") == child]
+        hits = [row for row in rows if session_id(row.get("id")) == session_id(child)]
         if len(hits) > 1:
             raise ValueError("ambiguous child membership in parent registry")
         if hits:
@@ -255,6 +287,7 @@ def main() -> None:
             sys.exit("sessions: --legacy requires one explicit source path")
         legacy = raw[index + 1]
         raw = raw[:index] + raw[index + 2:]
+    flags = {a for a in raw if a.startswith("--")}
     args = [a for a in raw if not a.startswith("--")]
     if len(args) < 3:
         sys.exit(__doc__)
@@ -302,7 +335,7 @@ def main() -> None:
             sys.exit('sessions: stage not explicitly authorized; record user selection with authorize')
         if r.get('id') and r['id'] != rest[1]:
             sys.exit('sessions: row already belongs to another session')
-        if rest[1] in (row.get('id') for row in rows if row is not r):
+        if session_id(rest[1]) in (session_id(row.get('id')) for row in rows if row is not r):
             sys.exit('sessions: duplicate child session identity')
         r["id"], r["state"] = rest[1], "ждёт"
         write(path, version, parent if parent and parent != "—" else paths.chat_key, rows)
@@ -339,6 +372,17 @@ def main() -> None:
         sync_dependencies(root, version, rows)
         write(path, version, parent if parent and parent != '—' else paths.chat_key, rows)
         show(rows)
+    elif cmd == "add" and len(rest) == 1 and rest[0] in STAGES:
+        base = rows_for(version, rest[0])[0]
+        title = f"{base['title']}: правки"
+        hit = next((r for r in rows if r["title"] == title and r.get("state") not in ("закрыт", "убран")), None)
+        if not hit:
+            hit = dict(base, title=title, when=FIX, id="", state="не открыта")
+            rows.append(hit)
+            rows.sort(key=lambda r: order_key(r["stage"]))
+            write(path, version, paths.chat_key, rows)
+        print(f"sessions: {rows.index(hit) + 1}. «{title}» — {hit['state']}"
+              + (f" · {hit['id']}" if hit.get("id") else " — предложить чат правок, после согласия authorize и set <строка> <id>"))
     elif cmd == "parent" and len(rest) == 1:
         if rest[0] != paths.chat_key:
             sys.exit('sessions: parent must match current chat identity')
@@ -352,7 +396,7 @@ def main() -> None:
         sync_dependencies(root, version, rows)  # read-only projection; mark/when persists changes
         show(rows)
     elif cmd == "whoami" and len(rest) == 1:
-        hits = [r for r in rows if r.get("id") == rest[0]]
+        hits = [r for r in rows if session_id(rest[0]) and session_id(r.get("id")) == session_id(rest[0])]
         if len(hits) > 1:
             sys.exit("sessions: ambiguous child membership in local registry")
         hit = hits[0] if hits else None
@@ -363,11 +407,62 @@ def main() -> None:
         if owner is not None:
             parent, hit = owner
         if not hit:
-            sys.exit(f"sessions: сессии {rest[0]} в списке нет — спросите родительскую ({parent or 'id неизвестен'})")
+            print(f"sessions: сессии {rest[0]} в списке нет. Свой id берите из CODEX_THREAD_ID; строки списка:",
+                  file=sys.stderr)
+            for i, r in enumerate(rows, 1):
+                print(f"{i:>2}. {r['title']} — {r.get('state') or 'не открыта'} · {r.get('id') or 'id нет'}",
+                      file=sys.stderr)
+            sys.exit(f"Сверьте id с родительским чатом ({parent or 'id неизвестен'})")
         print(f"ты — «{hit['title']}»: этап {hit['stage']}, навык {hit['skill']}, {hit['when']}, состояние "
               f"{hit['state']}; родительская сессия — {parent or '—'}")
+    elif cmd == "handover-dir" and not rest:
+        paths.local.mkdir(parents=True, exist_ok=True)
+        print(paths.local)
+    elif cmd == "closing" and rest and rest[0] in STAGES:
+        closing(root, paths.local, rest[0], " ".join(rest[1:]) or "—", flags)
     else:
         sys.exit(__doc__)
+
+
+def closing(root: Path, work: Path, key: str, nxt: str, flags: set[str]) -> None:
+    """The close report, only after the handover check and the stage's leftovers."""
+    git = lambda *a: subprocess.run(["git", "-C", str(root), *a], capture_output=True, text=True).stdout.strip()
+    digest, report = work / f"handover-{key}.md", work / f"handover-{key}-report.md"
+    word = STAGES[key][0]
+    if "--no-transcript" in flags:
+        check = "проверка передачи: пропущена — переписка сессии не найдена (sessions.py mine)"
+    elif not digest.is_file() or digest.stat().st_size == 0:
+        sys.exit(f"sessions: не закрываю «{word}» — проверки передачи не было (нет {digest}): "
+                 "pipeline → references/handover-check.md, шаг 1")
+    elif "--nothing-asked" in flags:
+        check = "проверка передачи: не нужна — пользователю вопросов не было"
+    elif not report.is_file() or report.stat().st_mtime_ns < digest.stat().st_mtime_ns:
+        sys.exit(f"sessions: не закрываю «{word}» — нет отчёта проверки передачи ({report}): сохраните ответ "
+                 "handover-checker туда (pipeline → references/handover-check.md, шаги 2–3)")
+    else:
+        text = report.read_text(encoding="utf-8", errors="replace")
+        if re.search(r"STATUS\s+MISSING", text):
+            last = int(git("log", "-1", "--format=%ct") or 0)
+            if last <= int(report.stat().st_mtime):
+                sys.exit(f"sessions: не закрываю «{word}» — проверка передачи нашла незаписанное, а коммита после неё "
+                         "нет: запишите решения в документы, закоммитьте и запустите снова")
+            check = "проверка передачи: недостающее записано"
+        elif re.search(r"STATUS\s+ALL ON DISK", text):
+            check = "проверка передачи: всё на диске"
+        else:
+            sys.exit(f"sessions: не закрываю «{word}» — в {report} нет строки STATUS проверки передачи")
+    left = subprocess.run([sys.executable, str(Path(__file__).resolve().parent / "leftovers.py"), str(root)],
+                          capture_output=True, text=True)
+    lines = [l for l in left.stdout.splitlines() if l.strip()]
+    keep = next((f.split("=", 1)[1] for f in flags if f.startswith("--keep=")), "")
+    if left.returncode and not keep:
+        sys.exit("sessions: не закрываю — этап оставил за собой:\n" + "\n".join(lines)
+                 + "\nуберите своё и запустите снова, или --keep=<почему остаётся>")
+    stands = lines[-1] if lines else "стенды: не проверены"
+    if left.returncode:
+        stands = f"{stands} — остаётся: {keep}"
+    tail = nxt if re.match(r"(ждёт|остановиться)", nxt) else f"дальше: {nxt}"
+    print(f"ЭТАП {word} ЗАКРЫТ · {tail} · {check} · {stands}")
 
 
 if __name__ == "__main__":

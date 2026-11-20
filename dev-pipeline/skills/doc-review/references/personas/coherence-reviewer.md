@@ -20,6 +20,26 @@ an element cited in «Ошибки ответов» that the «Элементы�
 have. Anything named in «Разрывы» is the document being consistent, not a
 finding.
 
+**`test-cases`:** case by case — does it prove what it claims? Read the SRS
+(`Origin:`) for every criterion a case names — in «Проверяет», or, in an older
+set without that line, the AC ids of its «Трассировка». Split the criterion's
+`Тогда` at «и» and commas into outcomes («заявка сохранена и автору ушло письмо» is
+two). Each outcome needs a row in «Что должно быть» that a person sees, or a
+«Без интерфейса» row for it in README; a case that shows one outcome and
+leaves the other unchecked is a finding naming the missing one — a toast
+about the second outcome does not prove the first (a toast «письмо отправлено»
+does not show the saved request in the list). Show the work: for every criterion
+of two or more outcomes, one line in `residual_risks` —
+«outcomes TC-12 UC-2 AC-1: заявка сохранена — нет строки; письмо ушло —
+шаг 3» — and every «нет строки» there is also a finding. «Подготовка» reaches
+the state the steps assume (the booking that «уже началась» exists and
+started before the run). An expected text equals the one the screen spec
+quotes, word for word. Values are concrete — no `{дата}`, «по кадру», «любой».
+A BR or NFR in «Проверяет» that no step exercises. Across the set: the
+«Разделы» counts and TC ranges match the files, no TC id twice, the coverage
+table names the case whose «Проверяет» holds that criterion. The set's gaps
+and «Без интерфейса» rows are the document being consistent, not a finding.
+
 **`architecture`:** watch port names that do not match the file tree,
 modules and areas that do not match the SRS capability groups, access-policy
 vs typed-actor double-count that the document treats as one check.

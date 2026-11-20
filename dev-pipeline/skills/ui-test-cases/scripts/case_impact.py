@@ -7,6 +7,7 @@ from pathlib import Path
 
 from check_trace import CASE, OP, NODE
 
+CROSS_CUTTING = re.compile(r"^\*\*Сквозной:\*\*\s*да\b", re.M)
 SCREEN = re.compile(r'\bS-\d+\b')
 REQ = re.compile(r'\b(?:UC|BR|FR|NFR)-\d+(?:\.\d+)*\b')
 MODAL = re.compile(r'\bM-?\d+\b')
@@ -43,6 +44,7 @@ def discover(root):
             for token in NODE.findall(body) + MODAL.findall(body):
                 screens.update(frames.get(token, ()))
             cases[cid] = dict(id=cid, path=path.relative_to(root).as_posix(), screens=sorted(screens),
+                              cross_cutting=bool(CROSS_CUTTING.search(body)),
                               operations=sorted({op for op, _ in OP.findall(body)}),
                               requirements=sorted(set(REQ.findall(body))))
     mapping = {'cases': list(cases.values()), 'changes': {}, 'prior_failures': []}

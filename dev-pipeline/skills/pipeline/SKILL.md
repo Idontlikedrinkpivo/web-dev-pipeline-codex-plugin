@@ -101,7 +101,7 @@ The table keeps default order; a file alone never proves stage closure.
 | 12 | Execution | `work` | `code-review-unit` per unit → `code-review-full` once — **automatic, do not ask** | `ui-test-cases` (run) when the product has screens, else `security-audit` |
 | 13 | UI acceptance run | `ui-test-cases` — mode run | none | a fix plan — `plan` `MODE fix` over the report's defect rows — when the verdict is `DEFECTS`, else `security-audit` |
 | 14 | Security audit — the whole application, once per iteration | `security-audit` | none — it is the check | a fix plan — `plan` `MODE fix` over the report's `FIX` rows — when the verdict is `FIX`, else `deploy-topology` |
-| 15 | Compose topology | `deploy-topology` | none | `operations-doc` |
+| 15 | Compose topology the first time; after it, a repeat release, optional: asked every version, never dropped as done (`deploy-topology` → A repeat release) | `deploy-topology` | none | `operations-doc` |
 | 16 | Operations document — journals, jobs, alarms, how to see each | `operations-doc` | none — its queries are proven on the test stand | `ci-pipeline` |
 | 17 | CI workflow | `ci-pipeline` | none | nothing — the pipeline ends; see "End of the pipeline" |
 
@@ -195,6 +195,9 @@ stage that ran last hands over to this section; it does not end the sitting itse
 2. **The site.** Rebuild the documentation site (`docs-site`) and commit it when it changed.
 3. **The summary** — `references/summary.md`; on disk only, like the rest of `plans/`. Include `open_questions.py <project> --pending` as a debt note, not a new refusal to close.
 4. Read the full-run result in `test-run.md` (ui-test-cases → run-report.md) and check the current acceptance manifest.
+   For projects with `scripts/build-images.sh`, also check the «Релиз» row per `references/summary.md` before tagging.
+   Require this version's scanned kit, its completed build recorded in the summary on another machine, or the user's
+   explicit decline recorded there. An unanswered question or an unfinished build returns to stage 15.
    **The tag** `v<version>` on the current commit — only when
    `python3 "<folder of this SKILL.md>/scripts/close_iteration.py" .` shows steps 1–3, including the UI acceptance and full-run report, ✅; run it again after step 7: exit 0
    is the iteration closed, a ✗ names the step left. The tag is the baseline the next iteration's pins and

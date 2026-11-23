@@ -84,7 +84,8 @@ against each other to know what is active, are worth the duplication.
 
 ## Workflow
 
-Before Step 1, create `documentation/plans/<version>/progress-deploy.md` per
+If the project already has `scripts/build-images.sh`, start at **A repeat release** below.
+For the first topology, before Step 1 create `documentation/plans/<version>/progress-deploy.md` per
 `pipeline` → `references/progress-files.md` — one row per Step below, 1 to 9
 with 7a and 7b, `⏳ ждёт` — and post its progress line
 (`python3 "<folder of this SKILL.md>/../pipeline/scripts/progress_link.py" documentation/plans/<version>/progress-deploy.md`,
@@ -93,6 +94,18 @@ you go, and post the progress line after each step; the
 image build in Step 8 runs for minutes, and its row says so
 while it runs. The line under the table carries the compose-contract tests
 and the release folder.
+
+### A repeat release
+
+The kit is optional in every version. A user request for this version's kit selects A directly. Otherwise first ask
+per `pipeline/references/question-format.md`: «Собрать комплект поставки `release/<version>/`?»
+
+- **A. Собрать** — check the audit (8.1). Compare `.env.example`, compose files, `build/` and migrations to the previous tag.
+  Update `deploy.md` and `prod.env.example` for those changes (8.2). Check the manifest version, build and scan (8.4–8.5),
+  refresh verify (7a) if a screen or operation changed, run `deploy_check.py . --version <version>` and finish with Step 9. Track only these
+  steps in progress. A new container or external dependency needs the full topology workflow.
+- **B. Не нужен — в итоге запишется «не собирался»**. End the stage and carry «Релиз: не собирался — не нужен»
+  in its handoff for the iteration summary.
 
 ### Step 1. Inventory before writing anything
 

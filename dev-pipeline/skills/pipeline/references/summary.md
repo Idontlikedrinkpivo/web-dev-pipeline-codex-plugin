@@ -20,6 +20,7 @@ reason (stage skipped, gate skipped), never a guess.
 | Ревью | находок P0/P1 по юнитам · вердикт финального ревью | 3 · PASS | run report, Full-plan review |
 | UI-тесты | кейсов · прошли с первого прогона · дефектов пережило ревью | 22 · 19 · 2 | test-run.md |
 | Безопасность | вердикт · P0/P1 найдено → исправлено · риск принят; или «пропущен — <причина>», когда пользователь отказался от аудита | FIX → PASS · 0/2 → 2 · 0 | security-audit.md |
+| Релиз | комплект поставки | <папка, теги образов и размер архива или «не собирался — не нужен»> | <отчёт сборки или ответ пользователя> |
 | Гейты | пропущены | grill-me (S-13, маленькая правка) | отчёты этапов |
 | Цена | токены / деньги / время, если сессия их показывает | — | статистика сессии |
 
@@ -32,6 +33,12 @@ reason (stage skipped, gate skipped), never a guess.
 | Что поправили руками | Документ / план / код | Почему пайплайн не справился |
 |---|---|---|
 ```
+
+Whenever the project has `scripts/build-images.sh`, include the «Релиз» row. The kit is optional and the user's
+decision is required for every version, including a small iteration. For a completed build, record the folder, image
+tags and tar size from the stage report. For an explicit decline, record «не собирался — не нужен». If the decision
+is missing, ask per `deploy-topology` → A repeat release. Keep the row when resuming on another machine, since
+`release/` is outside Git.
 
 Below the table, one line naming the weakest stage of this iteration (the
 most returns, defects, or interventions), or «слабых мест не видно». The

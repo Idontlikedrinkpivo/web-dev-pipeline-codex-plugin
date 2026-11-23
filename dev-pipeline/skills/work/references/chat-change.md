@@ -46,7 +46,8 @@ and the user's words are the spec for a change this size. A new screen still nee
    when it falls inside a run's range. Record a result row with scope + full HEAD,
    affected tests and their outcomes, unit review and full-diff review. Small-mode
    close checks still apply; no UI impact needs a reason rather than omitted
-   acceptance. Prepare close through `close_iteration.py`; main/tag/release and
+   acceptance. When preparing this version's close with `scripts/build-images.sh` present, follow `deploy-topology` →
+   A repeat release and carry the outcome into the summary. Prepare close through `close_iteration.py`; main/tag/release and
    pushes outside workflow authorization are not automatic.
 
 ## The report

@@ -50,7 +50,7 @@ Create:
 - `knip` config listing the entry points (the file that calls `listen`, the
   migrate script, test globs),
   so the dead-code report starts clean
-- `docker-compose.yml` with the database `schema.md` «Решения по базе»
+- test and dev Compose files with the database `schema.md` «Решения по базе»
   names (PostgreSQL or MySQL, at its major) + `.env.example` whenever the
   system stores data (SKILL.md §4)
 - the migration runner over `documentation/db/migrations/` (SKILL.md §4):
@@ -84,7 +84,7 @@ follow it, do not restate it here. Create:
 - the app shell from the profile (root layout or `main.tsx` + router) with
   one placeholder route; no screens, no API client yet — the first screen
   unit runs `api:gen` and builds the app-wide error handler (`frontend`)
-- `.env.example` with the API base URL variable the profile names
+- the frontend runtime/build schema for the API base URL the profile names; generate the matching operator or local example
 
 ## Python (FastAPI)
 

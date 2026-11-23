@@ -56,6 +56,8 @@ jobs:
           cache: pip
       - name: Install
         run: <the project's own install command>
+      - name: Check generated environment files
+        run: <project env:check command, e.g. npm --prefix backend run env:check or python scripts/env_doc.py --check>
       - name: Lint
         run: make lint
       - name: Typecheck
@@ -173,6 +175,8 @@ jobs:
           cache: pip
       - name: Install
         run: <the project's own install command>
+      - name: Check generated environment files
+        run: <project env:check command, e.g. npm --prefix backend run env:check or python scripts/env_doc.py --check>
       - name: Lint
         run: make lint
       - name: Typecheck

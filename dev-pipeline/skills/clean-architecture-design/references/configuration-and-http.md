@@ -6,6 +6,10 @@ sit beside the composition root (сборка).
 
 ## Конфигурация
 
+Name the typed schema beside config as the source of truth. Its project generator renders the kit env file,
+the deploy tables and root local-input example. Test and dev use Compose, with only secrets and per-machine
+inputs in their local files. The architecture records the configuration decisions.
+
 A table next to сборка, one row per переменная окружения (environment
 variable) mentioned anywhere in the three architecture documents:
 

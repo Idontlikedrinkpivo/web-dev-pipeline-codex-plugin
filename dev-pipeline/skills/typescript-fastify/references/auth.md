@@ -30,7 +30,7 @@ says, and of this file only the guard rules (401 / 403, role from the database) 
 ## Rules
 
 - The signing key comes from the config parsed at startup with no default; no literal key anywhere in the code;
-  `.env.example` has the line. Tests set a test value before building the app.
+  the typed schema marks it secret and the generated production example has an empty value. Tests set a test value before building the app.
 - Timing-safe check: when no user matches, still verify the password against a precomputed dummy hash before
   answering 401, so an unknown email and a wrong password cost the same time.
 - The token carries `sub` = the user id as a string and `exp`. Nothing else the server must trust (no role claim).

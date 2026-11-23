@@ -131,7 +131,7 @@ and again when you judge the findings (Step 4).
   it, whoever wrote the original: an earlier unit's approach a later unit
   replaced (a duplicate validator, an old code path), or a scaffold stub a
   unit's real implementation now shadows.
-- **Stale docs** — an existing README, `.env.example`, or doc this diff made
+- **Stale docs** — the schema, its three generated env artifacts, an existing README, or doc this diff made
   wrong; a changed decision from the run report's «Изменённые решения» that
   did not land in its documents; code that departs from a contract document
   with no such line behind it.

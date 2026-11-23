@@ -251,7 +251,7 @@ log_level: Literal["debug", "info", "warning", "error"] = "info"  # LOG_LEVEL
 shutdown_timeout_sec: PositiveInt = 25  # SHUTDOWN_TIMEOUT_SEC — under Kubernetes' default 30 s grace period
 ```
 
-Both are optional and listed in `.env.example` with their defaults in the comment.
+Both are optional and defined with typed defaults in the Settings model and rendered for operators.
 
 ## The check
 

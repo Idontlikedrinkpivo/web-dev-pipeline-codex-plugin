@@ -19,7 +19,17 @@
     "title": "Эксплуатационная документация",
     "what": "Новый этап после сборки образов: documentation/operations/operations.md — что система записывает и где, как это посмотреть (экран, операция API, готовый запрос, фильтр логов), фоновые процессы, тревоги, типовые операции, разбор проблем. Каждый запрос проверен на стенде.",
     "applies": {
-      "exists": "docker-compose.prod.yml"
+      "any": [
+        {
+          "exists": "docker-compose.test.yml"
+        },
+        {
+          "exists": "scripts/build-images.sh"
+        },
+        {
+          "exists": "docker-compose.prod.yml"
+        }
+      ]
     },
     "behind": {
       "missing": "documentation/operations/operations.md"
@@ -788,7 +798,7 @@
         }
       ]
     },
-    "fix": "Это изменение кода и настроек: сначала спросить — сделать сейчас (в ветке открытой итерации, если она идёт, иначе отдельной веткой chore/plugin-<версия>) или первым юнитом ближайшей итерации. Код — repo-scaffold §5 и правила стека (typescript-fastify или fastapi → references/service-endpoints.md): /health/live, /health/ready, /metrics в корне композиции, который называет дерево §5 архитектуры (bootstrap/ — только по умолчанию; переносить существующий код ради этого не нужно); JSON-логи с request_id, остановка по SIGTERM/SIGINT, LOG_LEVEL и SHUTDOWN_TIMEOUT_SEC в .env.example и конфиге, no-console / Ruff T20 в линтере. Новые файлы, библиотеки и переменные — изменённое решение архитектуры: сначала отдельный коммит «docs: решение изменено — …» по pipeline → references/decision-changes.md. Если /health описан в контракте API как операция, он остаётся — служебные пути добавляются рядом; если нет, это служебный путь прежнего вида, и его место занимают /health/live и /health/ready. Три служебных пути в NOT_IN_CONTRACT — если тест контракта уже есть (иначе он придёт с изменением contract-test). Проверка: repo-scaffold/scripts/service_check.py на запущенном процессе. Если в проекте уже есть образы — deploy-topology шаги 2, 4, 6, 7, 7b (проверка сервиса в контейнере и замер ресурсов) и 8; шаг 7a — скил verify — отдельное изменение verify-skill: числовой USER в Dockerfile, вопрос про образ без оболочки (один раз; критичная уязвимость базового образа — deploy-topology → references/images.md → A vulnerable base), защита app-контейнеров в docker-compose.test.yml и docker-compose.prod.yml, healthcheck на /health/ready, LOG_LEVEL: info на тестовом стенде (проверка сервиса читает строки запросов), сервис приложения с другим именем (app) — переименовать в backend в compose-файлах, Makefile и документах, где он назван, stop_grace_period, две обычные учётные записи БД — migrate (владелец схемы, право CREATE на базу) и backend (только данные) — в roles.sql, суперпользователь стенда только выполняет roles.sql, отдельный env-файл для prod-migrate; пометки [required] / [secret] / [infra] в .env.example, замер ресурсов, новые разделы DEPLOY.md и правила его теста, openapi.yaml в build-images.sh; scripts/e2e-stands.sh — только если есть экраны. Имена томов в существующем dev-файле не менять. Остальные шаги этапа не повторять. Поведение API не меняется; тесты зелёные до и после. Другой стек (не Fastify и не FastAPI) — только части про образы и DEPLOY.md, про код — сказать пользователю."
+    "fix": "Это изменение кода и настроек: сначала спросить — сделать сейчас (в ветке открытой итерации, если она идёт, иначе отдельной веткой chore/plugin-<версия>) или первым юнитом ближайшей итерации. Код — repo-scaffold §5 и правила стека (typescript-fastify или fastapi → references/service-endpoints.md): /health/live, /health/ready, /metrics в корне композиции, который называет дерево §5 архитектуры (bootstrap/ — только по умолчанию; переносить существующий код ради этого не нужно); JSON-логи с request_id, остановка по SIGTERM/SIGINT, LOG_LEVEL и SHUTDOWN_TIMEOUT_SEC в схеме конфигурации, no-console / Ruff T20 в линтере. Новые файлы, библиотеки и переменные — изменённое решение архитектуры: сначала отдельный коммит «docs: решение изменено — …» по pipeline → references/decision-changes.md. Если /health описан в контракте API как операция, он остаётся — служебные пути добавляются рядом; если нет, это служебный путь прежнего вида, и его место занимают /health/live и /health/ready. Три служебных пути в NOT_IN_CONTRACT — если тест контракта уже есть (иначе он придёт с изменением contract-test). Проверка: repo-scaffold/scripts/service_check.py на запущенном процессе. Если в проекте уже есть образы — deploy-topology шаги 2, 4, 6, 7, 7b (проверка сервиса в контейнере и замер ресурсов) и 8; шаг 7a — скил verify — отдельное изменение verify-skill: числовой USER в Dockerfile, вопрос про образ без оболочки (один раз; критичная уязвимость базового образа — deploy-topology → references/images.md → A vulnerable base), защита app-контейнеров в docker-compose.test.yml, healthcheck на /health/ready, LOG_LEVEL: info на тестовом стенде (проверка сервиса читает строки запросов), сервис приложения с другим именем (app) — переименовать в backend в compose-файлах, Makefile и документах, где он назван, stop_grace_period, две обычные учётные записи БД — migrate (владелец схемы, право CREATE на базу) и backend (только данные) — в roles.sql, суперпользователь стенда только выполняет roles.sql, отдельная учётная запись миграций в инструкции DBA; пометки required и secret в схеме, замер ресурсов, новые разделы DEPLOY.md и правила его теста, openapi.yaml в build-images.sh; scripts/e2e-stands.sh — только если есть экраны. Имена томов в существующем dev-файле не менять. Остальные шаги этапа не повторять. Поведение API не меняется; тесты зелёные до и после. Другой стек (не Fastify и не FastAPI) — только части про образы и DEPLOY.md, про код — сказать пользователю."
   },
   {
     "id": "as-is-schema-migrations",
@@ -933,66 +943,7 @@
         }
       ]
     },
-    "fix": "pytest-patterns → references/conftest-template.py (_refuse_unsafe_test_database) и vitest → правило 11; ci-pipeline → TEST_DATABASE_URL в задачах тестов; repo-scaffold → TEST_DATABASE_URL в .env.example; deploy-topology → references/verify-skill.md (строка doctor «test db … ≠ stand …»). Это изменение кода, поэтому сначала спросить пользователя — сделать сейчас (в ветке открытой итерации, если она идёт, иначе отдельной веткой chore/plugin-<версия>) или первым юнитом ближайшей итерации. Создать отдельную тестовую базу на тестовом сервере (<project>_test_host), прописать её в локальных настройках тестов и в CI; убрать адрес по умолчанию из помощника; прогнать тесты с базой. Данные стенда не трогать."
-  },
-  {
-    "id": "env-from-template",
-    "version": "1.2.241",
-    "title": "Файлы переменных всех сред — из одного шаблона",
-    "kind": "code",
-    "what": "Файлы переменных тестовой, dev- и прод-среды больше не пишутся руками и не копируются однажды: скрипт собирает их из .env.example — те же переменные в том же порядке, со своими несекретными значениями среды; вписанные секреты сохраняются. Раньше они расходились по составу, порядку и устаревшим переменным.",
-    "applies": {
-      "all": [
-        {
-          "exists": ".env.example"
-        },
-        {
-          "any": [
-            {
-              "exists": "documentation/deploy/prod.env.example"
-            },
-            {
-              "exists": "deploy/prod.env.example"
-            }
-          ]
-        }
-      ]
-    },
-    "behind": {
-      "any": [
-        {
-          "all": [
-            {
-              "exists": "documentation/deploy/prod.env.example"
-            },
-            {
-              "not": {
-                "grep": {
-                  "path": "documentation/deploy/prod.env.example",
-                  "pattern": "Собрано из .env.example"
-                }
-              }
-            }
-          ]
-        },
-        {
-          "all": [
-            {
-              "exists": "deploy/prod.env.example"
-            },
-            {
-              "not": {
-                "grep": {
-                  "path": "deploy/prod.env.example",
-                  "pattern": "Собрано из .env.example"
-                }
-              }
-            }
-          ]
-        }
-      ]
-    },
-    "fix": "deploy-topology → references/env-and-config-contract.md (Markers): в шаблоне .env.example добавить переменные, которых в нём нет, но которые есть в prod.env.example или в compose (с пометками), и в конце строки-комментария — значения по средам {test: …, dev: …, prod: …} там, где они различаются (взять из текущих .env.test.local, .env.dev.local, prod.env.example и compose; секреты не переносить). Переменные, записанные закомментированными («# KEY=» — их задаёт compose), — либо значение среды в карте, либо «—». Затем python3 <deploy-topology>/scripts/env_files.py . build и env_files.py . check; цели bootstrap в Makefile/package.json — на env_files.py . build вместо копирования. Сверить, что приложение стартует в test и dev."
+    "fix": "pytest-patterns → references/conftest-template.py (_refuse_unsafe_test_database) и vitest → правило 11; ci-pipeline → TEST_DATABASE_URL в задачах тестов; repo-scaffold → TEST_DATABASE_URL в настройках тестов; deploy-topology → references/verify-skill.md (строка doctor «test db … ≠ stand …»). Это изменение кода, поэтому сначала спросить пользователя — сделать сейчас (в ветке открытой итерации, если она идёт, иначе отдельной веткой chore/plugin-<версия>) или первым юнитом ближайшей итерации. Создать отдельную тестовую базу на тестовом сервере (<project>_test_host), прописать её в локальных настройках тестов и в CI; убрать адрес по умолчанию из помощника; прогнать тесты с базой. Данные стенда не трогать."
   },
   {
     "id": "plans-in-git",
@@ -1164,33 +1115,6 @@
     "fix": "Дополнить по deploy-topology/references/deploy-doc.md из фактов проекта: реплики/процессы/память, пути/объём, worker/scheduler, ingress и защита API без frontend, объяснение общего порта, миграции/DBA, сборка и scan. Не переносить чужие измерения и названия платформ. Выполнить sync-проверку."
   },
   {
-    "id": "platform-env-generation",
-    "version": "1.3.2",
-    "title": "Одна генерация env вместо копирования",
-    "kind": "code",
-    "what": "Одна генерация env вместо копирования. Требования приёмки DevOps; прежние правила покрывали их не полностью.",
-    "applies": {
-      "exists": ".env.example"
-    },
-    "behind": {
-      "any": [
-        {
-          "grep": {
-            "path": "**/Makefile",
-            "pattern": "cp.*\\.env\\.example"
-          }
-        },
-        {
-          "grep": {
-            "path": "**/package.json",
-            "pattern": "cp.*\\.env\\.example"
-          }
-        }
-      ]
-    },
-    "fix": "Заменить копирование шаблона генератором env_files.py build; несекретные значения правятся только в шаблоне. Для локального prod копируется уже сгенерированный prod.env.example. Проверить build/check и запуск сред."
-  },
-  {
     "id": "platform-scan-gate",
     "version": "1.3.2",
     "title": "Передача: все секреты и CRITICAL блокируют",
@@ -1244,5 +1168,86 @@
       }
     },
     "fix": "ui-test-cases → SKILL.md (Mode write, «A few cases are cross-cutting») и references/writer-prompt.md: один вызов ui-test-writer, MODE increment, с поручением расставить «**Сквозной:** да» под «Проверяет» — по кейсу на вход каждой ролью, на главный сценарий каждой роли и на открытие каждого экрана с данными, из уже написанных кейсов; затем check_trace.py и check_coverage.py."
+  },
+  {
+    "id": "schema-env-two-stands",
+    "version": "1.3.14",
+    "title": "Схема переменных и два стенда",
+    "kind": "code",
+    "what": "Схема приложения задаёт три публичных файла. Test и dev получают настройки из Compose и локальные секреты и значения машины. Прод получает комплект.",
+    "applies": {
+      "any": [
+        {
+          "exists": "docker-compose.test.yml"
+        },
+        {
+          "exists": "docker-compose.dev.yml"
+        },
+        {
+          "exists": "docker-compose.prod.yml"
+        },
+        {
+          "exists": "scripts/env_files.py"
+        },
+        {
+          "exists": "scripts/build-images.sh"
+        }
+      ]
+    },
+    "behind": {
+      "any": [
+        {
+          "exists": "docker-compose.prod.yml"
+        },
+        {
+          "exists": "scripts/env_files.py"
+        },
+        {
+          "missing": "deploy/prod.env.example"
+        },
+        {
+          "missing": ".env.example"
+        },
+        {
+          "not": {
+            "grep": {
+              "path": "documentation/deploy/deploy.md",
+              "pattern": "<!-- env-doc:"
+            }
+          }
+        },
+        {
+          "not": {
+            "any": [
+              {
+                "exists": "**/scripts/env-doc.ts"
+              },
+              {
+                "exists": "scripts/env_doc.py"
+              }
+            ]
+          }
+        },
+        {
+          "missing": "docker-compose.test.yml"
+        },
+        {
+          "missing": "docker-compose.dev.yml"
+        },
+        {
+          "grep": {
+            "path": "Makefile",
+            "pattern": "^(up-prod|env-[\\w-]+)\\s*:"
+          }
+        },
+        {
+          "grep": {
+            "path": ".env.example",
+            "pattern": "\\{\\s*(test|dev|prod)\\s*:"
+          }
+        }
+      ]
+    },
+    "fix": "upgrade-code → Schema-based environment migration. Сохранить запуск сервера с прежним dev-файлом, проверить на синтетических данных. Обычный коммит без новой версии продукта. Удалить старый scripts/env_files.py, docker-compose.prod.yml и цели up-prod/env-*; заменить тесты генератора. Секретные файлы на серверах не читать и не менять."
   }
 ]

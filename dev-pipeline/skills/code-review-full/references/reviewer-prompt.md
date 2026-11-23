@@ -96,7 +96,8 @@ LENSES TO APPLY
     run is OPEN, not a finding.
   Stale docs — the run changed how the project is built, run, configured, or
     called (new env var, command, port, endpoint) while a README,
-    `.env.example`, or doc that already exists still describes the old way.
+    generated env example, or existing doc still describes the old way. For changes to configuration,
+    check the runtime schema, all three outputs with env:check, and test/dev Compose input ownership.
     Only docs that exist and this diff made wrong; missing docs nobody planned
     are not a finding. P2 for a small correction, P1 when the doc now leads to
     a launch that does not work. Contract documents too: each line of the

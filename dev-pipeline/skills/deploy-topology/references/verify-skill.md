@@ -45,7 +45,8 @@ elsewhere. Where a line was not run, it says «unverified».
 ## SKILL.md sections
 
 - **Launch** — the exact command that starts the test stand from what is
-  on disk (the project's `make up-test` or the compose command), how to
+  on disk (`make up-test`; empty 0600 test input is enough for stubs). Launch only test.
+  Compose sets fixed values; the local file holds secrets and machine inputs. Explain how to
   switch modes the app has (sign-in modes, feature flags), what the target
   leaves running and what it removes.
 - **Ready means usable** — the condition that makes the stand worth

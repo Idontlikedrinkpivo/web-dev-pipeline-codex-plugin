@@ -6,7 +6,7 @@ each extra one is a fact the operators must check and nobody asked for. What eve
 
 - **An unprivileged process with a numeric `USER`** — a Kubernetes platform's preflight (`runAsNonRoot`)
   can verify only a number.
-- **A root filesystem the process never writes** — the test and prod files run it `read_only`, as a
+- **A root filesystem the process never writes** — the test stand runs it `read_only`, as a
   restricted namespace does.
 - **Pinned bases, checked against the registry** — a remembered or floating tag builds a different image
   tomorrow.
@@ -476,7 +476,7 @@ The flag is explicit because a build on Apple silicon otherwise produces
 Images are handed over as one file, never pushed to a registry. Write
 `scripts/build-images.sh` (and a `build-images` task-runner target) that:
 
-1. reads the version from the manifest, takes the date once, and sets
+1. runs the project’s `env:check` with fail-fast shell semantics before any Docker invocation, then reads the version from the manifest, takes the date once, and sets
    `PLATFORM` from the card;
 2. builds each image with
    `docker buildx build --platform "$PLATFORM" --load --build-arg APP_VERSION="$APP_VERSION" --build-arg CI_COMMIT_SHORT_SHA="$(git rev-parse --short HEAD)" -t <project>-<backend|frontend>:<tag> -f <Dockerfile> <context>`;
@@ -487,7 +487,7 @@ Images are handed over as one file, never pushed to a registry. Write
 4. puts every other file the operators get beside it:
    - `documentation/deploy/deploy.md` → `DEPLOY.md`, replacing `<версия>`
      with the version and `<тег>` with the image tag;
-   - `documentation/deploy/prod.env.example` → `<project>.env.example`
+   - `deploy/prod.env.example` → `prod.env.example` (byte-for-byte)
      (`deploy-doc.md` → The variables file);
    - `documentation/api/openapi.yaml` → `openapi.yaml`, one file: a split
      contract (a `$ref` that points at another file) is bundled, a single

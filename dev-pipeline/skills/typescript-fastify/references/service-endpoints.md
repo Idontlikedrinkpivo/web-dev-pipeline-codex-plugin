@@ -186,7 +186,7 @@ process.once("SIGINT", shutDown)
 
 `LOG_LEVEL` (optional; one of pino's levels, default `info`) and `SHUTDOWN_TIMEOUT_SEC` (optional; a positive
 integer, default `25` — under Kubernetes' default 30 s grace period) are read and validated in the config module
-with the other variables, and listed in `.env.example`.
+with the other variables, and rendered from the typed schema in the operator example.
 
 ## The check
 

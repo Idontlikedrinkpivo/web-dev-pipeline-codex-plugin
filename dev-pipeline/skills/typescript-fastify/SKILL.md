@@ -193,6 +193,7 @@ Executor and reviewer apply [DBND-1, DBND-3, DBND-4, DBND-5, DBND-6, DBND-7](../
 
 ## Platform configuration
 
+Re-export the Zod env schema from config and parse the runtime from its entries (`deploy-topology/references/env-doc-typescript.md`).
 Apply `deploy-topology` → `references/env-and-config-contract.md` → Platform acceptance rules when writing
 config, integrations, auth or background tasks: reject required secrets shorter than 32 characters, missing secrets and placeholders, first admin
 from Secret, per-integration URL/timeouts/pool/enable, TLS with mounted CA, TRUSTED_PROXIES and PUBLIC_BASE_URL,

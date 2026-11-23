@@ -1,7 +1,7 @@
 ---
 name: deploy-topology
 description: >-
-  Packs a working app into Docker: images, compose for test, dev and prod, a deploy document. Use for «докер»,
+  Packs a working app into Docker: images, two Compose stands and a production kit, a deploy document. Use for «докер»,
   «docker-compose», «собери образ», «инструкция по развёртыванию». The server upload is the user's step; not CI.
 ---
 
@@ -16,7 +16,7 @@ At entry: run `open_questions.py <project> --for 'релиз'`; pass rows as `QU
 At close: settle or readdress each original row and report every outcome.
 Both steps: [Вопросы, адресованные этапу](../pipeline/references/decision-changes.md#вопросы-адресованные-этапу).
 
-Three environments, three compose files, one image per container. The shape that
+Two Compose stands and one operator-managed production environment, one image per container. The shape that
 makes this safe is always the same: **what talks to what changes per
 environment; what the code does never does.** The application does not
 know it is in test, dev, or prod beyond reading `APP_ENV` and refusing to
@@ -29,9 +29,9 @@ start when an environment's required config is missing or contradictory.
   (`/health/live`, `/health/ready`, `/metrics`) — post-`work`, or
   post-scaffold if the user only wants topology, not business code
 - The user asks to containerize the app, add `docker-compose`, or define
-  test/dev/prod running modes
-- An existing single dev-only compose (from `repo-scaffold`) needs to grow
-  into the three-environment shape
+  test/dev stands or the production hand-over
+- An older single dev-only compose needs to grow
+  into the two-stand topology
 
 **NOT for:**
 - Choosing the stack, the framework, or the database — architecture already
@@ -54,7 +54,7 @@ start when an environment's required config is missing or contradictory.
 | Which dependencies must be mockable | **yes** | ask if not obvious: anything the app calls over the network in a test run needs a mock/fake, or the test suite becomes an integration suite that needs live credentials |
 | Containers: backend, client (SPA or SSR), workers | **yes** | architecture foundation §1 (containers view) and §5 (folders) |
 | Upload size and request-time NFRs | for the SPA image | the SRS NFRs through foundation §1 «Решения по NFR» — they set nginx's limits (`references/images.md`) |
-| Existing compose/Dockerfile/`.env.example` | when present | read and extend in place — do not fork a parallel set of files |
+| Existing Compose files/Dockerfile/env schema | when present | read and extend in place — do not fork a parallel set of files |
 
 If the three service paths are missing, that is a `repo-scaffold` gap
 (`upgrade-code` for an older project): say so and stop rather than
@@ -70,17 +70,11 @@ contract operation is a plan's decision, never this stage's.
 | Database | local, in this compose file | local, in this compose file | **external**, no local service |
 | Object storage / queue / cache | local (e.g. SeaweedFS for S3), in this compose file | local, in this compose file | **external**, no local service |
 | Third-party APIs (payment, mail, external HR/LLM/etc.) | **mocked** — fixture-backed, no network call | **real** — real credentials, real network calls | **real** |
-| Port publishing | loopback or none | loopback or none | **loopback only**, behind a reverse-proxy/TLS terminator the user runs separately |
+| Port publishing | loopback or none | loopback by default; only the dev site allows DEV_BIND | the operator controls ingress and TLS |
 | Concurrency / worker count | one worker process per container, as in prod (a stack that still runs several keeps prod's count here, or its concurrency bugs show up only in prod) | same as test | one per container; the operators scale by replicas |
 | Secrets | fixture/dummy values, safe to commit as defaults | real values, **never committed** | real values, **never committed** |
 
-The asymmetry is the whole point: **test and dev share infrastructure
-shape (local DB/storage) and differ only in whether external APIs are real;
-dev and prod share "real APIs" and differ only in whether the
-DB/storage is local.** A compose file that collapses this into one file with
-profiles usually ends up with a flag nobody remembers to set correctly for
-prod. Three files that only need to be read top-to-bottom, never diffed
-against each other to know what is active, are worth the duplication.
+Test and dev run in Compose. Operators deploy the release images on their platform using the kit.
 
 ## Workflow
 
@@ -100,8 +94,8 @@ and the release folder.
 The kit is optional in every version. A user request for this version's kit selects A directly. Otherwise first ask
 per `pipeline/references/question-format.md`: «Собрать комплект поставки `release/<version>/`?»
 
-- **A. Собрать** — check the audit (8.1). Compare `.env.example`, compose files, `build/` and migrations to the previous tag.
-  Update `deploy.md` and `prod.env.example` for those changes (8.2). Check the manifest version, build and scan (8.4–8.5),
+- **A. Собрать** — check the audit (8.1). Compare the configuration schema, compose files, `build/` and migrations to the previous tag.
+  Regenerate the schema outputs and update the deploy instructions for those changes (8.2). Check the manifest version, build and scan (8.4–8.5),
   refresh verify (7a) if a screen or operation changed, run `deploy_check.py . --version <version>` and finish with Step 9. Track only these
   steps in progress. A new container or external dependency needs the full topology workflow.
 - **B. Не нужен — в итоге запишется «не собирался»**. End the stage and carry «Релиз: не собирался — не нужен»
@@ -174,15 +168,15 @@ honor it unless `APP_ENV=test`.** Compose merely sets the value per file;
 the enforcement that a mock cannot leak into dev or prod belongs to the
 same fail-fast config layer as Step 5, not to compose alone. Two ways to
 leak a mock into prod: someone copies a compose file and forgets to blank
-the mock directory, or someone sets it directly in `.env.prod.local`. Only
+the mock directory, or someone sets it directly in the operator’s environment. Only
 an application-level check catches both.
 
-### Step 4. Three compose files
+### Step 4. Two compose stands
 
-If `repo-scaffold` left a single `docker-compose.yml`, first
+If a legacy project has a single `docker-compose.yml`, first
 `git mv docker-compose.yml docker-compose.dev.yml` and extend it in place
 (history follows the file), then update the `compose:` line in
-`documentation/project-map/project-map.md` to name all three files. No bare
+`documentation/project-map/project-map.md` to name both stand files. No bare
 `docker-compose.yml` remains — `docker compose up` without `-f` should
 fail rather than guess an environment.
 
@@ -203,18 +197,8 @@ invariants each file must hold. In outline:
   `references/parallel-stands.md`).
 - `docker-compose.dev.yml` — same local infrastructure shape as test, mock
   gate off, real third-party credentials expected from `.env.dev.local`.
-- `docker-compose.prod.yml` — **no database service, no object-storage
-  service**, not even commented out "in case" — that reads as an
-  invitation next quarter; prod's database is external, not a toggle.
-  `backend`, `migrate` (and `frontend`) only, pointed at externally managed instances
-  through `.env.prod.local`. The entry port — `frontend`'s when there is a
-  client, else `backend`'s — publishes on loopback only
-  (`"8080:8080"` binds all interfaces and ships a plaintext port to the
-  network); a reverse-proxy/TLS terminator in front is assumed and
-  documented, never built into this compose file.
-
-App containers (`backend`, `migrate`, `frontend`) in the test and prod
-files run hardened — `read_only`, `tmpfs: [/tmp]`, `cap_drop: [ALL]`,
+The test stand proves production constraints. App containers (`backend`, `migrate`, `frontend`)
+run hardened — `read_only`, `tmpfs: [/tmp]`, `cap_drop: [ALL]`,
 `no-new-privileges`, no `user:` — as a restricted Kubernetes namespace will
 run them, so the operators' preflight finds nothing new. In test, `migrate`
 and `backend` connect as an ordinary schema owner and a rows-only account,
@@ -246,42 +230,21 @@ gives each rule's failure message and why it crashes rather than defaults.
   contradiction (secure cookies on, TLS flag off) is proof something is
   wrong.
 - Every secret and external credential prod needs has **no default** in
-  code or in `docker-compose.prod.yml` — a missing one is a startup crash
+  code or in the kit — a missing one is a startup crash
   with the variable's name, not a silent fallback.
 - If the architecture named a resource budget that scales with worker count
   (a connection pool, a rate limit), validate the arithmetic at startup
   against the configured limit instead of discovering the overrun at
   runtime under load.
 
-### Step 6. Env files, not secrets in compose
+### Step 6. Generate the environment contract in the project
 
-Before writing any env file, sort every variable into one of the four
-categories in `references/env-and-config-contract.md` — the category
-decides whether it sits inline in compose or in an env file, and the same
-file fixes the `DATABASE_URL` schema option for every environment.
-
-- `.env.example` is **documentation**, never read by compose directly —
-  say so in a comment at its top. It lists every variable with a one-line
-  comment — its markers (`[required]`, `[secret]`, `[infra]` —
-  `references/env-and-config-contract.md`), then what test/dev/prod expect.
-- Compose reads `.env.<environment>.local` via `env_file`, `required: true`
-  for dev and prod (the stack must not silently start with defaults),
-  `required: false` for test (safe fixture defaults may live inline in the
-  compose file's own `environment:` block instead).
-- Only test fixture values (a dummy API key, a well-known local password)
-  may sit inline in compose YAML. Anything that would matter if leaked
-  lives only in a gitignored `.env.<environment>.local`.
-- Non-secret, environment-fixed values (log level, worker count, the mock
-  gate, security flags) belong in each compose file's own `environment:`
-  block, not the env file — that way the value that decides "am I in a
-  safe-to-mock environment" is not something a stray `.env.*.local` edit
-  can quietly override.
-- Provide bootstrap targets (Makefile, `package.json` scripts, or the
-  stack's task runner) that run `scripts/env_files.py . build` — every
-  environment's file from the one template, the per-environment values in
-  its `{test: …, dev: …, prod: …}` maps (`references/env-and-config-contract.md`),
-  a filled secret kept — plus `up-<environment>` targets that bring the stack up and
-  remove the exited one-shot containers so they do not linger.
+Follow `references/env-and-config-contract.md`. Define each variable once in the application's typed schema.
+Implement the project-owned generator and tests from the matching Zod or pydantic-settings reference. Run
+`env:doc` locally to render `deploy/prod.env.example`, the marked tables in `documentation/deploy/deploy.md`
+and the root `.env.example`. Wire read-only `env:check` into CI and before the first Docker call of the release build.
+Stand configuration belongs in Compose. Only secrets and machine-specific inputs belong in local files.
+Use `up-test` (optional empty 0600 local file) and `up-dev` (required local file).
 
 ### Step 7. Compose-contract tests
 
@@ -290,14 +253,14 @@ project's own test suite, not just as prose here. One test per invariant —
 `references/compose-shape.md` → The compose-contract tests holds each one's exact keys; read it before
 writing them:
 
-- prod ports on loopback; no local database or storage in prod;
+- stand ports on loopback, only the dev site can opt into a different DEV_BIND;
 - `migrate` unpublished and awaited by `backend`;
 - the test file copyable;
 - Dockerfiles: no hot reload, exec form, pinned `FROM`, numeric non-root `USER`;
 - app services hardened, two database accounts in test;
 - the client's nginx: no placeholder left, only `/api/` proxied, the healthcheck per the shell answer;
 - the build script and the release folder;
-- `deploy.md` agrees with the prod compose file and `.env.example` ("The sync test" in
+- `deploy.md` agrees with the image contract and the typed schema ("The sync test" in
   `references/deploy-doc.md`);
 - `.dockerignore` hides `.env.*.local`;
 - `backend`'s healthcheck and stop grace period;
@@ -346,9 +309,7 @@ stand's proof).
 
 The operators get one folder per release and nothing else — every file
 the plugin produces for them: the image archive, `DEPLOY.md`, the
-variables file and the API contract `openapi.yaml`. They do not get
-`docker-compose.prod.yml` — they run the images their own way, so they
-need the facts it holds, written down. From `upgrade-docs` (`MODE as-is`,
+variables file `prod.env.example` and the API contract `openapi.yaml`. Operators run these images on their own platform. From `upgrade-docs` (`MODE as-is`,
 a project with its own containers and no deploy document): only item 2,
 from the project's own Dockerfiles and compose files as they are
 (`upgrade-docs/references/as-is.md`).
@@ -368,21 +329,15 @@ from the project's own Dockerfiles and compose files as they are
    variable, port and direction of each, «Для DBA», logs, metrics,
    shutdown, pod security, tracing, the first start (ask when the
    architecture and SRS do not say how the first admin or seed data
-   appears) — naming only the files the release folder holds. Beside it,
-   `documentation/deploy/prod.env.example`, the variables file the
-   operators fill — built by `scripts/env_files.py . build` from `.env.example`, never by hand. Facts come from the prod compose file, the Dockerfiles,
-   `.env.example`, the schema and the measurement; Step 7's sync test holds
-   them together.
+   appears) — naming only files in the kit. Keep the variables tables between the generator markers.
+   Run the project's `env:doc` after changing schema metadata and review all three outputs.
 3. **Write `scripts/build-images.sh`** and a `build-images` target per
    `references/images.md` → Hand-over: one tag `<version>-<YYYYMMDD-HHMM>`
    for every image, `docker buildx build --platform "$PLATFORM" --load` per
    image, one `docker save` of all of them into
    `release/<version>/<project>-<version>.tar` (e.g.
    `release/1.4.0/room-booking-1.4.0.tar`), and beside it every other file
-   the operators get: `DEPLOY.md`; `<project>.env.example`, the prod
-   variables (`references/deploy-doc.md` → The variables file — left out
-   only when the user says the operators keep variables in their own
-   store); `openapi.yaml`, one file (a split contract bundled); and
+   the operators get: `DEPLOY.md`; `prod.env.example` copied from `deploy/`; `openapi.yaml`, one file (a split contract bundled); and
    `OPERATIONS.md` when the operations document exists (`operations-doc`,
    the next stage). The script ends by checking that every file `DEPLOY.md`
    names is in the folder, and fails naming the one that is not.
@@ -416,7 +371,7 @@ the site rebuild it started —
 `python3 "<folder of this SKILL.md>/../docs-site/scripts/rebuild.py" . --wait` —
 and stage `documentation/_web-docs` with it (`docs-site` → Built at the first
 document). One commit, `build(deploy): контейнеры и комплект <version>`: the
-Dockerfiles and `.dockerignore`, the three compose files,
+the schema, generator, its tests and generated `deploy/prod.env.example`, Dockerfiles and `.dockerignore`, both compose files,
 `docker/db-init/roles.sql`, `.env.example`, the
 scripts and task-runner targets, the compose-contract tests, the README
 section, `documentation/deploy/` and the project map's `compose:` line —
@@ -445,14 +400,14 @@ scan — and the next stage, per `pipeline` → "Asking before a transition".
 ## Before you finish
 
 `deploy_check.py` passed at the end of Step 8 — it checks the compose, image and release items
-below that code can decide (hardening, healthcheck, no stateful service in prod, numeric USER, .dockerignore, the
+below that code can decide (hardening, healthcheck, schema drift, numeric USER, .dockerignore, the
 release folder and what DEPLOY.md names); each line it prints is fixed first.
 
-- Three compose files, each readable on its own — "The three environments".
+- Two compose files and an operator kit — "The three environments".
 - One Dockerfile per container, matching `references/images.md`: a numeric non-root `USER`, the shell answer from
   the card (asked at most once per project), every base reference checked against its registry, plus `.dockerignore`
   — Step 2.
-- App containers in the test and prod files hardened (read-only root, `/tmp` tmpfs, no capabilities, no new
+- App containers in the test stand hardened (read-only root, `/tmp` tmpfs, no capabilities, no new
   privileges), `backend`'s healthcheck on `/health/ready` through the runtime, and the test stand's two database
   accounts — Step 4.
 - The service check and isolated image_preflight.py contents/stand passed against built images, and «Ресурсы» holds the stand's numbers with the date
@@ -461,10 +416,10 @@ release folder and what DEPLOY.md names); each line it prints is fixed first.
   `references/deploy-doc.md` — probes, resources, dependencies, «Для DBA», logs, metrics, shutdown, pod security,
   tracing — Step 8.
 - `scripts/build-images.sh` ran for the card's platform: `release/<version>/` holds the tar with every image under
-  the `<version>-<date>` tag, `DEPLOY.md`, `<project>.env.example`, `openapi.yaml`, build/<component>/ and scan/ — Step 8.
+  the `<version>-<date>` tag, `DEPLOY.md`, `prod.env.example`, `openapi.yaml`, build/<component>/ and scan/ — Step 8.
 - Mock gate enforced in application config — Steps 3 and 5.
 - Prod file has no local stateful service; `up-test` runs the suite with zero outbound network calls — Step 4.
-- Bootstrap and `up-<environment>` targets for all three — Step 6.
+- `up-test` and `up-dev` for the two stands — Step 6.
 - A passing compose-contract test for every Step 7 invariant — Step 7.
 - `.agents/skills/verify/` written and proven end to end — Step 7a.
 - `docker-compose.test.yml` copyable; `DEPLOY.md` names only files the release folder holds — Steps 4, 7, 8.
@@ -484,12 +439,12 @@ release folder and what DEPLOY.md names); each line it prints is fixed first.
   compose-contract tests key by key (Step 7).
 - `references/verify-skill.md` — the project's verify skill: its sections,
   the doctor's checks, the proof run, how stages use and refresh it (Step 7a).
-- `references/env-and-config-contract.md` — the env-var categories, the
+- `references/env-and-config-contract.md` — schema metadata and the project generator, the
   variables every backend has (`LOG_LEVEL`, `SHUTDOWN_TIMEOUT_SEC`), the
-  fail-fast validation shape, and the `.env.example`-sync test pattern
+  fail-fast validation shape, and the env:check and Compose tests
   (Steps 5–7).
 - `repo-scaffold` (skill) — the empty-skeleton stage this one follows;
-  read its single dev-only compose (if any) before writing three.
+  extend its two stand files, preserving existing dev volumes and settings.
 - `ci-pipeline` (skill) — the consumer of `docker-compose.test.yml`: it
   wires that exact fixture shape into a workflow that runs on every push/PR.
 - `pipeline` (skill) — where this stage sits. At the close, ask about the

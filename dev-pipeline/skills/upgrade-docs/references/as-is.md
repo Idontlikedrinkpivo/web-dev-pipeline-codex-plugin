@@ -56,7 +56,7 @@ exists comes first, as in the normal chain; a missing one above it is read from 
    code renders, the operations it calls by `operationId`. There are no frames: where a spec cites a `nodeId` it
    cites the component's file, and the spec says «кадров нет — по коду». The frames register is not written; a
    later `ui-design` run can draw the screens and add it.
-8. **The deploy document** is `deploy-topology` Step 8 alone, from the project's own Dockerfiles and compose files
+8. **The deploy document** is `deploy-topology` Step 8 alone, from the project's own Dockerfiles, runtime configuration and stand files
    as they are. Rebuilding them to the plugin's shape is `upgrade-code`'s `devops-ready` change.
 9. **Version.** No iteration is opened for an as-is document: it describes a release that already runs. A
    versioned document is born at the service's current version — the manifest's `version`; with none, ask the
@@ -81,3 +81,7 @@ that replace them exist: keep it, or remove it (`git rm` — it stays in the his
 edited. A file's replacement is the set document that covers its subject: an API draft or endpoint notes → the API;
 an architecture or data-flow note → the architecture; a README → the business requirements and the project map;
 a deploy note → the deploy document. A file whose subject spans several waits until all of them exist.
+
+For an existing schema generator, preserve the env-doc markers and check its three published artifacts.
+If the project still uses the legacy env layout, document it as deployed and offer the code migration
+`schema-env-two-stands` through upgrade-code. Run the generator only on a development checkout.

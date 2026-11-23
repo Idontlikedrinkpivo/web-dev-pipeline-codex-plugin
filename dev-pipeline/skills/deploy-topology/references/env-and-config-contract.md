@@ -1,107 +1,64 @@
-# Env vars and the fail-fast config contract
+# Application configuration and stand inputs
 
-Every variable belongs to exactly one of four categories. Getting a variable
-into the wrong category is how a mock leaks into prod or a real secret ends
-up committed.
+The application owns the catalogue. Put the schema beside config in its own module and re-export it from config.
+For Zod use [the TypeScript template](env-doc-typescript.md). For pydantic-settings use
+[the Python template](env-doc-python.md). Install the adapted generator, tests and commands in the **project**.
 
-| Category | Where it lives | Example |
-|---|---|---|
-| **Env selector** | inline `environment:` in each compose file, one fixed value per file | `APP_ENV=test\|dev\|prod` |
-| **Environment-fixed behavior flag** | inline `environment:` in each compose file — never in an env file, so a stray `.env.*.local` edit cannot override the environment's own safety posture | the mock gate, the TLS/secure-cookie flag, worker count, log level |
-| **Local-infra connection string** | inline `environment:` for test/dev (points at the compose service by name); `.env.prod.local` for prod (points at the external instance) | `DATABASE_URL`, the object-store endpoint |
-| **Secret / third-party credential** | `.env.<environment>.local`, gitignored, `required: true` for dev/prod | API keys, DB passwords for anything not a disposable local fixture, encryption keys |
+Each application entry has a parser, block, required flag, secret flag, one Russian line of purpose, an optional
+default and a production example. Include variables consumed by other shipped processes, including the frontend.
+Keep Compose-only inputs in a short adjacent list (name, secret, purpose). Reference entries by name for test/dev
+membership. Keep default values in the schema. Startup and docs derive required keys from required entries
+without defaults. Treat an empty string like an absent input **before parsing**, including numeric or enum values.
+Keep the mock guard, requirement conditions and cross-field checks in config. Never include secret values in errors.
 
-Every `DATABASE_URL` in every environment carries the same
-`search_path`/schema option, pointed at the dedicated schema from
-`db-schema-design` §0 — never the default `public` schema. The schema name
-is a project constant, not an environment variable: test, dev, and prod
-differ in *which server* hosts the schema, never in the schema's name. If
-the prod DBA provisions the external instance with a different schema name
-than test/dev use locally, that is a real deployment fact worth recording in
-`.env.prod.local`'s comment, not silently absorbed by search_path (a
-misnamed schema on the external instance fails migrate loudly instead of
-each environment quietly using a different name).
+## Generated artifacts
 
-`migrate` and `backend` read the same `DATABASE_URL` name with different
-values: the schema owner for `migrate`, a rows-only account for `backend`
-(`compose-shape.md` → Two database accounts). Test sets both inline; prod
-reads the backend's from `.env.prod.local` and the migrate one from
-`.env.prod.migrate.local`, which holds only that variable.
+`env:doc` writes three tracked outputs. `env:check` renders in memory, lists every missing or stale path and
+exits nonzero, without writing. Preserve everything outside the marked tables, and reject missing, duplicate
+or unpaired markers. Neither command opens machine-local env files or loads application settings.
 
-CI that runs `make test` on the runner (see `ci-pipeline`) must rewrite
-compose hostnames to `127.0.0.1` and still copy `APP_ENV`, the mock-gate
-variable, and that same `search_path`; it takes the `migrate` service's
-URL (the owner), because the runner applies migrations and the tests
-create and truncate data. The four categories do not change.
+- `deploy/prod.env.example` contains the production variables in schema block order, including frontend inputs.
+  A secret example is empty or an angle-bracket placeholder.
+- `documentation/deploy/deploy.md` contains the generated production variable tables between paired
+  `<!-- env-doc:start -->` and `<!-- env-doc:end -->` markers (preserve existing paired block markers on migration).
+- Root `.env.example` lists exactly the documented local inputs for **each** stand. A key may occur in both
+  sections. The only section titles are the filenames. Examples are empty except safe machine defaults.
 
-## Variables every backend has
+Both env outputs have the same layout. Omit inapplicable markers and separate pairs and blocks by a blank line.
 
-Besides its own, the backend's config layer reads these; each is in
-`.env.example`, the config layer, and DEPLOY.md's «Переменные» table:
+```dotenv
+# ===== .env.dev.local =====
 
-| Variable | Required | Default | Meaning |
-|---|---|---|---|
-| `LOG_LEVEL` | no | `info` | the logger's level; the set is the stack logger's (`typescript-fastify`, `fastapi`) |
-| `SHUTDOWN_TIMEOUT_SEC` | no | `25` | seconds the server drains in-flight requests after SIGTERM — below Kubernetes' default 30 s grace period |
-| `OTEL_EXPORTER_OTLP_ENDPOINT`, `OTEL_SERVICE_NAME` | only when the project chose tracing | — | where spans go and under which name; absent otherwise |
+# [required] [secret] Токен внешнего сервиса
+API_TOKEN=
 
-The first two are environment-fixed behavior flags (the second category):
-each compose file sets them inline in `environment:` — `backend` both,
-`migrate` `LOG_LEVEL` — even at the default value, so the prod file names
-them and the deploy document's table, held to it by the sync test, lists
-them. `backend`'s `stop_grace_period` in compose is at least
-`SHUTDOWN_TIMEOUT_SEC` + 5 s: Docker's own default of 10 s would kill the
-drain halfway.
-
-`.env.example` documents all four categories with a one-line comment on what
-test/dev/prod each expect — it is the map a human reads before filling in
-`.env.dev.local` or `.env.prod.local`. Compose never reads it directly; say
-so in a comment at the top of the file itself, or the next person to touch
-this assumes editing `.env.example` changes runtime behavior.
-
-## Markers in `.env.example`
-
-One format, which the deploy document's sync test and the `.env.example`
-sync test both read: the comment line right above each key opens with its
-markers in square brackets, then says what it is and what test, dev and
-prod expect.
-
-```bash
-# [required] [secret] подключение к PostgreSQL, схема room_booking. test/dev: сервис db; prod: внешняя база
-DATABASE_URL=
-# подробность логов: trace | debug | info | warn | error | fatal; по умолчанию info
-LOG_LEVEL=info
-# [infra] пароль суперпользователя локальной PostgreSQL в test/dev; в проде её нет
-POSTGRES_PASSWORD=
+# Интерфейс сайта на этой машине
+DEV_BIND=127.0.0.1
 ```
 
-**The values that differ by environment** close that comment line: `{test: <value>, dev: <value>, prod:
-<value>}`, `—` for «not in this environment»; the key's own value is the one every environment not named gets.
+## Stand and runtime contract
 
-```bash
-# [required] среда приложения {test: test, dev: dev, prod: prod}
-APP_ENV=
-# подробность логов {test: warn}
-LOG_LEVEL=info
-# frontend — plain | secure {test: —, dev: —, prod: secure}
-SECURE_MODE=
-```
+Keep fixed stand values in Compose `environment:`. Machine-local files hold only secrets and per-machine
+values. Compose overrides `env_file`: never shadow a local input with a fixed value. Use `${VAR:-default}`
+where Compose needs interpolation, with `--env-file` for the matching stand. Empty external model addresses
+select the test stub. Bind ports on loopback, with `DEV_BIND` configurable only for the dev site.
+The test file is optional and created empty at 0600 by Make if absent. The dev file is required.
+An operator supplies production credentials and separate DATABASE_URL values for the migration owner and
+the data-only backend. Preserve the documented schema/search_path. Host tests use their own TEST_DATABASE_URL.
+Host-side CI reaches the standalone test DB through loopback and keeps its schema/search_path and mock gate.
+Document LOG_LEVEL (info), SHUTDOWN_TIMEOUT_SEC (25) and any enabled tracing settings in the schema.
+Allow the backend at least five extra seconds to drain in the stand's stop_grace_period.
 
-**Every environment's file is built from this one template** — `scripts/env_files.py . build` writes
-`.env.test.local`, `.env.dev.local` (gitignored; a secret already filled in stays) and
-`documentation/deploy/prod.env.example` (prod values, secrets empty, no `[infra]` key), all in the template's order
-with its comments; `env_files.py . check` (run by `deploy_check.py`) fails on a file that differs in names or
-order. Never write or patch one of them by hand: a hand-made prod file and local files copied once and never
-rebuilt drifted apart in order, names and stale variables (ai-initiatives, four files, four shapes).
+## Project acceptance tests
 
-| Marker | Means |
-|---|---|
-| `[required]` | the config layer refuses to start without it in prod — «Обязательна: да» in DEPLOY.md |
-| `[secret]` | a credential or key: never a real value in git, `***` in DEPLOY.md — «Секрет: да» |
-| `[infra]` | read by no app container at run time — the local stores' containers in test/dev (`POSTGRES_PASSWORD`, the S3 emulator's `AWS_*`) or a build step; absent from DEPLOY.md and `prod.env.example` |
-
-No marker: optional and not secret. `prod.env.example` uses the same
-`[required]` and `[secret]` markers (`deploy-doc.md` → The variables file).
+Compare all three outputs byte-for-byte with a fresh render. Mutate each artifact and assert check reports the
+path, exits nonzero and leaves it untouched. Check headings, marker order, immediate adjacency to NAME=value,
+blank lines, uniqueness within each block and placeholder-only secrets. Validate schema names across application
+and Compose entries, one-line purposes, parseable defaults, required keys and empty-value behavior.
+Compare the per-stand documented local keys to its actual supported inputs (env_file consumers plus Compose
+interpolation). Parse the tracked Compose files, using synthetic local files in tests. Reject fixed overrides of
+a local input. Test both stands, a legacy dev file with extra keys, first creation/mode and preservation of an
+existing test file. Exercise the release target with a stale output and a Docker spy: it must fail before Docker.
 
 ## The fail-fast rules, as a checklist for the app's own config/settings code
 
@@ -123,7 +80,7 @@ remember:
    "we are behind TLS" flag is false (or vice versa) is a real
    contradiction worth crashing on, where the app can express one.
 4. **No default for a prod/dev secret.** A missing required secret is a
-   startup crash naming the variable, in code and in the compose file both
+   startup crash naming the variable in the app
    — an empty string that silently "works" until the first real call fails
    is worse than a crash at boot.
 5. **Resource-budget arithmetic, if the architecture named one.** Worker
@@ -134,22 +91,6 @@ remember:
    to something outside its set — `LOG_LEVEL=verbose`,
    `SHUTDOWN_TIMEOUT_SEC=30s` — is a startup crash naming it, so a typo in
    the operators' manifest does not quietly run with the default.
-
-## The `.env.example` sync test
-
-One test, in the project's own suite, with two assertions:
-
-- Every variable the config layer treats as required-somewhere appears in
-  `.env.example`. (Nothing required is undocumented.)
-- Every key in `.env.example` not marked `[infra]` is a variable the
-  config layer actually recognizes, and every `[required]` one is required
-  by it in prod. (Nothing documented is a leftover nobody reads anymore.)
-
-This test is cheap to write once the config layer already exposes "what do
-I require" and "what do I recognize" as introspectable data (a function, a
-class attribute — whatever the stack makes easiest), and it is the guard
-that keeps the human-readable template from drifting out of sync with the
-machine-enforced contract as the app grows past this skill's first pass.
 
 ## Platform acceptance rules (IMG / CFG / FS / LC / OBS / RES / SEC)
 
@@ -178,5 +119,4 @@ These rules apply from scaffold and implementation, not only when packaging:
 - Runtime paths and peak write volume are documented, including concurrent upload buffers. Persistent paths are
   configurable outside /tmp, with capacity, access mode and backup needs. Never file logs.
 
-All applicable variables are in the single `.env.example` template with required/optional, secret, default and
-purpose. APP_VERSION/CI_COMMIT_SHORT_SHA are baked build provenance, read by code; operators do not override them.
+Describe all application settings once in the typed schema. APP_VERSION/CI_COMMIT_SHORT_SHA are baked build provenance, read by code; operators do not override them.

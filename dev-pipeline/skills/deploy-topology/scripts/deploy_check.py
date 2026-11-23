@@ -5,14 +5,10 @@ decide, so the stage closes on facts.
 
     python3 deploy_check.py [<project dir>] [--version <v>]
 
-  compose     docker-compose.{dev,test,prod}.yml all exist. In test and prod, every service built from the project
-              (`build:`) runs read_only, with /tmp as tmpfs, cap_drop ALL and no-new-privileges; `backend` has a
-              healthcheck on /health/ready; prod runs no local stateful service (Postgres, MySQL, Redis, MinIO, …).
-  images      every Dockerfile the compose files build: the stage they build ends with a numeric USER other than 0;
-              a .dockerignore sits in the build context.
-  env         every environment's variables file matches .env.example in names and order (env_files.py check):
-              built from the one template, never written by hand.
-  release     release/<version>/ (the given version, else the newest) holds a .tar, DEPLOY.md, an .env.example and
+  compose     test and dev files exist. The test stand proves hardening and readiness.
+  images      each built stage has a non-root numeric USER and an isolated build context.
+  env         the project's own env:check compares all three public artifacts with the runtime schema.
+  release     release/<version>/ (the given version, else the newest) holds a .tar, DEPLOY.md, prod.env.example and
               one openapi.yaml; every file name DEPLOY.md cites in backticks is in that folder.
 
 Exit 0 — clean; 1 — a line per problem. Run at deploy-topology's close (Before you finish). A parser of the compose
@@ -21,15 +17,13 @@ Standard library only.
 """
 from __future__ import annotations
 
+import json
 import re
+import subprocess
 import fnmatch
 import importlib.util
 import sys
 from pathlib import Path
-
-STATEFUL = re.compile(r"\b(postgres|postgis|mysql|mariadb|mongo|redis|valkey|minio|rabbitmq|kafka|elasticsearch|"
-                      r"opensearch|clickhouse|cassandra)\b", re.I)
-
 
 def services(text: str) -> dict[str, str]:
     """service name -> its block, from the top-level `services:` map (two-space indent, as this skill writes)."""
@@ -66,10 +60,12 @@ def key_block(block: str, key: str) -> str:
 
 def check_compose(root: Path, out: list) -> list[tuple[str, str, str]]:
     builds = []
-    for env in ("dev", "test", "prod"):
+    if (root / "docker-compose.prod.yml").is_file():
+        out.append("docker-compose.prod.yml: устаревший стенд — проверьте переход через upgrade-code")
+    for env in ("dev", "test"):
         f = root / f"docker-compose.{env}.yml"
         if not f.exists():
-            out.append(f"{f.name}: нет файла — у проекта три compose-файла: dev, test, prod")
+            out.append(f"{f.name}: нет файла — нужны два стенда: test и dev")
             continue
         svc = services(f.read_text(encoding="utf-8", errors="replace"))
         if not svc:
@@ -85,7 +81,7 @@ def check_compose(root: Path, out: list) -> list[tuple[str, str, str]]:
                 context = ctx.group(1) if ctx else (inline or ".")
                 builds.append((context, dockerfile.group(1) if dockerfile else "Dockerfile",
                                target.group(1) if target else ""))
-            if env in ("test", "prod") and build:
+            if env == "test" and build:
                 if not re.search(r"^\s*true\s*$", key_block(block, "read_only"), re.M) and "true" not in key_block(block, "read_only"):
                     out.append(f"{f.name}: сервис {name} — нет read_only: true")
                 if "/tmp" not in key_block(block, "tmpfs"):
@@ -94,13 +90,8 @@ def check_compose(root: Path, out: list) -> list[tuple[str, str, str]]:
                     out.append(f"{f.name}: сервис {name} — нет cap_drop: [ALL]")
                 if "no-new-privileges" not in key_block(block, "security_opt"):
                     out.append(f"{f.name}: сервис {name} — нет security_opt no-new-privileges")
-            if env in ("test", "prod") and name == "backend" and "/health/ready" not in key_block(block, "healthcheck"):
+            if env == "test" and name == "backend" and "/health/ready" not in key_block(block, "healthcheck"):
                 out.append(f"{f.name}: у backend нет healthcheck на /health/ready")
-            if env == "prod" and not build:
-                image = key_block(block, "image")
-                if STATEFUL.search(image):
-                    out.append(f"{f.name}: сервис {name} ({image.strip()}) — в prod нет локальных хранилищ, база и "
-                               "хранилище внешние")
     return builds
 
 
@@ -155,6 +146,35 @@ def check_images(root: Path, builds: list, out: list) -> None:
             out.append(f"{label}: USER 0 — это root")
 
 
+def check_env(root: Path, out: list) -> None:
+    """Use the same read-only entry point as the project's build and CI."""
+    try:
+        for package in (root / "backend/package.json", root / "package.json"):
+            if not package.is_file():
+                continue
+            manifest = json.loads(package.read_text(encoding="utf-8"))
+            scripts = manifest.get("scripts", {}) if isinstance(manifest, dict) else None
+            if not isinstance(scripts, dict):
+                raise ValueError(f"{package}: invalid npm manifest")
+            if scripts.get("env:check"):
+                command, cwd = ["npm", "run", "env:check"], package.parent
+                break
+        else:
+            if not (root / "scripts/env_doc.py").is_file():
+                out.append("env:check: нет команды проекта или scripts/env_doc.py")
+                return
+            interpreter = root / ".venv/bin/python"
+            command = [str(interpreter) if interpreter.is_file() else sys.executable, "scripts/env_doc.py", "--check"]
+            cwd = root
+        result = subprocess.run(command, cwd=cwd, capture_output=True, text=True)
+    except (OSError, ValueError) as exc:
+        out.append(f"env:check: {exc}")
+        return
+    if result.returncode:
+        detail = (result.stdout + result.stderr).strip()
+        out.append(f"env:check (exit {result.returncode}): {detail}")
+
+
 def check_release(root: Path, version: str | None, out: list) -> None:
     rel = root / "release"
     if not rel.is_dir():
@@ -173,8 +193,10 @@ def check_release(root: Path, version: str | None, out: list) -> None:
     for need in ("DEPLOY.md", "openapi.yaml"):
         if need not in names:
             out.append(f"release/{v}: нет {need}")
-    if not any(n.endswith(".env.example") for n in names):
-        out.append(f"release/{v}: нет <project>.env.example")
+    kit_env = folder / "prod.env.example"
+    source_env = root / "deploy/prod.env.example"
+    if not kit_env.is_file() or not source_env.is_file() or kit_env.read_bytes() != source_env.read_bytes():
+        out.append(f"release/{v}/prod.env.example: требуется копия deploy/prod.env.example")
     dockerfiles = list((folder / "build").glob("*/Dockerfile"))
     if not dockerfiles or any(not df.with_name(".dockerignore").is_file() for df in dockerfiles):
         out.append(f"release/{v}/build: Dockerfiles and matching .dockerignore required")
@@ -210,11 +232,7 @@ def main() -> None:
         if any(value in text for value in ("$http_authorization", "$http_cookie", "$request_uri")) and "log_format" in text:
             out.append(f"{config}: credential/query data in log format")
     check_release(root, version, out)
-    if (root / ".env.example").exists():   # the variables files against their one template
-        import subprocess
-        env = subprocess.run([sys.executable, str(Path(__file__).with_name("env_files.py")), str(root), "check"],
-                             capture_output=True, text=True)
-        out += [l.lstrip("✗ ").strip() for l in env.stdout.splitlines() if l.startswith("✗")]
+    check_env(root, out)
     for line in out:
         print("✗", line)
     print(f"deploy_check: сборок {len(set(builds))}, проблем {len(out)}")

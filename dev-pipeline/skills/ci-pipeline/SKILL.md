@@ -184,10 +184,9 @@ adding the tool is the quality gates' work, not CI's. Say so in the
 report and name the fix — `$dev-pipeline:upgrade-code` (its quality-gates
 change) or the gate in the next plan.
 
-`make test` (or its equivalent) already includes the compose-contract tests
-and the `.env.example`-sync test from `deploy-topology`, because those live
-in the project's own test suite — do not add a separate CI step for them and
-do not scope the test runner's invocation to exclude the file they live in.
+After installing the project dependencies, CI runs the project's read-only `env:check` (Node: `npm run env:check`
+in the owning package; Python: `python scripts/env_doc.py --check`). Fail on missing or stale outputs.
+Keep env-doc and Compose contract tests in the normal test suite. Use synthetic inputs in CI.
 
 **Browser e2e** (a frontend with a `test:e2e` target — `repo-scaffold`,
 `frontend`): add it as its own job, `e2e`, that installs the browsers the

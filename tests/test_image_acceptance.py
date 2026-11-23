@@ -152,23 +152,39 @@ class Upgrade(unittest.TestCase):
             path.write_text('## Масштабирование\n## Сборка образа\nMAX_BODY_SIZE CLIENT_TIMEOUT BACKEND_TIMEOUT APP_VERSION CI_COMMIT_SHORT_SHA')
             self.assertFalse(upgrade.holds(root,row['behind']))
 
-class EnvironmentFiles(unittest.TestCase):
-    def test_regenerate_preserves_secret_and_check_rejects_manual_nonsecret_edit(self):
-        import subprocess
-        script=SKILLS/'deploy-topology/scripts/env_files.py'
+class EnvironmentContract(unittest.TestCase):
+    def test_check_env_requires_project_check_and_propagates_failure(self):
+        deploy = module("deploy_env_checks", SKILLS / "deploy-topology/scripts/deploy_check.py")
         with tempfile.TemporaryDirectory() as tmp:
-            root=Path(tmp)
-            (root/'docker-compose.test.yml').write_text('services: {}')
-            (root/'.env.example').write_text('# Template\n\n# [required] port\nPORT=8000\n# [secret] token\nTOKEN=\n')
-            def call(mode): return subprocess.run([sys.executable,str(script),str(root),mode],capture_output=True,text=True)
-            self.assertEqual(call('build').returncode,0)
-            output=root/'.env.test.local';output.write_text(output.read_text().replace('TOKEN=','TOKEN=private-fixture'))
-            self.assertEqual(call('check').returncode,0)
-            output.write_text(output.read_text().replace('PORT=8000','PORT=9999'))
-            self.assertEqual(call('check').returncode,1)
-            self.assertEqual(call('build').returncode,0)
-            self.assertIn('TOKEN=private-fixture',output.read_text())
-            self.assertIn('PORT=8000',output.read_text())
-            self.assertEqual(call('check').returncode,0)
+            root = Path(tmp)
+            errors = []
+            deploy.check_env(root, errors)
+            self.assertTrue(errors)
+            (root / "scripts").mkdir()
+            script = root / "scripts/env_doc.py"
+            script.write_text("import sys\nassert sys.argv[1:] == ['--check']\n")
+            errors.clear()
+            deploy.check_env(root, errors)
+            self.assertEqual(errors, [])
+            script.write_text("import sys\nprint('.env.example', file=sys.stderr)\nsys.exit(1)\n")
+            deploy.check_env(root, errors)
+            self.assertIn(".env.example", errors[0])
 
-if __name__=='__main__': unittest.main()
+    def test_upgrade_detects_partial_and_complete_migration(self):
+        changes = json.loads((SKILLS / "upgrade-docs/changes.json").read_text())
+        change = next(c for c in changes if c["id"] == "schema-env-two-stands")
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            for path in ("deploy/prod.env.example", ".env.example", "documentation/deploy/deploy.md",
+                         "scripts/env_doc.py", "docker-compose.test.yml", "docker-compose.dev.yml"):
+                file = root / path
+                file.parent.mkdir(parents=True, exist_ok=True)
+                file.write_text("<!-- env-doc:start -->" if path.endswith(".md") else "")
+            self.assertTrue(upgrade.holds(root, change["applies"]))
+            self.assertFalse(upgrade.holds(root, change["behind"]))
+            (root / "Makefile").write_text("up-prod:\n")
+            self.assertTrue(upgrade.holds(root, change["behind"]))
+
+
+if __name__ == '__main__':
+    unittest.main()

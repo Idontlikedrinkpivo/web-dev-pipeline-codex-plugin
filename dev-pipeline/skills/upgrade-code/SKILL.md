@@ -52,6 +52,25 @@ is «позже»»: a non-answer counts as «позже»), the «The branch» 
 5. **Report.** The format-change part of `upgrade-docs` step 5 (made, skipped, left for later, the branch), plus the
    checks before and after; not its document-set part.
 
+## Schema-based environment migration
+
+Apply `schema-env-two-stands` as one ordinary commit on the current upgrade branch. Preserve the service version.
+Inventory the tracked dev Compose contract, project name, volumes, effective defaults, ports and required inputs.
+Use disposable copies and **synthetic** legacy env files with extra keys, empty and custom values. Compare old and
+new effective dev settings and exercise startup. Preserve legacy overrides where supported (Compose interpolation
+`${KEY:-default}`), accept unknown legacy keys, and keep each deployment's existing local files untouched.
+New defaults that would change an existing dev stand need a user decision before the migration can be applied.
+
+Install the project schema, generator, and tests per `deploy-topology/references/env-and-config-contract.md`.
+Replace the obsolete template/bootstrap, old env-files tests and production Compose targets. Update the release
+build, CI, verify skill, README, architecture, project map and operations instructions in the same change.
+Render and commit the public artifacts on the development machine. A deployed dev stand only needs:
+
+```sh
+git pull --ff-only
+docker compose --env-file .env.dev.local -f docker-compose.dev.yml up -d --build
+```
+
 ## Code audit
 
 On «проведи аудит кода», «проверь код на соответствие плагину», «нужно ли переписывать», or offered once after

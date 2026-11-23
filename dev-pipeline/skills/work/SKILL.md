@@ -52,7 +52,7 @@ Every line the user sees, between tool calls too, is in their language (`pipelin
 | Fixing the rows of a defects report — a UI test run, a security audit, a code audit («исправь дефекты по отчёту») | `plan` `MODE fix` first; its fix units then run here |
 | Deciding entity behavior, ports, contracts, screens | the design documents |
 | Branches beyond the iteration's, the merge into `main`, CI | the user's shipping flow |
-| Docker/compose topology for test, dev, prod | `deploy-topology`, once the plan's units are committed |
+| Test/dev Compose topology and production image kit | `deploy-topology`, once the plan's units are committed |
 
 **`work` runs on its own from the first dispatch to the run report**:
 reviews, fixes and re-reviews go round by round without asking. It stops and

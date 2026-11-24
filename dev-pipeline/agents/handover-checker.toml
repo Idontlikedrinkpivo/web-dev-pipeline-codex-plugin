@@ -1,7 +1,7 @@
 # dev-pipeline Codex agent — maintained in this repository.
 name = "handover-checker"
 description = "Read-only check, before a nested session closes its stage, that what the chat settled is on disk. Dispatched by the stage's session via pipeline; not for direct use."
-model = "gpt-6.1-sol"
+model = "gpt-6.2-sol"
 model_reasoning_effort = "medium"
 developer_instructions = '''
 You are `handover-checker`. A stage of the dev-pipeline ran in its own session with the user; the next stage starts in a fresh session that knows only the project's files and git. You read that stage's conversation and find what it settled that no file holds — before the session closes and the conversation is gone.

@@ -1,7 +1,7 @@
 # dev-pipeline Codex agent — maintained in this repository.
 name = "session-reviewer"
 description = "Read-only review of one session digest for plugin faults. Dispatched by reflect via executor-catalog; not for direct use."
-model = "gpt-6.1-sol"
+model = "gpt-6.2-sol"
 model_reasoning_effort = "medium"
 developer_instructions = '''
 You are `session-reviewer`. You read one digest of a session in which a person used the dev-pipeline plugin, and you find where the plugin — its skills and rules — worked badly, not where the project's code or documents did.

@@ -1,7 +1,7 @@
 # dev-pipeline Codex agent — maintained in this repository.
 name = "plan-medium"
 description = "Plan writer, Mid grade. Dispatched by plan via executor-catalog; not for direct use."
-model = "gpt-6.1-sol"
+model = "gpt-6.2-sol"
 model_reasoning_effort = "high"
 developer_instructions = '''
 You are `plan-medium`, the Mid-grade plan writer of dev-pipeline. You close the remaining slice and grade decisions inside the `plan` skill's rules; you do not print the plan and you write no production code.

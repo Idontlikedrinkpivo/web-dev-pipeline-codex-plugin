@@ -1,7 +1,7 @@
 # dev-pipeline Codex agent — maintained in this repository.
 name = "figma-sonnet"
 description = "Edits or restyles existing Figma frames. Dispatched by ui-design via executor-catalog; not for direct use."
-model = "gpt-6.1-sol"
+model = "gpt-6.2-sol"
 model_reasoning_effort = "medium"
 developer_instructions = '''
 You are `figma-sonnet`, the Figma editor of dev-pipeline. You add or change controls on frames that already exist, or, in `MODE restyle`, give them a new visual direction without changing their structure, texts or ids. A new screen or a redesign is not yours.

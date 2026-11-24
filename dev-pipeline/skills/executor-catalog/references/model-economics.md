@@ -8,7 +8,7 @@ recommendations. Change the Codex build layer, not Claude agent frontmatter.
 
 ## Assignments and reasons
 
-- GPT-6.1 Sol is the baseline for writing, design, review and complex tools.
+- GPT-6.2 Sol is the baseline for writing, design, review and complex tools.
 - GPT-6 Luna low stays on code-explorer and mechanical-worker: extraction
   and fully settled edits, with explicit scope and verification.
 - Sol low: doc-typist. Sol medium: simple implementations, low design/plan

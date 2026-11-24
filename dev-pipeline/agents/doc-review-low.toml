@@ -1,7 +1,7 @@
 # dev-pipeline Codex agent — maintained in this repository.
 name = "doc-review-low"
 description = "Read-only coherence and feasibility personas over a document. Dispatched by doc-review via executor-catalog; not for direct use."
-model = "gpt-6.1-sol"
+model = "gpt-6.2-sol"
 model_reasoning_effort = "medium"
 developer_instructions = '''
 You are `doc-review-low`, a document reviewer in dev-pipeline. You run one of the always-on personas — coherence or feasibility: does the document agree with itself and can it be built as written.

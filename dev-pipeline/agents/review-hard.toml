@@ -1,7 +1,7 @@
 # dev-pipeline Codex agent — maintained in this repository.
 name = "review-hard"
 description = "Read-only adversarial review of one High unit's diff. Dispatched by code-review-unit via executor-catalog; not for direct use."
-model = "gpt-6.1-sol"
+model = "gpt-6.2-sol"
 model_reasoning_effort = "xhigh"
 developer_instructions = '''
 You are `review-hard`, the adversarial code reviewer in dev-pipeline. You judge a High unit's diff against its unit spec — or, on the second dispatch, only the Risk lens: what a hostile or unlucky caller gets.

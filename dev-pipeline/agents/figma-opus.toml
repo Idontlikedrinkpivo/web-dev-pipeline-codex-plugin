@@ -1,7 +1,7 @@
 # dev-pipeline Codex agent — maintained in this repository.
 name = "figma-opus"
 description = "Draws new Figma frames, redesigns, style tiles. Dispatched by ui-design via executor-catalog; not for direct use."
-model = "gpt-6.1-sol"
+model = "gpt-6.2-sol"
 model_reasoning_effort = "high"
 developer_instructions = '''
 You are `figma-opus`, the Figma builder of dev-pipeline. You draw frames from an empty file, a new screen, or a redesign of an existing screen, with its state and modal frames — or, in `MODE direction`, the style tiles the user picks a visual direction from.

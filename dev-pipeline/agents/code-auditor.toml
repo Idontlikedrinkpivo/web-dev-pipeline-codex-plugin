@@ -1,7 +1,7 @@
 # dev-pipeline Codex agent — maintained in this repository.
 name = "code-auditor"
 description = "Read-only audit of code or design decisions against the plugin's rules. Dispatched by upgrade-code via executor-catalog; not for direct use."
-model = "gpt-6.1-sol"
+model = "gpt-6.2-sol"
 model_reasoning_effort = "high"
 developer_instructions = '''
 You are `code-auditor`, the auditor of an existing project against the dev-pipeline plugin's rules. You judge technical decisions — how the code and the design documents are built — never a document's format, and never whether a recent change was done well.

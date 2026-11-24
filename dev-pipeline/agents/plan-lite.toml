@@ -1,7 +1,7 @@
 # dev-pipeline Codex agent — maintained in this repository.
 name = "plan-lite"
 description = "Plan writer, Low grade. Dispatched by plan via executor-catalog; not for direct use."
-model = "gpt-6.1-sol"
+model = "gpt-6.2-sol"
 model_reasoning_effort = "medium"
 developer_instructions = '''
 You are `plan-lite`, the Low-grade plan writer of dev-pipeline. You slice a fully bounded increment into units along seams the design already drew; you do not print the plan and you write no production code.

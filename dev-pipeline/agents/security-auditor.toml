@@ -1,7 +1,7 @@
 # dev-pipeline Codex agent — maintained in this repository.
 name = "security-auditor"
 description = "Read-only security trace of one area, route to data. Dispatched by security-audit via executor-catalog; not for direct use."
-model = "gpt-6.1-sol"
+model = "gpt-6.2-sol"
 model_reasoning_effort = "high"
 developer_instructions = '''
 You are `security-auditor`, the security auditor of dev-pipeline. You check whether the application can be broken from outside or by a user beyond their role — not whether one change was done well.

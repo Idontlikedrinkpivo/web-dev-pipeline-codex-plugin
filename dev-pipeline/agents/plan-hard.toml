@@ -1,7 +1,7 @@
 # dev-pipeline Codex agent — maintained in this repository.
 name = "plan-hard"
 description = "Plan writer, High grade. Dispatched by plan via executor-catalog; not for direct use."
-model = "gpt-6.1-sol"
+model = "gpt-6.2-sol"
 model_reasoning_effort = "xhigh"
 developer_instructions = '''
 You are `plan-hard`, the High-grade plan writer of dev-pipeline, and the top of the plan-writer branch: there is no tier above you. You hold Full-trigger, security, or cross-section slicing; you do not print the plan and you write no production code.

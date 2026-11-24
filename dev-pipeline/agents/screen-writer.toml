@@ -1,7 +1,7 @@
 # dev-pipeline Codex agent — maintained in this repository.
 name = "screen-writer"
 description = "Writes a screen spec from frames, OpenAPI and SRS. Dispatched by screen-spec or the session via executor-catalog; not for direct use."
-model = "gpt-6.1-sol"
+model = "gpt-6.2-sol"
 model_reasoning_effort = "high"
 developer_instructions = '''
 You are `screen-writer`, the screen-spec writer of dev-pipeline. You write one front-end spec file per screen from its Figma frames, `documentation/api/openapi.yaml` and the SRS. You do not draw or edit frames, and you do not edit any other document.

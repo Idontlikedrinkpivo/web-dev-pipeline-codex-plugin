@@ -27,7 +27,7 @@ class ModelPolicyTests(unittest.TestCase):
         stages = importlib.util.module_from_spec(spec);spec.loader.exec_module(stages)
         self.assertEqual(set(self.policy['_stages']),set(stages.STAGES)|{'parent'})
         for profile in list(self.policy['_stages'].values()) + [self.policy['role:'+n] for n in self.roles]:
-            self.assertIn(profile['model'],{'gpt-6.1-sol','gpt-6-luna'})
+            self.assertIn(profile['model'],{'gpt-6.2-sol','gpt-6-luna'})
             self.assertIn(profile['effort'],{'low','medium','high','xhigh','max'})
 
     def test_difficulty_escalation_increases_reasoning_without_affecting_mechanics(self):
@@ -43,7 +43,7 @@ class ModelPolicyTests(unittest.TestCase):
         content_roles=['impl-medium','impl-hard','impl-critical','impl-ui','srs-author',
                        'screen-writer','docs-consistency-checker','ui-test-runner']
         for role in content_roles:
-            self.assertEqual(self.roles[role]['model'],'gpt-6.1-sol')
+            self.assertEqual(self.roles[role]['model'],'gpt-6.2-sol')
             self.assertIn(self.roles[role]['model_reasoning_effort'],{'high','xhigh'})
 
 
